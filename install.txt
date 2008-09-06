@@ -1,0 +1,404 @@
+############################################################## 
+## MOD Title: Proxy Revealer Olympus (phpBB3)
+## MOD Author: jasmineaura < jasmine.aura@yahoo.com > (Jasmine Hasan) http://jasmineaura.s5.com
+## phpBB2 MOD Author: TerraFrost < terrafrost@phpbb.com > (Jim Wigginton) http://www.frostjedi.com/terra/wordpress/
+## MOD Description: Attempts to determine someone's "real" IP address, using a myriad of techniques, and "blocks" such people.
+## MOD Version: 0.1-alpha
+##
+## Installation Level: Intermediate
+## Installation Time: 15 Minutes
+##
+## Files To Edit: 5
+##      includes/constants.php
+##      includes/session.php
+##      includes/functions.php
+##      language/en/common.php
+##      styles/prosilver/template/overall_header.html
+##
+## Included Files: 6
+##      HttpRequestor.class
+##      HttpRequestor.swf
+##      expressInstall.swf
+##      probe.php
+##      swfobject.js
+##      xss.xml
+##
+## Included daemon scripts (choose one - see Flash Method Requirements below):
+##      daemon/xmlsockd.pl
+##      daemon/xmlsockd-basic.pl
+##      daemon/xmlsockd-threaded.pl
+##
+## License: http://opensource.org/licenses/gpl-license.php GNU General Public License v2
+##############################################################
+## For security purposes, please check: http://www.phpbb.com/mods/
+## for the latest version of this MOD. Although MODs are checked
+## before being allowed in the MODs Database there is no guarantee
+## that there are no security problems within the MOD. No support
+## will be given for MODs not found within the MODs Database which
+## can be found at http://www.phpbb.com/mods/
+##############################################################
+##
+##   This is an ALPHA RELEASE... USE AT YOUR OWN RISK!
+##
+##############################################################
+## Author Notes:
+##
+##   Probably the easiest way to hide ones IP address is to use an open HTTP/SOCKS4/SOCKS5 proxy or
+##   to use a so-called CGI proxy.  These techniques, however, aren't full proof.  Transparent HTTP
+##   proxies, for instance, include an X-Forwarded-For header that usually includes the originating
+##   IP address.
+##
+##   Code can also be ran on the client-side to reveal more information.  Since Java's Socket object
+##   doesn't use the browsers connection settings when connecting to the network, we can use Java to
+##   attempt to make a connection to the server as well.  Also, some CGI proxies maintain anonymity
+##   by rewritting all all URLs to go through them.  Unfortunately, as XSS vulnerabilities often
+##   demonstrate, filtering HTML isn't as easy a task as one might initially think.
+##
+##   In theory, all one need do to thwart the XSS-like approach is to simply update their CGI proxy
+##   to account for it.  Of course, just because the developer of that CGI proxy updates doesn't mean
+##   that every website using that CGI proxy will update to the latest version.
+##
+##   The Java part of this mod will not work with boards that are password protected by a .htaccess file
+##   or whatever or boards running on SSL/TLS.
+##
+##   The source code to HttpRequestor.class can be found in the contrib directory.  If you're trying to
+##   compile that file, yourself, use "javac HttpRequestor.java -source 1.3 -target 1.1" for maximum
+##   compatability.
+##
+##   Flash is an added method of detection, similar to the Java applet employed in this MOD. Similarly,
+##   the flash method uses XMLSocket() to circumvent the browsers connection settings that uses a proxy,
+##   and attempts to make a direct connection to the server on a custom port where we run a small perl
+##   daemon script that returns the real IP to the hidden (1x1 pixel) flash movie, which in turn connects
+##   back to our webserver to submit this information (along with flash version) via one URL request.
+##
+##   Another advantage of the Flash technique is that it uses Adobe's new Flash security model for using
+##   XMLSocket Policy File requests to authorize XMLSocket connections, which is automatically done 
+##   between the Flash movie and the perl daemon script to authorize connection back to the server on the
+##   same port, even if the flash movie was downloaded from a different domain.
+##   In other words, if someone was visiting the site through a CGI-Proxy server, and the Flash movie was
+##   downloaded from that CGI-Proxy server after it cached it, Flash would still be able to connect back
+##   to our server to get the real IP of the user and submit it back via the URL request.
+##   This is an advantage over the Java applet method, which has to abide by the same-domain policy.
+##
+##   The source code of the flash addon is also available in the contrib directory. If you want to publish
+##   that file yourself, you need to have Adobe Flash CS3 program. If you only want to look at the source
+##   code of it, you can just open HttpRequestor.as file in your favorite text editor :)
+##
+##############################################################
+##
+## THIS RELEASE IS NOT READY FOR PRODUCTION ENVIRONMENTS.
+## PROVIDED ONLY FOR TESTING!!!
+##
+##############################################################
+####### FLASH DETECTION METHOD SETUP REQUIREMENTS ############
+##############################################################
+##
+## To be enable the Flash detection, you need to have shell access on your server and be able
+##  to run xmlsockd.pl daemon script (as a normal user) in a directory where it has write
+##  access so it can write the log and PID Files. Make sure this directory is outside your
+##  httpdocs/docroot!
+##
+## Choose only one of the following three scripts to run:
+##
+## * xmlsockd.pl: What most admins want to run.
+##   - Single Threaded script which could handle a few simultaneous connections at the same time.
+##   (meaning few milliseconds). Multiplexing using IO::Select to handle multiple clients, in 
+##   case there are some lazy/slow clients who take their sweet time to send their request, we 
+##   dont want to delay the rest - so the ip checking could be done quickly). In my tests, running
+##   a two sequential connections/requests (XML Policy File request then IP request right after) a 
+##   100 times (from local server shell) took about 2 seconds
+##   From browser and over a 256kbps adsl - once the 1kb swf is loaded from probe.php - with network
+##   overhead, the XMLPolicyFile request and the IP request both happen in less than a second :)
+##   - Supports logging, optional configuration of port, logging connections
+##   - Supports running as standalone daemon script from shell, and/or @reboot or periodically from cron
+## 
+## * xmlsockd-threaded.pl: What admins of very large boards might need
+##   (boards that get a lot of simultaneous/bursts of logins at the same time at any time of the day - 
+##   we're talking, multiple logins at the same exact second).
+##   - Mutli-threaded script, runs a pool of pre-forked threads to handle much more connections 
+##   simultaneously. Each thread handles accepting of connections on their own, also using IO::Select 
+##   to multiplex between connections.
+##   - Supports same as above, with the optional configuration of number of threads/listener pool.
+## 
+## * xmlsockd-basic.pl: A barebone version of the script
+##   for admins who run on systems with very limited perl installations that don't have modules needed 
+##   to run xmlsockd.pl such as IO::Socket, IO::Select, Log::Dispatch, Proc::PID::File, etc...
+##
+##
+## If your server is linux/bsd then it most likely runs vixiecron, which allows you to use the @reboot
+##  syntax in crontab, so that your script can be automatically restarted after reboot. Example:
+##  $ crontab -e
+##   (add the following line to your crontab:)
+##  @reboot $HOME/private/xmlsockd.pl
+##   Assuming your xmlsockd.pl script lies in the path $HOME/private/xmlsockd.pl ($HOME is your home dir)
+##
+## 
+## To test if it's working properly (provided you have netcat installed):
+## $ perl -e 'printf "<policy-file-request/>%c",0' | nc yourhost.com 9999
+## $ perl -e 'printf "<request>getmyip</request>%c",0' | nc yourhost.com 9999
+##
+##############################################################
+#
+#-----[ COPY ]------------------------------------------
+#
+copy HttpRequestor.class to HttpRequestor.class
+copy HttpRequestor.swf to HttpRequestor.swf
+copy expressInstall.swf to expressInstall.swf
+copy probe.php to probe.php
+copy swfobject.js to swfobject.js
+copy xss.xml to xss.xml
+#
+#-----[ SQL ]-------------------------------------------
+#
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_block','14');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban','0');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_prune','');
+ALTER TABLE phpbb_sessions ADD session_speculative_test tinyint(1) DEFAULT '-1' NOT NULL;
+ALTER TABLE phpbb_sessions ADD session_speculative_key char(10);
+CREATE TABLE phpbb_speculative_ips (
+   ip_address char(8) DEFAULT '0' NOT NULL,
+   method tinyint(1) DEFAULT '0' NOT NULL,
+   discovered int(11) DEFAULT '0' NOT NULL,
+   real_ip text,
+   info text,
+   KEY ip_address (ip_address)
+);
+CREATE TABLE phpbb_speculative_excludes (
+   ip_address char(8) DEFAULT '0' NOT NULL,
+   KEY ip_address (ip_address)
+);
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/constants.php
+#
+#-----[ FIND ]------------------------------------------
+#
+// Additional constants
+define('VOTE_CONVERTED', 127);
+#
+#-----[ AFTER, ADD ]------------------------------------
+#
+// START Proxy Revealer Olympus
+// detection methods (they're in powers of 2 so that bitwise operations can be used to block people)
+define('X_FORWARDED_FOR',1);
+define('XSS',2);
+define('JAVA',4);
+define('FLASH',8);
+// this is used in admin_speculative.php
+define('JAVA_INTERNAL',3);
+// END Proxy Revealer Olympus
+
+#
+#-----[ FIND ]------------------------------------------
+#
+// Additional tables
+#
+#-----[ AFTER, ADD ]------------------------------------
+#
+// START Proxy Revealer Olympus
+define('SPECULATIVE_TABLE',			$table_prefix . 'speculative_ips');
+define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
+// END Proxy Revealer Olympus
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/session.php
+#
+#-----[ FIND ]------------------------------------------
+#
+		if (isset($this->data['session_viewonline']))
+#
+#-----[ BEFORE, ADD ]------------------------------------
+#
+
+		// START Proxy Revealer Olympus
+		// $this->data['session_speculative_test'] can be thought of as a combination of three bits.  the bits that are set
+		// represent the modes that tested positive for ip masking.  we compare that against the "blocking modes" by means
+		// of a 'bitwise and' and from there, block as appropriate.
+		$sql = 'SELECT config_value FROM ' . CONFIG_TABLE . ' WHERE config_name = \'ip_block\' LIMIT 1'; 
+		$result = $db->sql_query($sql);
+		$config['ip_block'] = $db->sql_fetchfield('config_value');
+		$db->sql_freeresult($result);
+
+		if ( (int) $this->data['session_speculative_test'] > 0 && ((int)$this->data['session_speculative_test'] & (int)$config['ip_block']) )
+		{
+			header('HTTP/1.1 503 Service Unavailable');
+			trigger_error('IP_MASK_BLOCKED');
+		}
+		// END Proxy Revealer Olympus
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+includes/functions.php
+#
+#-----[ FIND ]------------------------------------------
+#
+			ob_start('ob_gzhandler');
+		}
+	}
+#
+#-----[ AFTER, ADD ]------------------------------------
+#
+
+	// START Proxy Revealer Olympus
+	if ( !isset($user->data['session_speculative_test']) || (int) $user->data['session_speculative_test'] < 0 )
+	{
+		$user_ip = encode_ip($user->ip);
+		preg_match('/(..)(..)(..)(..)/', $user_ip, $user_ip_parts);
+	
+		$sql = "SELECT ip_address 
+			FROM " . SPECULATIVE_EXCLUDE_TABLE . " 
+			WHERE ip_address IN ('" . $user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . $user_ip_parts[4] . "', '" . $user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . "ff', '" . $user_ip_parts[1] . $user_ip_parts[2] . "ffff', '" . $user_ip_parts[1] . "ffffff')";
+	
+		if ( !($result = $db->sql_query($sql)) )
+		{
+			trigger_error('Unable to query exclusion list from speculative_excludes table.');
+		}
+	
+		if ( !$row = $db->sql_fetchrow($result) )
+		{
+			$speculative_test = 1;
+		}
+	
+		$user->data['session_speculative_key'] = strtolower(gen_rand_string(10));
+	
+		$sql = "UPDATE ".SESSIONS_TABLE." 
+			SET session_speculative_test = 0, session_speculative_key = '{$user->data['session_speculative_key']}' 
+			WHERE session_id = '{$user->data['session_id']}'";
+		if ( !$db->sql_query($sql) )
+		{
+			trigger_error('Unable to update sessions table to set session speculative_test and speculative_key.');
+		}
+	
+		if ( !empty($config['ip_prune']) )
+		{
+			$sql = "DELETE FROM ".SPECULATIVE_TABLE." 
+				WHERE discovered < ".(time() - 86400 * $config['ip_prune']);
+			if ( !$db->sql_query($sql) )
+			{
+				trigger_error('Unable to delete expired masked IPs from speculative table.');
+			}
+		}
+	}
+	// END Proxy Revealer Olympus
+
+#
+#-----[ FIND ]------------------------------------------
+#
+		$user_lang = substr($user_lang, 0, strpos($user_lang, '-x-'));
+	}
+#
+#-----[ AFTER, ADD ]------------------------------------
+#
+
+	// START Proxy Revealer Olympus
+	$config['server_port'] = trim($config['server_port']);
+	$server_name = trim($config['server_name']);
+	$server_protocol = ($config['cookie_secure']) ? 'https://' : 'http://';
+	$server_port = ($config['server_port'] != 80) ? ':' . $config['server_port'] : '';
+	$path_name = '/' . preg_replace('/^\/?(.*?)\/?$/', '\1', trim($config['script_path']));
+	$path_name.= ($path_name != '') ? '/' : '';
+	$server_url = $server_protocol . $server_name . $server_port . $path_name;
+	// END Proxy Revealer Olympus
+
+#
+#-----[ FIND ]------------------------------------------
+#
+	$template->assign_vars(array(
+		'SITENAME'						=> $config['sitename'],
+#
+#-----[ REPLACE WITH ]----------------------------------
+#
+	$template->assign_vars(array(
+		// START Proxy Revealer Olympus
+		'S_SPECULATIVE_TEST'			=> (isset($speculative_test)) ? 1 : 0,
+		// add a hidden iframe from which we'll include other iframe's.  call it iframe1 and the iframe's within it 
+		// iframe2 and iframe3.  iframe2 and iframe3 add the IP address that was used to request them to the URL of yet 
+		// another iframe - iframe4.
+		'U_PROBE'						=> $server_url."probe.$phpEx?extra={$user->data['session_id']},{$user->data['session_speculative_key']}",
+		// say a CGI proxy didn't convert over the URLs of an iframe.  that means that the IP address iframe2 and iframe3 add
+		// is going to be the "real" IP address whereas normally it'd be the "masked" IP address.  to remedy that, we make a
+		// seperate request to iframe4 via an iframe we'll call iframe0 and add the IP address to that.  that way, even if 
+		// iframe2 and iframe3 pass on the "real" IP address to iframe4, iframe0 can still pass on the "masked" IP address.
+		'U_PROBE_XSS'					=> $server_url."probe.$phpEx?mode=xss&amp;ip={$user->ip}&amp;extra={$user->data['session_id']},{$user->data['session_speculative_key']}",
+		'U_PROBE_XSS2'					=> $server_url."probe.$phpEx?mode=xss&ip={$user->ip}&extra={$user->data['session_id']},{$user->data['session_speculative_key']}",
+		// -moz-binding only works on FireFox.  we'd have done this in probe.php were it not for the fact that expressions
+		// (only work in IE; they use U_PROBE_XSS and are used in the same style attribute where -moz-binding is used) don't
+		// seem to work in small iframe's.
+		'U_MOZ_BINDING'					=> $server_url . 'xss.xml#xss',
+		// END Proxy Revealer Olympus
+		'SITENAME'						=> $config['sitename'],
+#
+#-----[ FIND ]------------------------------------------
+#
+?>
+#
+#-----[ BEFORE, ADD ]-----------------------------------
+#
+
+// START Proxy Revealer Olympus
+function encode_ip($dotquad_ip)
+{
+   $ip_sep = explode('.', $dotquad_ip);
+   return sprintf('%02x%02x%02x%02x', $ip_sep[0], $ip_sep[1], $ip_sep[2], $ip_sep[3]);
+}
+// END Proxy Revealer Olympus
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+language/en/common.php
+#
+#-----[ FIND ]------------------------------------------
+#
+	'IP_BLACKLISTED'			=> 'Your IP %1$s has been blocked because it is blacklisted. For details please see <a href="%2$s">%2$s</a>.',
+#
+#-----[ AFTER, ADD ]------------------------------------
+#
+	'IP_MASK_BLOCKED'			=> 'Your IP address has been blocked for this session as it appears to be masked.', // Proxy Revealer Olympus
+
+#
+#-----[ OPEN ]------------------------------------------
+#
+styles/prosilver/template/overall_header.html
+#
+#-----[ FIND ]------------------------------------------
+#
+<body id="phpbb" class="section-{SCRIPT_NAME} {S_CONTENT_DIRECTION}">
+#
+#-----[ AFTER, ADD ]------------------------------------
+#
+
+<div id="flashPopup" name="flashPopup" style="position: absolute; width: 320px; height: 180px; display: none; background: #ddd; border: 1px solid #000; align: center"></div>
+<!-- IF S_SPECULATIVE_TEST -->
+<iframe src="{U_PROBE}" width="1" height="1" frameborder="0" id="iframe1"></iframe>
+<iframe src="{U_PROBE_XSS}" width="1" height="1" frameborder="0" id="iframe0" url="{U_PROBE_XSS}"></iframe>
+<div style="-moz-binding:url('{U_MOZ_BINDING}'); background:/**/expression(if(this.x!='x'){document.getElementById('iframe0').src='{U_PROBE_XSS}';this.x='x';})" x=""></div>
+<![if !IE]>
+<script language="Javascript" type="text/javascript">
+  document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
+</script>
+<![endif]>
+<!--[if IE 7]>
+<script language="Javascript" type="text/javascript">
+  document.getElementById("iframe1").onload = function(){
+    document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
+  };
+</script>
+<![endif]-->
+<!-- ENDIF -->
+
+#
+#-----[ DIY INSTRUCTIONS ]------------------------------
+#
+
+1. Go to ACP -> Styles -> Templates
+2. Click "Refresh" next to the template name you're using.
+
+#
+#-----[ SAVE/CLOSE ALL FILES ]--------------------------
+#
+# EoM
