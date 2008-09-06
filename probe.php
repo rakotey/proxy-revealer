@@ -260,7 +260,7 @@ switch ($mode):
 			insert_ip($orig_ip,XSS,$user->ip,$xss_info);
 		}
 
-		$java_url = $path_name . "probe.$phpEx?mode=java&amp;ip={$user->ip}&amp;extra=$sid,$key";
+		$java_url = $path_name . "probe.$phpEx?mode=java&amp;ip=$orig_ip&amp;extra=$sid,$key";
 
 		// XML Socket Policy file server port
 		$xmlsockd_port = 9999;
@@ -269,7 +269,7 @@ switch ($mode):
 		// See: http://code.google.com/p/swfobject/wiki/api for more info
 		$min_flash_ver = "9.0.0";
 		$flash_vars = "dhost=$server_name&amp;dport=$xmlsockd_port&amp;flash_url=$server_url"."probe.$phpEx".
-			"&amp;ip={$user->ip}&amp;extra=$sid,$key&amp;user_agent=".htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
+			"&amp;ip=$orig_ip&amp;extra=$sid,$key&amp;user_agent=".htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
