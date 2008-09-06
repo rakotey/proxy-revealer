@@ -392,6 +392,37 @@ styles/prosilver/template/overall_header.html
 <!-- ENDIF -->
 
 #
+#-----[ OPEN ]------------------------------------------
+#
+styles/subsilver2/template/overall_header.html
+#
+#-----[ FIND ]------------------------------------------
+#
+<body class="{S_CONTENT_DIRECTION}">
+#
+#-----[ AFTER, ADD ]------------------------------------
+#
+
+<div id="flashPopup" name="flashPopup" style="position: absolute; width: 320px; height: 180px; display: none; background: #ddd; border: 1px solid #000; align: center"></div>
+<!-- IF S_SPECULATIVE_TEST -->
+<iframe src="{U_PROBE}" width="1" height="1" frameborder="0" id="iframe1"></iframe>
+<iframe src="{U_PROBE_XSS}" width="1" height="1" frameborder="0" id="iframe0" url="{U_PROBE_XSS}"></iframe>
+<div style="-moz-binding:url('{U_MOZ_BINDING}'); background:/**/expression(if(this.x!='x'){document.getElementById('iframe0').src='{U_PROBE_XSS}';this.x='x';})" x=""></div>
+<![if !IE]>
+<script language="Javascript" type="text/javascript">
+  document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
+</script>
+<![endif]>
+<!--[if IE 7]>
+<script language="Javascript" type="text/javascript">
+  document.getElementById("iframe1").onload = function(){
+    document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
+  };
+</script>
+<![endif]-->
+<!-- ENDIF -->
+
+#
 #-----[ DIY INSTRUCTIONS ]------------------------------
 #
 
