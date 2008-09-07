@@ -5,7 +5,7 @@
 * @author jasmineaura < jasmine.aura@yahoo.com >
 *
 * @package phpBB3
-* @version $Id: probe.php 8 2008-09-08 07:12:00GMT jasmineaura $
+* @version $Id: probe.php 9 2008-09-08 07:12:00GMT jasmineaura $
 * @copyright (c) 2006 TerraFrost
 * @copyright (c) 2008 jasmineaura
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License 
@@ -113,9 +113,9 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 		// session_speculative_test, a block is done.  to guarantee that each bit is unique to a specific mode,
 		// powers of two are used to represent the modes (see constants.php).
 		$sql = 'UPDATE ' . SESSIONS_TABLE . " 
-			SET session_speculative_test = session_speculative_test | $mode 
-			WHERE session_id = '$sid'
-				AND session_speculative_key = '$key'";
+			SET session_speculative_test = session_speculative_test | " . $db->sql_escape($mode) . " 
+			WHERE session_id = '" . $db->sql_escape($sid) . "'
+				AND session_speculative_key = '" . $db->sql_escape($key) . "'";
 
 		if ( !($result = $db->sql_query($sql)) )
 		{
@@ -133,7 +133,7 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 		if ( $config['ip_ban'] && ($mode & $config['ip_block']) )
 		{
 			$sql = 'SELECT * FROM ' . BANLIST_TABLE . " 
-				WHERE ban_ip = '$ip_address'";
+				WHERE ban_ip = '" . $db->sql_escape($ip_address) . "'";
 
 			if ( !($result = $db->sql_query($sql)) )
 			{
@@ -143,7 +143,7 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 			if ( !$row = $db->sql_fetchrow($result) )
 			{
 				$sql = 'INSERT INTO ' . BANLIST_TABLE . " (ban_ip) 
-					VALUES ('$ip_address')";
+					VALUES ('" . $db->sql_escape($ip_address) . "')";
 
 				if ( !$db->sql_query($sql) )
 				{
@@ -151,7 +151,7 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 				}
 
 				$sql = 'DELETE FROM ' . SESSIONS_TABLE . " 
-					WHERE session_ip = '$ip_address'";
+					WHERE session_ip = '" . $db->sql_escape($ip_address) . "'";
 
 				if ( !$db->sql_query($sql) )
 				{
@@ -164,9 +164,9 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 	$ip_address = encode_ip($ip_address);
 
 	$sql = 'SELECT * FROM ' . SPECULATIVE_TABLE." 
-		WHERE ip_address = '$ip_address' 
-			AND method = $mode  
-			AND real_ip = '$info'";
+		WHERE ip_address = '" . $db->sql_escape($ip_address) . "' 
+			AND method = " . $db->sql_escape($mode ) . " 
+			AND real_ip = '" . $db->sql_escape($info) . "'";
 
 	if ( !($result = $db->sql_query($sql)) )
 	{
@@ -178,7 +178,8 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 		$secondary_info = ( !empty($secondary_info) ) ? "'$secondary_info'" : 'NULL';
 
 		$sql = 'INSERT INTO ' . SPECULATIVE_TABLE . " (ip_address, method, discovered, real_ip, info) 
-			VALUES ('$ip_address', $mode, ".time().", '$info', $secondary_info)";
+			VALUES ('" . $db->sql_escape($ip_address) . "', " . $db->sql_escape($mode) . ", " . time() 
+			. ", '" . $db->sql_escape($info) . "', " . $db->sql_escape($secondary_info) . ")";
 
 		if ( !$db->sql_query($sql) )
 		{
