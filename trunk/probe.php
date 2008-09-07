@@ -2,8 +2,9 @@
 /***************************************************************************
  *                                probe.php
  *                            -------------------
- *   begin                : Thursday, Aug 17, 2006
- *   copyright            : (C) MMVI TerraFrost
+ *   begin                : Sunday, Sept 7, 2008
+ *   copyright          : (C) jasmineaura
+ *   copyright          : (C) MMVI TerraFrost
  *
  ***************************************************************************/
 
