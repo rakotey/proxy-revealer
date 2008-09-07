@@ -5,7 +5,7 @@
 * @author jasmineaura < jasmine.aura@yahoo.com >
 *
 * @package phpBB3
-* @version $Id: probe.php 10 2008-09-08 07:12:00GMT jasmineaura $
+* @version $Id: probe.php 11 2008-09-08 07:12:00GMT jasmineaura $
 * @copyright (c) 2006 TerraFrost
 * @copyright (c) 2008 jasmineaura
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License 
@@ -177,9 +177,15 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 	{
 		$secondary_info = ( !empty($secondary_info) ) ? "'$secondary_info'" : 'NULL';
 
-		$sql = 'INSERT INTO ' . SPECULATIVE_TABLE . " (ip_address, method, discovered, real_ip, info) 
-			VALUES ('" . $db->sql_escape($ip_address) . "', " . $db->sql_escape($mode) . ", " . time() 
-			. ", '" . $db->sql_escape($info) . "', " . $db->sql_escape($secondary_info) . ")";
+		$sql_ary = array(
+				'ip_address'	=> $ip_address,
+				'method'		=> $mode,
+				'discovered'	=> time(),
+				'real_ip'		=> $info,
+				'info'			=> $secondary_info
+		);
+
+		$sql = 'INSERT INTO ' . SPECULATIVE_TABLE . ' ' . $db->sql_build_array('INSERT', $sql_ary);
 
 		if ( !$db->sql_query($sql) )
 		{
