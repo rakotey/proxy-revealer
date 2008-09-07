@@ -217,12 +217,7 @@ includes/session.php
 		// $this->data['session_speculative_test'] can be thought of as a combination of three bits.  the bits that are set
 		// represent the modes that tested positive for ip masking.  we compare that against the "blocking modes" by means
 		// of a 'bitwise and' and from there, block as appropriate.
-		$sql = 'SELECT config_value FROM ' . CONFIG_TABLE . ' WHERE config_name = \'ip_block\' LIMIT 1'; 
-		$result = $db->sql_query($sql);
-		$config['ip_block'] = $db->sql_fetchfield('config_value');
-		$db->sql_freeresult($result);
-
-		if ( (int) $this->data['session_speculative_test'] > 0 && ((int)$this->data['session_speculative_test'] & (int)$config['ip_block']) )
+		if ( (int) $this->data['session_speculative_test'] > 0 && ((int) $this->data['session_speculative_test'] & (int) $config['ip_block']) )
 		{
 			header('HTTP/1.1 503 Service Unavailable');
 			trigger_error('IP_MASK_BLOCKED');
