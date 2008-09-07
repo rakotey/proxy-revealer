@@ -5,7 +5,7 @@
 * @author jasmineaura < jasmine.aura@yahoo.com >
 *
 * @package phpBB3
-* @version $Id: probe.php 9 2008-09-08 07:12:00GMT jasmineaura $
+* @version $Id: probe.php 10 2008-09-08 07:12:00GMT jasmineaura $
 * @copyright (c) 2006 TerraFrost
 * @copyright (c) 2008 jasmineaura
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License 
@@ -193,7 +193,9 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 // address
 if ( !empty($_SERVER['HTTP_X_FORWARDED_FOR']) && $_SERVER['HTTP_X_FORWARDED_FOR'] != $user->ip )
 {
-	$x_forwarded_for = str_replace("\'","''",htmlspecialchars($_SERVER['HTTP_X_FORWARDED_FOR']));
+	// We use $db->sql_escape() in all our SQL statements rather than str_replace("\'","''",$_SERVER['var']) on each var as it comes in
+	// This is to avoid confusion and to avoid escaping the same text twice and ending up with too many backslshes in the final result
+	$x_forwarded_for = htmlspecialchars($_SERVER['HTTP_X_FORWARDED_FOR']);
 
 	insert_ip($user->ip,X_FORWARDED_FOR,$x_forwarded_for);
 }
@@ -242,7 +244,9 @@ switch ($mode):
 			// if one of the referers IP addresses are equal to the server, we assume they're the same.
 			if ( !in_array($_SERVER['SERVER_ADDR'],gethostbynamel($parsed['host'])) && in_array($parsed['scheme'], $schemes) )
 			{
-				$xss_info = str_replace("\'","''",htmlspecialchars($_SERVER['HTTP_REFERER']));
+				// We use $db->sql_escape() in all our SQL statements rather than str_replace("\'","''",$_SERVER['var']) on each var as it comes in
+				// This is to avoid confusion and to avoid escaping the same text twice and ending up with too many backslshes in the final result
+				$xss_info = htmlspecialchars($_SERVER['HTTP_REFERER']);
 				$xss_glue = '<>';
 			}
 		}
