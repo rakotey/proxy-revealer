@@ -112,10 +112,11 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 		// the bits that represent the varrious modes 'and' with any of the bits in the bitwise representation of
 		// session_speculative_test, a block is done.  to guarantee that each bit is unique to a specific mode,
 		// powers of two are used to represent the modes (see constants.php).
-		$sql = "UPDATE ".SESSIONS_TABLE." 
+		$sql = 'UPDATE ' . SESSIONS_TABLE . " 
 			SET session_speculative_test = session_speculative_test | $mode 
 			WHERE session_id = '$sid'
 				AND session_speculative_key = '$key'";
+
 		if ( !($result = $db->sql_query($sql)) )
 		{
 			die();
@@ -131,8 +132,9 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 		// ban, if appropriate
 		if ( $config['ip_ban'] && ($mode & $config['ip_block']) )
 		{
-			$sql = "SELECT * FROM " . BANLIST_TABLE . " 
+			$sql = 'SELECT * FROM ' . BANLIST_TABLE . " 
 				WHERE ban_ip = '$ip_address'";
+
 			if ( !($result = $db->sql_query($sql)) )
 			{
 				trigger_error('Unable to obtain banlist information from banlist table.');
@@ -140,14 +142,17 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 
 			if ( !$row = $db->sql_fetchrow($result) )
 			{
-				$sql = "INSERT INTO " . BANLIST_TABLE . " (ban_ip) 
+				$sql = 'INSERT INTO ' . BANLIST_TABLE . " (ban_ip) 
 					VALUES ('$ip_address')";
+
 				if ( !$db->sql_query($sql) )
 				{
 					trigger_error('Unable to to insert ban_userip info into banlist table.');
 				}
-				$sql = "DELETE FROM " . SESSIONS_TABLE . " 
+
+				$sql = 'DELETE FROM ' . SESSIONS_TABLE . " 
 					WHERE session_ip = '$ip_address'";
+
 				if ( !$db->sql_query($sql) )
 				{
 					trigger_error('Unable to delete banned sessions from sessions table.');
@@ -158,10 +163,11 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 
 	$ip_address = encode_ip($ip_address);
 
-	$sql = "SELECT * FROM ".SPECULATIVE_TABLE." 
+	$sql = 'SELECT * FROM ' . SPECULATIVE_TABLE." 
 		WHERE ip_address = '$ip_address' 
 			AND method = $mode  
 			AND real_ip = '$info'";
+
 	if ( !($result = $db->sql_query($sql)) )
 	{
 		die();
@@ -171,8 +177,9 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 	{
 		$secondary_info = ( !empty($secondary_info) ) ? "'$secondary_info'" : 'NULL';
 
-		$sql = "INSERT INTO ".SPECULATIVE_TABLE." (ip_address, method, discovered, real_ip, info) 
+		$sql = 'INSERT INTO ' . SPECULATIVE_TABLE . " (ip_address, method, discovered, real_ip, info) 
 			VALUES ('$ip_address', $mode, ".time().", '$info', $secondary_info)";
+
 		if ( !$db->sql_query($sql) )
 		{
 			die();
