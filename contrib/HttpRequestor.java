@@ -27,7 +27,7 @@ public class HttpRequestor extends Applet
 		}
 		catch (Exception e)
 		{
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 	}
 }
