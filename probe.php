@@ -165,7 +165,7 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 
 	$sql = 'SELECT * FROM ' . SPECULATIVE_TABLE." 
 		WHERE ip_address = '" . $db->sql_escape($ip_address) . "' 
-			AND method = " . $db->sql_escape($mode ) . " 
+			AND method = " . $db->sql_escape($mode) . " 
 			AND real_ip = '" . $db->sql_escape($info) . "'";
 
 	if ( !($result = $db->sql_query($sql)) )
@@ -175,7 +175,7 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 
 	if ( !$row = $db->sql_fetchrow($result) )
 	{
-		$secondary_info = ( !empty($secondary_info) ) ? "'$secondary_info'" : 'NULL';
+		$secondary_info = ( !empty($secondary_info) ) ? "$secondary_info" : 'NULL';
 
 		$sql_ary = array(
 				'ip_address'	=> $ip_address,
