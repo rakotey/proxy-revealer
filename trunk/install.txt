@@ -308,10 +308,7 @@ includes/functions.php
 			FROM " . SPECULATIVE_EXCLUDE_TABLE . " 
 			WHERE ip_address IN ('" . $user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . $user_ip_parts[4] . "', '" . $user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . "ff', '" . $user_ip_parts[1] . $user_ip_parts[2] . "ffff', '" . $user_ip_parts[1] . "ffffff')";
 	
-		if ( !($result = $db->sql_query($sql)) )
-		{
-			trigger_error('Unable to query exclusion list from speculative_excludes table.');
-		}
+		$result = $db->sql_query($sql);
 	
 		if ( !$row = $db->sql_fetchrow($result) )
 		{
@@ -323,19 +320,13 @@ includes/functions.php
 		$sql = "UPDATE ".SESSIONS_TABLE." 
 			SET session_speculative_test = 0, session_speculative_key = '{$user->data['session_speculative_key']}' 
 			WHERE session_id = '{$user->data['session_id']}'";
-		if ( !$db->sql_query($sql) )
-		{
-			trigger_error('Unable to update sessions table to set session speculative_test and speculative_key.');
-		}
+		$db->sql_query($sql);
 	
 		if ( !empty($config['ip_prune']) )
 		{
 			$sql = "DELETE FROM ".SPECULATIVE_TABLE." 
 				WHERE discovered < ".(time() - 86400 * $config['ip_prune']);
-			if ( !$db->sql_query($sql) )
-			{
-				trigger_error('Unable to delete expired masked IPs from speculative table.');
-			}
+			$db->sql_query($sql);
 		}
 	}
 	// END Proxy Revealer Olympus

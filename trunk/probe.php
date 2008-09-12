@@ -134,29 +134,17 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 		{
 			$sql = 'SELECT * FROM ' . BANLIST_TABLE . " 
 				WHERE ban_ip = '" . $db->sql_escape($ip_address) . "'";
-
-			if ( !($result = $db->sql_query($sql)) )
-			{
-				trigger_error('Unable to obtain banlist information from banlist table.');
-			}
+			$result = $db->sql_query($sql);
 
 			if ( !$row = $db->sql_fetchrow($result) )
 			{
 				$sql = 'INSERT INTO ' . BANLIST_TABLE . " (ban_ip) 
 					VALUES ('" . $db->sql_escape($ip_address) . "')";
-
-				if ( !$db->sql_query($sql) )
-				{
-					trigger_error('Unable to to insert ban_userip info into banlist table.');
-				}
+				$db->sql_query($sql);
 
 				$sql = 'DELETE FROM ' . SESSIONS_TABLE . " 
 					WHERE session_ip = '" . $db->sql_escape($ip_address) . "'";
-
-				if ( !$db->sql_query($sql) )
-				{
-					trigger_error('Unable to delete banned sessions from sessions table.');
-				}
+				$db->sql_query($sql);
 			}
 		}
 	}
@@ -186,11 +174,7 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 		);
 
 		$sql = 'INSERT INTO ' . SPECULATIVE_TABLE . ' ' . $db->sql_build_array('INSERT', $sql_ary);
-
-		if ( !$db->sql_query($sql) )
-		{
-			die();
-		}
+		$db->sql_query($sql);
 	}
 }
 
