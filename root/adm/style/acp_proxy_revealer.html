@@ -1,0 +1,73 @@
+<!-- INCLUDE overall_header.html -->
+
+<a name="maincontent"></a>
+
+<h1>{L_PROXY_REVEALER} - {L_PROXY_REVEALER_MODE}</h1>
+<p>{L_SPECULATIVE_IP_DESC}</p>
+
+<br />
+
+<table width="100%" border="0">
+	<tr>
+		<td width="100%">
+			<form id="search" name="search" action="{U_ACTION}" method="post">
+			<span>{L_SEARCH_FOR}</span>
+			<input type="text" size="15" maxlength="15" value="{SEARCH}" name="ip" id="ip" />
+			<input class="button1" type="submit" name="search_ip" value="{L_SUBMIT}" />
+			{S_FORM_TOKEN}
+			</form>
+		</td>
+		<td align="right" nowrap="nowrap">
+			<form id="sort_show" name="sort_show" action="{U_ACTION}" method="post">
+			<span>{L_SORT_BY}</span>
+			<select name="order">
+				<option value="ASC"{S_ASC}>{L_LEAST_RECENTLY}</option>
+				<option value="DESC"{S_DESC}>{L_MOST_RECENTLY}</option>
+			</select>
+			<span>{L_SHOW}</span>
+			<input type="text" size="5" value="{S_SHOW}" name="show" />
+			<input class="button2" type="submit" value="{S_SORT}" name="change_sort" />
+			{S_FORM_TOKEN}
+			</form>
+		</td>
+	</tr>
+</table>
+
+<!-- IF PAGINATION -->
+<div class="pagination">
+		<a href="#" onclick="jumpto(); return false;" title="{L_JUMP_TO_PAGE}">{S_ON_PAGE}</a> &bull; <span>{PAGINATION}</span>
+</div>
+<!-- ENDIF -->
+
+<table width="100%" cellpadding="4" cellspacing="1" border="0">
+	<tr>
+		<th height="25" style="text-align:center;" nowrap="nowrap">{L_SPOOFED}</th>
+		<th style="text-align:center;" nowrap="nowrap">{L_METHOD}</th>
+		<th style="text-align:center;" nowrap="nowrap">{L_REAL}</th>
+		<th style="text-align:center;" nowrap="nowrap">{L_DATE}</th>
+	</tr>
+	<tr>
+		<td class="row3" style="text-align:center;"><span>&nbsp;</span></td>
+		<td class="row3" style="text-align:center;"><span>{L_METHOD_DESC}</span></td>
+		<td class="row3" style="text-align:center;"><span>{L_REAL_DESC}</span></td>
+		<td class="row3" style="text-align:center;"><span>&nbsp;</span></td>
+	</tr>
+	<!-- BEGIN speculativerow -->
+	<tr>
+		<td class="{speculativerow.ROW_CLASS}" style="text-align:center;"><span><a href="#" title="{L_SEARCH_FOR} {speculativerow.SPOOFED_IP}" onclick="document.forms['search'].ip.value='{speculativerow.SPOOFED_IP}';document.forms['search'].submit();return false;">{speculativerow.SPOOFED_IP}</a></span></td>
+		<td class="{speculativerow.ROW_CLASS}" style="text-align:center;"><span>{speculativerow.METHOD}</span></td>
+		<td class="{speculativerow.ROW_CLASS}" style="text-align:center;"><span>{speculativerow.REAL_IP}</span></td>
+		<td class="{speculativerow.ROW_CLASS}" style="text-align:center;"><span>{speculativerow.DATE}</span></td>
+	</tr>
+	<!-- END speculativerow -->
+</table>
+
+<!-- IF PAGINATION -->
+<div class="pagination">
+		<a href="#" onclick="jumpto(); return false;" title="{L_JUMP_TO_PAGE}">{S_ON_PAGE}</a> &bull; <span>{PAGINATION}</span>
+</div>
+<!-- ENDIF -->
+
+<br clear="all" />
+
+<!-- INCLUDE overall_footer.html -->
