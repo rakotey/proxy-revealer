@@ -12,6 +12,7 @@
 ##      includes/constants.php
 ##      includes/session.php
 ##      includes/functions.php
+##      language/en/acp/common.php
 ##      language/en/common.php
 ##      styles/prosilver/template/overall_header.html
 ##
@@ -216,15 +217,15 @@ INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_prune','');
 ALTER TABLE phpbb_sessions ADD session_speculative_test tinyint(1) DEFAULT '-1' NOT NULL;
 ALTER TABLE phpbb_sessions ADD session_speculative_key char(10);
 CREATE TABLE phpbb_speculative_ips (
-   ip_address char(8) DEFAULT '0' NOT NULL,
+   ip_address varchar(40) DEFAULT '0' NOT NULL,
    method tinyint(1) DEFAULT '0' NOT NULL,
    discovered int(11) DEFAULT '0' NOT NULL,
-   real_ip text,
+   real_ip varchar(40),
    info text,
    KEY ip_address (ip_address)
 );
 CREATE TABLE phpbb_speculative_excludes (
-   ip_address char(8) DEFAULT '0' NOT NULL,
+   ip_address varchar(40) DEFAULT '0' NOT NULL,
    KEY ip_address (ip_address)
 );
 #
@@ -301,19 +302,23 @@ includes/functions.php
 	// START Proxy Revealer Olympus
 	if ( !isset($user->data['session_speculative_test']) || (int) $user->data['session_speculative_test'] < 0 )
 	{
-		$user_ip = encode_ip($user->ip);
-		preg_match('/(..)(..)(..)(..)/', $user_ip, $user_ip_parts);
-	
 		$sql = "SELECT ip_address 
-			FROM " . SPECULATIVE_EXCLUDE_TABLE . " 
-			WHERE ip_address IN ('" . $user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . $user_ip_parts[4] . "', '" . $user_ip_parts[1] . $user_ip_parts[2] . $user_ip_parts[3] . "ff', '" . $user_ip_parts[1] . $user_ip_parts[2] . "ffff', '" . $user_ip_parts[1] . "ffffff')";
-	
+			FROM " . SPECULATIVE_EXCLUDE_TABLE;
 		$result = $db->sql_query($sql);
-	
-		if ( !$row = $db->sql_fetchrow($result) )
+
+		// By default, we run speculative test, unless we find the user's IP is excluded from scanning
+		$speculative_test = true;
+
+		while ($row = $db->sql_fetchrow($result))
 		{
-			$speculative_test = 1;
+			// Adapted from function check_ban() in session.php
+			if (preg_match('#^' . str_replace('\*', '.*?', preg_quote($row['ip_address'], '#')) . '$#i', $user->ip))
+			{
+				$speculative_test = false;
+				break;
+			}
 		}
+		$db->sql_freeresult($result);
 	
 		$user->data['session_speculative_key'] = strtolower(gen_rand_string(10));
 	
@@ -348,6 +353,7 @@ includes/functions.php
 	$path_name = '/' . preg_replace('/^\/?(.*?)\/?$/', '\1', trim($config['script_path']));
 	$path_name.= ($path_name != '') ? '/' : '';
 	$server_url = $server_protocol . $server_name . $server_port . $path_name;
+	$speculative_key = $user->data['session_speculative_key'];
 	// END Proxy Revealer Olympus
 
 #
@@ -360,17 +366,17 @@ includes/functions.php
 #
 	$template->assign_vars(array(
 		// START Proxy Revealer Olympus
-		'S_SPECULATIVE_TEST'			=> (isset($speculative_test)) ? 1 : 0,
+		'S_SPECULATIVE_TEST'			=> ($speculative_test) ? true : false,
 		// add a hidden iframe from which we'll include other iframe's.  call it iframe1 and the iframe's within it 
 		// iframe2 and iframe3.  iframe2 and iframe3 add the IP address that was used to request them to the URL of yet 
 		// another iframe - iframe4.
-		'U_PROBE'						=> $server_url."probe.$phpEx?extra={$user->data['session_id']},{$user->data['session_speculative_key']}",
+		'U_PROBE'						=> $server_url."probe.$phpEx?extra={$user->session_id},$speculative_key",
 		// say a CGI proxy didn't convert over the URLs of an iframe.  that means that the IP address iframe2 and iframe3 add
 		// is going to be the "real" IP address whereas normally it'd be the "masked" IP address.  to remedy that, we make a
 		// seperate request to iframe4 via an iframe we'll call iframe0 and add the IP address to that.  that way, even if 
 		// iframe2 and iframe3 pass on the "real" IP address to iframe4, iframe0 can still pass on the "masked" IP address.
-		'U_PROBE_XSS'					=> $server_url."probe.$phpEx?mode=xss&amp;ip={$user->ip}&amp;extra={$user->data['session_id']},{$user->data['session_speculative_key']}",
-		'U_PROBE_XSS2'					=> $server_url."probe.$phpEx?mode=xss&ip={$user->ip}&extra={$user->data['session_id']},{$user->data['session_speculative_key']}",
+		'U_PROBE_XSS'					=> $server_url."probe.$phpEx?mode=xss&amp;ip={$user->ip}&amp;extra={$user->session_id},$speculative_key",
+		'U_PROBE_XSS2'					=> $server_url."probe.$phpEx?mode=xss&ip={$user->ip}&extra={$user->session_id},$speculative_key",
 		// -moz-binding only works on FireFox.  we'd have done this in probe.php were it not for the fact that expressions
 		// (only work in IE; they use U_PROBE_XSS and are used in the same style attribute where -moz-binding is used) don't
 		// seem to work in small iframe's.
@@ -378,20 +384,27 @@ includes/functions.php
 		// END Proxy Revealer Olympus
 		'SITENAME'						=> $config['sitename'],
 #
+#-----[ OPEN ]------------------------------------------
+#
+language/en/acp/common.php
+#
 #-----[ FIND ]------------------------------------------
 #
 ?>
 #
-#-----[ BEFORE, ADD ]-----------------------------------
+#-----[ BEFORE, ADD ]------------------------------------
 #
-
-// START Proxy Revealer Olympus
-function encode_ip($dotquad_ip)
-{
-   $ip_sep = explode('.', $dotquad_ip);
-   return sprintf('%02x%02x%02x%02x', $ip_sep[0], $ip_sep[1], $ip_sep[2], $ip_sep[3]);
-}
-// END Proxy Revealer Olympus
+// Proxy Revealer Olympus
+$lang = array_merge($lang, array(
+	'ACP_PROXY_REVEALER'			=> 'Proxy Revealer Olympus',
+	'ACP_PROXY_REVEALER_EXTERNAL'	=> 'External IPs',
+	'ACP_PROXY_REVEALER_INTERNAL'	=> 'Internal IPs',
+	'ACP_PROXY_REVEALER_SETTINGS'	=> 'Settings',
+	'ACP_PROXY_REVEALER_EXCLUDES'	=> 'Exceptions',
+	'LOG_PROXY_REVEALER_SETTINGS'	=> '<strong>Altered Proxy Revealer settings</strong>',
+	'LOG_PROXY_REVEALER_EXCLUDE'	=> '<strong>Excluded IP from Proxy Revealer scanning</strong><br />» %1$s',
+	'LOG_PROXY_REVEALER_UNEXCLUDE'	=> '<strong>Removed IP from Proxy Revealer exceptions list</strong><br />» %s',
+));
 
 #
 #-----[ OPEN ]------------------------------------------
