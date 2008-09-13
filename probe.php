@@ -75,7 +75,7 @@ function iso_8859_1_to_utf7($str)
 	return '+'.preg_replace('#=+$#','',base64_encode(substr(iso_8859_1_to_utf16($str),2))).'-';
 }
 
-// $ip_address, in the following function, corresponds to the "real IP address".  $info corresponds to the "fake IP address".
+// $ip_address, in the following function, corresponds to the "fake IP address".  $info corresponds to the "real IP address".
 // in admin_speculative.php, the first column shows the "fake IP address" and the third column shows the "real IP address".
 // the reason we do it in this way is because when you're looking at the IP address of a post, you're going to see the 
 // "fake IP address".
@@ -83,20 +83,30 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 {
 	global $db, $user, $sid, $key, $config;
 
-	// session_begin() in session.php looks at $config['ip_check'] to see which bits of an IP address to check and so to shall we.
-	// see "Select ip validation" in includes/acp/acp_board.php for more info
-	// per this, if you're looking through some log files trying to see what a particular use did, do a search for the first two or
-	// three parts of an IP address (eg. if 128.128.128.4 did something, search for 128.128.128. to see what other things they
-	// might have done since they could technically still be logged in with 128.128.128.4 and 128.128.128.199)
-	if ( $config['ip_check'] == 3 && (ip2long($info) & 0xFFFFFF00) == (ip2long($ip_address) & 0xFFFFFF00)) // The Default
+	/**
+	* Validate IP length according to admin ... ("Session IP Validation" in ACP->Security Settings)
+	*
+	* session_begin() looks at $config['ip_check'] to see which bits of an IP address to check and so shall we.
+	* Per this, if you're looking through some log files trying to see what a particular user did, do a search for the first two or
+	* three parts of an IP address (eg. if 128.128.128.4 did something, search for 128.128.128. to see what other things they
+	* might have done since they could technically still be logged in with 128.128.128.4 and 128.128.128.199)
+	*/
+	// First, check if both addresses are IPv6, else we assume both are IPv4 ($f_ip is the fake, $r_ip is the real)
+	//  (Adapted from session_begin() in session.php)
+	if (strpos($ip_address, ':') !== false && strpos($info, ':') !== false)
 	{
-		return;
+		$f_ip = short_ipv6($ip_address, $config['ip_check']);
+		$r_ip = short_ipv6($info, $config['ip_check']);
 	}
-	else if ( $config['ip_check'] == 2 && (ip2long($info) & 0xFFFF0000) == (ip2long($ip_address) & 0xFFFF0000))
+	else
 	{
-		return;
+		$f_ip = implode('.', array_slice(explode('.', $ip_address), 0, $config['ip_check']));
+		$r_ip = implode('.', array_slice(explode('.', $info), 0, $config['ip_check']));
 	}
-	else if ( $config['ip_check'] == 0 ) // No IP Validation - so we return and log nothing...
+
+	// If "Session IP Validation" is NOT set to None, and the validated length matches, we return and log nothing
+	//  (see "Select ip validation" in includes/acp/acp_board.php for more info)
+	if ($config['ip_check'] != 0 && $r_ip === $f_ip)
 	{
 		return;
 	}
@@ -149,17 +159,11 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 		}
 	}
 
-	$ip_address = encode_ip($ip_address);
-
 	$sql = 'SELECT * FROM ' . SPECULATIVE_TABLE." 
 		WHERE ip_address = '" . $db->sql_escape($ip_address) . "' 
 			AND method = " . $db->sql_escape($mode) . " 
 			AND real_ip = '" . $db->sql_escape($info) . "'";
-
-	if ( !($result = $db->sql_query($sql)) )
-	{
-		die();
-	}
+	$result = $db->sql_query($sql);
 
 	if ( !$row = $db->sql_fetchrow($result) )
 	{
