@@ -1,0 +1,48 @@
+<!-- INCLUDE overall_header.html -->
+
+<a name="maincontent"></a>
+
+<h1>{L_PROXY_REVEALER} - {L_PROXY_REVEALER_EXCLUDES}</h1>
+<p>{L_SPECULATIVE_IP_EXCLUDE_DESC}</p>
+
+<br />
+
+<form id="excludes_add" method="post" action="{U_ACTION}">
+<fieldset>
+	<legend>{L_ADD_IP}</legend>
+<dl>
+	<dt><label for="add_ip">{L_IP_OR_HOSTNAME}:</label><br /><span>{L_ADD_IP_EXPLAIN}</span></dt>
+	<dd><textarea name="add_ip" cols="40" rows="3" id="add_ip"></textarea></dd>
+</dl>
+<p class="submit-buttons">
+	<input class="button1" type="submit" id="excludesubmit" name="excludesubmit" value="{L_SUBMIT}" />&nbsp;
+	<input class="button2" type="reset" id="excludereset" name="excludereset" value="{L_RESET}" />
+</p>
+{S_FORM_TOKEN}
+</fieldset>
+</form>
+
+<br /><br />
+
+<form id="excludes_remove" method="post" action="{U_ACTION}">
+<fieldset>
+	<legend>{L_REMOVE_IP}</legend>
+<!-- IF S_REMOVE_IPS -->
+	<dl>
+		<dt><label for="remove_ip">{L_IP_OR_HOSTNAME}:</label><br /><span>{L_REMOVE_IP_EXPLAIN}</span></dt>
+		<dd><select id="remove_ip" name="remove_ip[]" multiple="multiple" size="10" style="width: 50%">{S_REMOVE_IPLIST_SELECT}</select></dd>
+	</dl>
+<p class="submit-buttons">
+	<input class="button1" type="submit" id="delexcludesubmit" name="delexcludesubmit" value="{L_SUBMIT}" />&nbsp;
+	<input class="button2" type="reset" id="delexcludereset" name="delexcludereset" value="{L_RESET}" />
+</p>
+{S_FORM_TOKEN}
+</fieldset>
+<!-- ELSE -->
+<p>{L_NO_IP}</p>
+{S_FORM_TOKEN}
+</fieldset>
+<!-- ENDIF -->
+</form>
+
+<!-- INCLUDE overall_footer.html -->
