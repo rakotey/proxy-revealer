@@ -7,7 +7,7 @@
 
 <br />
 
-<form id="excludes_add" method="post" action="{U_ACTION}">
+<form id="add_excludes" method="post" action="{U_ACTION}">
 <fieldset>
 	<legend>{L_ADD_IP}</legend>
 <dl>
@@ -15,16 +15,16 @@
 	<dd><textarea name="add_ip" cols="40" rows="3" id="add_ip"></textarea></dd>
 </dl>
 <p class="submit-buttons">
-	<input class="button1" type="submit" id="excludesubmit" name="excludesubmit" value="{L_SUBMIT}" />&nbsp;
-	<input class="button2" type="reset" id="excludereset" name="excludereset" value="{L_RESET}" />
+	<input class="button1" type="submit" id="add_excludes_submit" name="add_excludes_submit" value="{L_SUBMIT}" />&nbsp;
+	<input class="button2" type="reset" id="add_excludes_reset" name="add_excludes_reset" value="{L_RESET}" />
 </p>
 {S_FORM_TOKEN}
 </fieldset>
 </form>
 
-<br /><br />
+<br />
 
-<form id="excludes_remove" method="post" action="{U_ACTION}">
+<form id="del_excludes" method="post" action="{U_ACTION}">
 <fieldset>
 	<legend>{L_REMOVE_IP}</legend>
 <!-- IF S_REMOVE_IPS -->
@@ -33,8 +33,8 @@
 		<dd><select id="remove_ip" name="remove_ip[]" multiple="multiple" size="10" style="width: 50%">{S_REMOVE_IPLIST_SELECT}</select></dd>
 	</dl>
 <p class="submit-buttons">
-	<input class="button1" type="submit" id="delexcludesubmit" name="delexcludesubmit" value="{L_SUBMIT}" />&nbsp;
-	<input class="button2" type="reset" id="delexcludereset" name="delexcludereset" value="{L_RESET}" />
+	<input class="button1" type="submit" id="del_excludes_submit" name="del_excludes_submit" value="{L_SUBMIT}" />&nbsp;
+	<input class="button2" type="reset" id="del_excludes_reset" name="del_excludes_reset" value="{L_RESET}" />
 </p>
 {S_FORM_TOKEN}
 </fieldset>
