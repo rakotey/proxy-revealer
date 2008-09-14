@@ -396,14 +396,14 @@ language/en/acp/common.php
 #
 // Proxy Revealer Olympus
 $lang = array_merge($lang, array(
-	'ACP_PROXY_REVEALER'			=> 'Proxy Revealer Olympus',
-	'ACP_PROXY_REVEALER_EXTERNAL'	=> 'External IPs',
-	'ACP_PROXY_REVEALER_INTERNAL'	=> 'Internal IPs',
-	'ACP_PROXY_REVEALER_SETTINGS'	=> 'Settings',
-	'ACP_PROXY_REVEALER_EXCLUDES'	=> 'Exceptions',
-	'LOG_PROXY_REVEALER_SETTINGS'	=> '<strong>Altered Proxy Revealer settings</strong>',
-	'LOG_PROXY_REVEALER_EXCLUDE'	=> '<strong>Excluded IP from Proxy Revealer scanning</strong><br />» %1$s',
-	'LOG_PROXY_REVEALER_UNEXCLUDE'	=> '<strong>Removed IP from Proxy Revealer exceptions list</strong><br />» %s',
+	'ACP_PROXY_REVEALER'				=> 'Proxy Revealer Olympus',
+	'ACP_PROXY_REVEALER_EXTERNAL'		=> 'External IPs',
+	'ACP_PROXY_REVEALER_INTERNAL'		=> 'Internal IPs',
+	'ACP_PROXY_REVEALER_SETTINGS'		=> 'Settings',
+	'ACP_PROXY_REVEALER_EXCLUDES'		=> 'Exceptions',
+	'LOG_PROXY_REVEALER_SETTINGS'		=> '<strong>Altered Proxy Revealer settings</strong>',
+	'LOG_PROXY_REVEALER_EXCLUDES_ADD'	=> '<strong>Excluded IP from Proxy Revealer scanning</strong><br />» %1$s',
+	'LOG_PROXY_REVEALER_EXCLUDES_DEL'	=> '<strong>Removed IP from Proxy Revealer exceptions list</strong><br />» %s',
 ));
 
 #

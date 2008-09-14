@@ -417,10 +417,10 @@ class acp_proxy_revealer
 				$form_key = 'acp_proxy_revealer_excludes';
 				add_form_key($form_key);
 
-				$excludesubmit = (isset($_POST['excludesubmit'])) ? true : false;
-				$delexcludesubmit = (isset($_POST['delexcludesubmit'])) ? true : false;
+				$add_excludes_submit = (isset($_POST['add_excludes_submit'])) ? true : false;
+				$del_excludes_submit = (isset($_POST['del_excludes_submit'])) ? true : false;
 
-				if (($excludesubmit || $delexcludesubmit) && !check_form_key($form_key))
+				if (($add_excludes_submit || $del_excludes_submit) && !check_form_key($form_key))
 				{
 					trigger_error($user->lang['FORM_INVALID'] . adm_back_link($this->u_action), E_USER_WARNING);
 				}
@@ -428,7 +428,7 @@ class acp_proxy_revealer
 				//
 				// Adapted from acp_ban.php and user_ban() in functions_user.php
 				//
-				if ($excludesubmit)
+				if ($add_excludes_submit)
 				{
 					$add_ip = request_var('add_ip', '');
 					$ip_list = (!is_array($add_ip)) ? array_unique(explode("\n", $add_ip)) : $add_ip;
@@ -566,8 +566,8 @@ class acp_proxy_revealer
 					}
 
 					// Add to moderator and admin log
-					add_log('admin', 'LOG_PROXY_REVEALER_EXCLUDE', $ip_list_log);
-					add_log('mod', 0, 0, 'LOG_PROXY_REVEALER_EXCLUDE', $ip_list_log);
+					add_log('admin', 'LOG_PROXY_REVEALER_EXCLUDES_ADD', $ip_list_log);
+					add_log('mod', 0, 0, 'LOG_PROXY_REVEALER_EXCLUDES_ADD', $ip_list_log);
 
 					$cache->destroy('sql', SPECULATIVE_EXCLUDE_TABLE);
 
@@ -577,7 +577,7 @@ class acp_proxy_revealer
 				//
 				// Adapted from acp_ban.php and user_unban() in functions_user.php
 				//
-				if ($delexcludesubmit)
+				if ($del_excludes_submit)
 				{
 					$remove_ip = request_var('remove_ip', array(''));
 
@@ -606,8 +606,8 @@ class acp_proxy_revealer
 						$db->sql_query($sql);
 
 						// Add to moderator and admin log
-						add_log('admin', 'LOG_PROXY_REVEALER_UNEXCLUDE', $l_remove_list);
-						add_log('mod', 0, 0, 'LOG_PROXY_REVEALER_UNEXCLUDE', $l_remove_list);
+						add_log('admin', 'LOG_PROXY_REVEALER_EXCLUDES_DEL', $l_remove_list);
+						add_log('mod', 0, 0, 'LOG_PROXY_REVEALER_EXCLUDES_DEL', $l_remove_list);
 
 						$cache->destroy('sql', SPECULATIVE_EXCLUDE_TABLE);
 
