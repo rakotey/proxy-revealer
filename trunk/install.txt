@@ -213,6 +213,10 @@ copy xss.xml to xss.xml
 #
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_block','14');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban','0');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_length','0');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_length_other','2018-12-31');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_reason','Auto-banned by Proxy Revealer');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_give_reason','Your IP address is banned because it appears to be a Proxy');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_prune','');
 ALTER TABLE phpbb_sessions ADD session_speculative_test tinyint(1) DEFAULT '-1' NOT NULL;
 ALTER TABLE phpbb_sessions ADD session_speculative_key char(10);
@@ -300,7 +304,7 @@ includes/functions.php
 #
 
 	// START Proxy Revealer Olympus
-	if ( !isset($user->data['session_speculative_test']) || (int) $user->data['session_speculative_test'] < 0 )
+	if ((!empty($user->session_id) && !isset($user->data['session_speculative_test'])) || (int) $user->data['session_speculative_test'] < 0)
 	{
 		$sql = "SELECT ip_address 
 			FROM " . SPECULATIVE_EXCLUDE_TABLE;

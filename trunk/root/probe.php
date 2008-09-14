@@ -21,6 +21,9 @@ $phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : './';
 $phpEx = substr(strrchr(__FILE__, '.'), 1);
 include($phpbb_root_path . 'common.' . $phpEx);
 
+// We need this to be able to use the user_ban() function - if IP Masking Ban ($config['ip_ban']) is enabled
+include($phpbb_root_path . 'includes/functions_user.' . $phpEx);
+
 if ( !isset($_GET['extra']) || !preg_match('/^[A-Za-z0-9,]*$/',trim($_GET['extra'])) )
 {
 	// since we're not user-facing, we don't care about debug messages
@@ -139,23 +142,19 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 			die();
 		}
 
-		// ban, if appropriate
+		// Ban if appropriate
 		if ( $config['ip_ban'] && ($mode & $config['ip_block']) )
 		{
-			$sql = 'SELECT * FROM ' . BANLIST_TABLE . " 
-				WHERE ban_ip = '" . $db->sql_escape($ip_address) . "'";
-			$result = $db->sql_query($sql);
+			// $ban_len takes precedence over $ban_len_other unless $ban_len is set to "-1" (other - until $ban_len_other)
+			// see function user_ban() in functions_user.php for more info
+			$ban_len			= $config['ip_ban_length'];
+			$ban_len_other		= $config['ip_ban_length_other'];
+			$ban_exclude		= 0;
+			$ban_reason			= $config['ip_ban_reason'];
+			$ban_give_reason	= $config['ip_ban_give_reason'];
 
-			if ( !$row = $db->sql_fetchrow($result) )
-			{
-				$sql = 'INSERT INTO ' . BANLIST_TABLE . " (ban_ip) 
-					VALUES ('" . $db->sql_escape($ip_address) . "')";
-				$db->sql_query($sql);
-
-				$sql = 'DELETE FROM ' . SESSIONS_TABLE . " 
-					WHERE session_ip = '" . $db->sql_escape($ip_address) . "'";
-				$db->sql_query($sql);
-			}
+			// Ready, Set, BAN! :-)
+			user_ban('ip', $ip_address, $ban_len, $ban_len_other, $ban_exclude, $ban_reason, $ban_give_reason);
 		}
 	}
 

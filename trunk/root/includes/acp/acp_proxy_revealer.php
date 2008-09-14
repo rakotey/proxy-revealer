@@ -276,6 +276,10 @@ class acp_proxy_revealer
 			break;
 
 			case 'settings':
+				// We add 'acp/ban' language file because we reuse the ban-length options' names in our local function ipbanlength_select()
+				// and we also reuse 'BAN_LENGTH', 'BAN_REASON' and 'BAN_GIVE_REASON' in our $display_vars below
+				$user->add_lang('acp/ban');
+
 				$this->tpl_name = 'acp_proxy_revealer_settings';
 
 				$form_key = 'acp_proxy_revealer_settings';
@@ -285,12 +289,16 @@ class acp_proxy_revealer
 					'title'	=> 'ACP_PROXY_REVEALER_SETTINGS',
 					'vars'	=> array(
 						'legend1'				=> 'ACP_PROXY_REVEALER_SETTINGS',
-						'x_forwarded_for_mask'	=> array('lang' => 'IP_BLOCK',	'validate' => 'int',	'type' => false, 'method' => false, 'explain' => false,),
-						'xss_mask'				=> array('lang' => 'IP_BLOCK',	'validate' => 'int',	'type' => false, 'method' => false, 'explain' => false,),
-						'java_mask'				=> array('lang' => 'IP_BLOCK',	'validate' => 'int',	'type' => false, 'method' => false, 'explain' => false,),
-						'flash_mask'			=> array('lang' => 'IP_BLOCK',	'validate' => 'int',	'type' => 'custom', 'method' => 'mask_block', 'explain' => true),
-						'ip_ban'				=> array('lang' => 'IP_BAN',	'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
-						'ip_prune'				=> array('lang' => 'IP_PRUNE',	'validate' => 'int',	'type' => 'text:3:4', 'explain' => true, 'append' => ' ' . $user->lang['DAYS']),
+						'flash_mask'			=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => 'custom', 'method' => 'ipmaskblock_select', 'explain' => true),
+						'java_mask'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => false, 'method' => false, 'explain' => false,),
+						'xss_mask'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => false, 'method' => false, 'explain' => false,),
+						'x_forwarded_for_mask'	=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => false, 'method' => false, 'explain' => false,),
+						'ip_ban'				=> array('lang' => 'IP_MASK_BAN',		'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
+						'ip_ban_length'			=> array('lang' => 'BAN_LENGTH',		'validate' => 'int',	'type' => 'custom', 'method' => 'ipbanlength_select', 'explain' => false),
+						'ip_ban_length_other'	=> array('lang' => 'BAN_LENGTH',		'validate' => 'string',	'type' => false, 'method' => false, 'explain' => false),
+						'ip_ban_reason'			=> array('lang' => 'BAN_REASON',		'validate' => 'string',	'type' => 'text:40:255', 'explain' => false),
+						'ip_ban_give_reason'	=> array('lang' => 'BAN_GIVE_REASON',	'validate' => 'string',	'type' => 'text:40:255', 'explain' => false),
+						'ip_prune'				=> array('lang' => 'IP_MASK_PRUNE',		'validate' => 'int',	'type' => 'text:3:4', 'explain' => true, 'append' => ' ' . $user->lang['DAYS']),
 					)
 				);
 
@@ -310,9 +318,8 @@ class acp_proxy_revealer
 
 					if (sizeof($error) == 0)
 					{
-						// Reset $config['ip_block'] to ZERO before we proceed to loop through *_mask checkboxes
+						// Reset 'ip_block' to ZERO before we proceed to loop through *_mask checkboxes
 						$this->new_config['ip_block'] = 0;
-						//set_config('ip_block', 0);
 
 						foreach ($display_vars['vars'] as $config_name => $null)
 						{
@@ -662,7 +669,7 @@ class acp_proxy_revealer
 	/**
 	* Select IP Masking Block methods
 	*/
-	function mask_block($value, $key = '')
+	function ipmaskblock_select($value, $key = '')
 	{
 		global $user, $config;
 
@@ -681,6 +688,30 @@ class acp_proxy_revealer
 			. $user->lang['X_FORWARDED_FOR'] . '&nbsp;&nbsp;';
 
 		return $flash . $java . $xss . $x_forwarded_for;
+	}
+
+	/**
+	* Select IP Masking Ban length
+	*/
+	function ipbanlength_select($value, $key = '')
+	{
+		global $user, $config;
+
+		$l_other = $this->new_config['ip_ban_length_other'];
+
+		// Ban length options (Adapted from acp_ban.php)
+		$ban_end_text = array(0 => $user->lang['PERMANENT'], 30 => $user->lang['30_MINS'], 60 => $user->lang['1_HOUR'], 360 => $user->lang['6_HOURS'], 1440 => $user->lang['1_DAY'], 10080 => $user->lang['7_DAYS'], 20160 => $user->lang['2_WEEKS'], 40320 => $user->lang['1_MONTH'], -1 => $user->lang['UNTIL'] . ' -&gt; ');
+
+		$ban_end_options = '';
+		foreach ($ban_end_text as $length => $text)
+		{
+			$ban_end_options .= '<option value="' . $length . '"' . (($length == $value) ? ' selected="selected"' : '') . '>' . $text . '</option>';
+		}
+
+		return "<select name=\"config[$key]\" id=\"$key\" onchange=\"if(this.value==-1){document.getElementById('ipbanlengthother').style.display = 'block';}else{document.getElementById('ipbanlengthother').style.display='none';}\">$ban_end_options</select>
+		<div id=\"ipbanlengthother\" style=\"display:none;\"><label><input type=\"text\" name=\"config[ip_ban_length_other]\" value=\"$l_other\" maxlength=\"10\" />
+		<br /><span>" . $user->lang['YEAR_MONTH_DAY'] . "</span></label></div>";
+
 	}
 }
 
