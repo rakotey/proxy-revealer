@@ -76,13 +76,13 @@ $lang = array_merge($lang, array(
 $lang = array_merge($lang, array(
 	'PROXY_REVEALER_EXPLAIN'	=> 'Attempts to determine someone’s “real” IP address, using a myriad of techniques, and “blocks” such people.',
 
-	'DAYS'				=> 'Days',
-	'IP_BAN'			=> 'IP Masking Ban',
-	'IP_BAN_EXPLAIN'	=> 'Permanently bans people who were blocked by the above detection methods.',
-	'IP_BLOCK'			=> 'IP Masking Block',
-	'IP_BLOCK_EXPLAIN'	=> 'Select which detection methods you would like to have block users. Users are blocked for the duration of their session.',
-	'IP_PRUNE'			=> 'Masked IP Age Limit',
-	'IP_PRUNE_EXPLAIN'	=> 'Determines when masked IPs will be automatically deleted.  Leave blank (or 0) to disable.',
+	'DAYS'					=> 'Days',
+	'IP_MASK_BAN'			=> 'IP Masking Ban',
+	'IP_MASK_BAN_EXPLAIN'	=> 'Permanently bans people who were blocked by the above detection methods.',
+	'IP_MASK_BLOCK'			=> 'IP Masking Block',
+	'IP_MASK_BLOCK_EXPLAIN'	=> 'Select which detection methods you would like to have block users. Users are blocked for the duration of their session.',
+	'IP_MASK_PRUNE'			=> 'Masked IP Age Limit',
+	'IP_MASK_PRUNE_EXPLAIN'	=> 'Determines when masked IPs will be automatically deleted.  Leave blank (or 0) to disable.',
 ));
 
 // Proxy Revealer Olympus Exceptions - These are similar to 'IP_BAN', 'IP_UNBAN', 'IP_NO_BANNED', 'BAN_UPDATE_SUCCESSFUL', etc.
