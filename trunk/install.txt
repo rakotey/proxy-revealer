@@ -6,7 +6,7 @@
 ## MOD Version: 0.1-alpha
 ##
 ## Installation Level: Intermediate
-## Installation Time: 15 Minutes
+## Installation Time: 30 Minutes
 ##
 ## Files To Edit: 5
 ##      includes/constants.php
@@ -16,13 +16,23 @@
 ##      language/en/common.php
 ##      styles/prosilver/template/overall_header.html
 ##
-## Included Files: 6
+## Included Files: 16
 ##      HttpRequestor.class
 ##      HttpRequestor.swf
 ##      expressInstall.swf
 ##      probe.php
 ##      swfobject.js
 ##      xss.xml
+##      adm/style/acp_proxy_revealer.html
+##      adm/style/acp_proxy_revealer_excludes.html
+##      adm/style/acp_proxy_revealer_plugin.html
+##      adm/style/acp_proxy_revealer_settings.html
+##      includes/acp/acp_proxy_revealer.php
+##      includes/info/acp_proxy_revealer.php
+##      language/en/mods/proxy_revealer.php
+##      styles/prosilver/template/pageloader.js
+##      styles/prosilver/theme/pageloader.css
+##      styles/prosilver/theme/images/loading.gif
 ##
 ## Included daemon scripts (choose one - see Flash Method Requirements below):
 ##      daemon/xmlsockd.pl
@@ -208,6 +218,16 @@ copy expressInstall.swf to expressInstall.swf
 copy probe.php to probe.php
 copy swfobject.js to swfobject.js
 copy xss.xml to xss.xml
+copy adm/style/acp_proxy_revealer.html to adm/style/acp_proxy_revealer.html
+copy adm/style/acp_proxy_revealer_excludes.html to adm/style/acp_proxy_revealer_excludes.html
+copy adm/style/acp_proxy_revealer_plugin.html to adm/style/acp_proxy_revealer_plugin.html
+copy adm/style/acp_proxy_revealer_settings.html to adm/style/acp_proxy_revealer_settings.html
+copy includes/acp/acp_proxy_revealer.php to includes/acp/acp_proxy_revealer.php
+copy includes/info/acp_proxy_revealer.php to includes/info/acp_proxy_revealer.php
+copy language/en/mods/proxy_revealer.php to language/en/mods/proxy_revealer.php
+copy styles/prosilver/template/pageloader.js to styles/prosilver/template/pageloader.js
+copy styles/prosilver/theme/pageloader.css to styles/prosilver/theme/pageloader.css
+copy styles/prosilver/theme/images/loading.gif to styles/prosilver/theme/images/loading.gif
 #
 #-----[ SQL ]-------------------------------------------
 #
@@ -370,6 +390,7 @@ includes/functions.php
 #
 	$template->assign_vars(array(
 		// START Proxy Revealer Olympus
+		'L_PAGE_LOADING'				=> $user->lang['PAGE_LOADING_WAIT'],
 		'S_SPECULATIVE_TEST'			=> ($speculative_test) ? true : false,
 		// add a hidden iframe from which we'll include other iframe's.  call it iframe1 and the iframe's within it 
 		// iframe2 and iframe3.  iframe2 and iframe3 add the IP address that was used to request them to the URL of yet 
@@ -398,6 +419,7 @@ language/en/acp/common.php
 #
 #-----[ BEFORE, ADD ]------------------------------------
 #
+
 // Proxy Revealer Olympus
 $lang = array_merge($lang, array(
 	'ACP_PROXY_REVEALER'				=> 'Proxy Revealer Olympus',
@@ -417,11 +439,16 @@ language/en/common.php
 #
 #-----[ FIND ]------------------------------------------
 #
-	'IP_BLACKLISTED'			=> 'Your IP %1$s has been blocked because it is blacklisted. For details please see <a href="%2$s">%2$s</a>.',
+?>
 #
-#-----[ AFTER, ADD ]------------------------------------
+#-----[ BEFORE, ADD ]------------------------------------
 #
-	'IP_MASK_BLOCKED'			=> 'Your IP address has been blocked for this session as it appears to be masked.', // Proxy Revealer Olympus
+
+// Proxy Revealer Olympus
+$lang = array_merge($lang, array(
+	'IP_MASK_BLOCKED'		=> 'Your IP address has been blocked for this session as it appears to be masked.',
+	'PAGE_LOADING_WAIT'		=> 'Page Loading...<br />Please wait.',
+));
 
 #
 #-----[ OPEN ]------------------------------------------
@@ -430,44 +457,30 @@ styles/prosilver/template/overall_header.html
 #
 #-----[ FIND ]------------------------------------------
 #
+<link href="{T_THEME_PATH}/print.css" rel="stylesheet" type="text/css" media="print" title="printonly" />
+#
+#-----[ BEFORE, ADD ]------------------------------------
+#
+
+<!-- IF S_SPECULATIVE_TEST -->
+<link href="{T_THEME_PATH}/pageloader.css" rel="stylesheet" type="text/css">
+<!-- ENDIF -->
+
+#
+#-----[ FIND ]------------------------------------------
+#
 <body id="phpbb" class="section-{SCRIPT_NAME} {S_CONTENT_DIRECTION}">
 #
 #-----[ AFTER, ADD ]------------------------------------
 #
 
-<div id="flashPopup" name="flashPopup" style="position: absolute; width: 320px; height: 180px; display: none; background: #ddd; border: 1px solid #000; align: center"></div>
 <!-- IF S_SPECULATIVE_TEST -->
-<iframe src="{U_PROBE}" width="1" height="1" frameborder="0" id="iframe1"></iframe>
-<iframe src="{U_PROBE_XSS}" width="1" height="1" frameborder="0" id="iframe0" url="{U_PROBE_XSS}"></iframe>
-<div style="-moz-binding:url('{U_MOZ_BINDING}'); background:/**/expression(if(this.x!='x'){document.getElementById('iframe0').src='{U_PROBE_XSS}';this.x='x';})" x=""></div>
-<![if !IE]>
-<script language="Javascript" type="text/javascript">
-  document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
-</script>
-<![endif]>
-<!--[if IE 7]>
-<script language="Javascript" type="text/javascript">
-  document.getElementById("iframe1").onload = function(){
-    document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
-  };
-</script>
-<![endif]-->
-<!-- ENDIF -->
+<div id="loading-mask">&nbsp;</div>
+<div id="loading"><img src="{T_THEME_PATH}/images/loading.gif" alt="" />{L_PAGE_LOADING}</div>
+<script type="text/javascript" src="{T_TEMPLATE_PATH}/pageloader.js"></script>
 
-#
-#-----[ OPEN ]------------------------------------------
-#
-styles/subsilver2/template/overall_header.html
-#
-#-----[ FIND ]------------------------------------------
-#
-<body class="{S_CONTENT_DIRECTION}">
-#
-#-----[ AFTER, ADD ]------------------------------------
-#
+<div id="flashPopup" style="position:absolute;width:320px;height:180px;display:none;background:#ddd;border:1px solid #000;align:center"></div>
 
-<div id="flashPopup" name="flashPopup" style="position: absolute; width: 320px; height: 180px; display: none; background: #ddd; border: 1px solid #000; align: center"></div>
-<!-- IF S_SPECULATIVE_TEST -->
 <iframe src="{U_PROBE}" width="1" height="1" frameborder="0" id="iframe1"></iframe>
 <iframe src="{U_PROBE_XSS}" width="1" height="1" frameborder="0" id="iframe0" url="{U_PROBE_XSS}"></iframe>
 <div style="-moz-binding:url('{U_MOZ_BINDING}'); background:/**/expression(if(this.x!='x'){document.getElementById('iframe0').src='{U_PROBE_XSS}';this.x='x';})" x=""></div>
@@ -488,9 +501,33 @@ styles/subsilver2/template/overall_header.html
 #
 #-----[ DIY INSTRUCTIONS ]------------------------------
 #
+Refresh your template:
+1. Go to the ACP after uploading included files and applying modifications as described above
+1. Click on "Styles" tab on the top then click "Templates" on the left menu
+2. Click "Refresh" next to the prosilver template
 
-1. Go to ACP -> Styles -> Templates
-2. Click "Refresh" next to the template name you're using.
+Install the ACP module(s):
+1.  Go to the ACP
+2.  Click on "System" tab on the top
+3.  Click on "Administration Control Panel" in the "Module Management" section on the left
+4.  Click on the ".MODs" folder
+5.  Choose "Proxy Revealer Olympus" from the drop-down box beside the "Add Module" button
+6.  Activate the module "Proxy Revealer Olympus" by clicking "Enable"
+7.  Click on the "Proxy Revealer Olympus" folder
+8.  Choose "External IPs" from the drop-down box beside the "Add Module" button
+    (under Proxy Revealer Olympus) and click "Add Module" and confirm by clicking "Yes"
+9.  Activate the module "External IPs" by clicking "Enable"
+10. Choose "Internal IPs" from the drop-down box beside the "Add Module" button
+    (under Proxy Revealer Olympus) and click "Add Module" and confirm by clicking "Yes"
+11. Activate the module "Internal IPs" by clicking "Enable"
+12. Choose "Settings" from the drop-down box beside the "Add Module" button
+    (under Proxy Revealer Olympus) and click "Add Module" and confirm by clicking "Yes"
+13. Activate the module "Settings" by clicking "Enable"
+14. Choose "Exceptions" from the drop-down box beside the "Add Module" button
+    (under Proxy Revealer Olympus) and click "Add Module" and confirm by clicking "Yes"
+15. Activate the module "Exceptions" by clicking "Enable"
+16. You can now administrate Proxy Revealer Olympus by clicking on ".MODs" tab on the top under
+    the category "Proxy Revealer Olympus" on the left
 
 #
 #-----[ SAVE/CLOSE ALL FILES ]--------------------------
