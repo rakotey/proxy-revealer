@@ -1,7 +1,8 @@
 #!/usr/bin/perl -w
 # XML Socket Daemon for Flash Addon to Proxy Revealer MOD for phpbb
 # Author: jasmineaura < jasmine.aura@yahoo.com > (Jasmine Hasan)
-# Released under GPL License v2
+# Licensed under http://opensource.org/licenses/gpl-license.php GNU Public License
+# $Id$
 
 use strict;
 use warnings;
