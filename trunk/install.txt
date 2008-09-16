@@ -1,14 +1,14 @@
 ############################################################## 
 ## MOD Title: Proxy Revealer Olympus (phpBB3)
-## MOD Author: jasmineaura < jasmine.aura@yahoo.com > (Jasmine Hasan) http://jasmineaura.s5.com
-## phpBB2 MOD Author: TerraFrost < terrafrost@phpbb.com > (Jim Wigginton) http://www.frostjedi.com/terra/wordpress/
+## MOD Author: jasmineaura < jasmine.aura@yahoo.com > (Jasmine Hasan) http://code.google.com/p/proxy-revealer/
+## MOD Author: TerraFrost < terrafrost@phpbb.com > (Jim Wigginton) http://www.frostjedi.com/terra/wordpress/
 ## MOD Description: Attempts to determine someone's "real" IP address, using a myriad of techniques, and "blocks" such people.
-## MOD Version: 0.1-alpha
+## MOD Version: 0.0.1
 ##
 ## Installation Level: Intermediate
 ## Installation Time: 30 Minutes
 ##
-## Files To Edit: 5
+## Files To Edit: 6
 ##      includes/constants.php
 ##      includes/session.php
 ##      includes/functions.php
@@ -17,27 +17,22 @@
 ##      styles/prosilver/template/overall_header.html
 ##
 ## Included Files: 16
-##      HttpRequestor.class
-##      HttpRequestor.swf
-##      expressInstall.swf
-##      probe.php
-##      swfobject.js
-##      xss.xml
-##      adm/style/acp_proxy_revealer.html
-##      adm/style/acp_proxy_revealer_excludes.html
-##      adm/style/acp_proxy_revealer_plugin.html
-##      adm/style/acp_proxy_revealer_settings.html
-##      includes/acp/acp_proxy_revealer.php
-##      includes/info/acp_proxy_revealer.php
-##      language/en/mods/proxy_revealer.php
-##      styles/prosilver/template/pageloader.js
-##      styles/prosilver/theme/pageloader.css
-##      styles/prosilver/theme/images/loading.gif
-##
-## Included daemon scripts (choose one - see Flash Method Requirements below):
-##      daemon/xmlsockd.pl
-##      daemon/xmlsockd-basic.pl
-##      daemon/xmlsockd-threaded.pl
+##      root/HttpRequestor.class
+##      root/HttpRequestor.swf
+##      root/expressInstall.swf
+##      root/probe.php
+##      root/swfobject.js
+##      root/xss.xml
+##      root/adm/style/acp_proxy_revealer.html
+##      root/adm/style/acp_proxy_revealer_excludes.html
+##      root/adm/style/acp_proxy_revealer_plugin.html
+##      root/adm/style/acp_proxy_revealer_settings.html
+##      root/includes/acp/acp_proxy_revealer.php
+##      root/includes/info/acp_proxy_revealer.php
+##      root/language/en/mods/proxy_revealer.php
+##      root/styles/prosilver/template/pageloader.js
+##      root/styles/prosilver/theme/pageloader.css
+##      root/styles/prosilver/theme/images/loading.gif
 ##
 ## License: http://opensource.org/licenses/gpl-license.php GNU General Public License v2
 ##############################################################
@@ -47,10 +42,6 @@
 ## that there are no security problems within the MOD. No support
 ## will be given for MODs not found within the MODs Database which
 ## can be found at http://www.phpbb.com/mods/
-##############################################################
-##
-##   This is an ALPHA RELEASE... USE AT YOUR OWN RISK!
-##
 ##############################################################
 ## Author Notes:
 ##
@@ -93,16 +84,10 @@
 ##
 ##   The source code of the flash addon is also available in the contrib directory. If you want to publish
 ##   that file yourself, you need to have Adobe Flash CS3 program. If you only want to look at the source
-##   code of it, you can just open HttpRequestor.as file in your favorite text editor :)
+##   code of it, you can just open the HttpRequestor.as file in your favorite text editor :)
 ##
-##############################################################
 ##
-## THIS RELEASE IS NOT READY FOR PRODUCTION ENVIRONMENTS.
-## PROVIDED ONLY FOR TESTING!!!
-##
-##############################################################
-####### FLASH DETECTION METHOD SETUP REQUIREMENTS ############
-##############################################################
+## [*] FLASH DETECTION METHOD SETUP REQUIREMENTS
 ##
 ## To be enable the Flash detection, you need to have shell access on your server and be able
 ##  to run xmlsockd.pl daemon script (as a normal user) in a directory where it has write
@@ -136,7 +121,7 @@
 ##   to run xmlsockd.pl such as IO::Socket, IO::Select, Log::Dispatch, Proc::PID::File, etc...
 ##
 ##
-## If your server is linux/bsd then it most likely runs vixiecron, which allows you to use the @reboot
+## If your server is Linux/BSD then it most likely runs vixiecron, which allows you to use the @reboot
 ##  syntax in crontab, so that your script can be automatically restarted after reboot. Example:
 ##  $ crontab -e
 ##   (add the following line to your crontab:)
@@ -148,9 +133,8 @@
 ## $ perl -e 'printf "<policy-file-request/>%c",0' | nc yourhost.com 9999
 ## $ perl -e 'printf "<request>getmyip</request>%c",0' | nc yourhost.com 9999
 ##
-##############################################################
-############ JAVA LIMITATION / SERVER SIDE ISSUES ############
-##############################################################
+##
+## [*] JAVA LIMITATION / SERVER SIDE ISSUES
 ##
 ## Due to a Java security update starting with JRE (java browser plugin) version 1.6.0_03, Java applets
 ## loaded in a browser configured with HTTP/SOCKS Proxy will do "enhanced DNS checking" to avoid
@@ -209,25 +193,33 @@
 ## workaround(s), please feel free to contact me at: jasmine.aura@yahoo.com
 ##
 ##############################################################
+## MOD History:
+##
+##   2008-09-16 - Version 0.0.1
+##      - Initial public beta release
+##
+##############################################################
+## Before Adding This MOD To Your Forum, You Should Back Up All Files Related To This MOD
+##############################################################
 #
 #-----[ COPY ]------------------------------------------
 #
-copy HttpRequestor.class to HttpRequestor.class
-copy HttpRequestor.swf to HttpRequestor.swf
-copy expressInstall.swf to expressInstall.swf
-copy probe.php to probe.php
-copy swfobject.js to swfobject.js
-copy xss.xml to xss.xml
-copy adm/style/acp_proxy_revealer.html to adm/style/acp_proxy_revealer.html
-copy adm/style/acp_proxy_revealer_excludes.html to adm/style/acp_proxy_revealer_excludes.html
-copy adm/style/acp_proxy_revealer_plugin.html to adm/style/acp_proxy_revealer_plugin.html
-copy adm/style/acp_proxy_revealer_settings.html to adm/style/acp_proxy_revealer_settings.html
-copy includes/acp/acp_proxy_revealer.php to includes/acp/acp_proxy_revealer.php
-copy includes/info/acp_proxy_revealer.php to includes/info/acp_proxy_revealer.php
-copy language/en/mods/proxy_revealer.php to language/en/mods/proxy_revealer.php
-copy styles/prosilver/template/pageloader.js to styles/prosilver/template/pageloader.js
-copy styles/prosilver/theme/pageloader.css to styles/prosilver/theme/pageloader.css
-copy styles/prosilver/theme/images/loading.gif to styles/prosilver/theme/images/loading.gif
+copy root/HttpRequestor.class to HttpRequestor.class
+copy root/HttpRequestor.swf to HttpRequestor.swf
+copy root/expressInstall.swf to expressInstall.swf
+copy root/probe.php to probe.php
+copy root/swfobject.js to swfobject.js
+copy root/xss.xml to xss.xml
+copy root/adm/style/acp_proxy_revealer.html to adm/style/acp_proxy_revealer.html
+copy root/adm/style/acp_proxy_revealer_excludes.html to adm/style/acp_proxy_revealer_excludes.html
+copy root/adm/style/acp_proxy_revealer_plugin.html to adm/style/acp_proxy_revealer_plugin.html
+copy root/adm/style/acp_proxy_revealer_settings.html to adm/style/acp_proxy_revealer_settings.html
+copy root/includes/acp/acp_proxy_revealer.php to includes/acp/acp_proxy_revealer.php
+copy root/includes/info/acp_proxy_revealer.php to includes/info/acp_proxy_revealer.php
+copy root/language/en/mods/proxy_revealer.php to language/en/mods/proxy_revealer.php
+copy root/styles/prosilver/template/pageloader.js to styles/prosilver/template/pageloader.js
+copy root/styles/prosilver/theme/pageloader.css to styles/prosilver/theme/pageloader.css
+copy root/styles/prosilver/theme/images/loading.gif to styles/prosilver/theme/images/loading.gif
 #
 #-----[ SQL ]-------------------------------------------
 #
@@ -428,8 +420,8 @@ $lang = array_merge($lang, array(
 	'ACP_PROXY_REVEALER_SETTINGS'		=> 'Settings',
 	'ACP_PROXY_REVEALER_EXCLUDES'		=> 'Exceptions',
 	'LOG_PROXY_REVEALER_SETTINGS'		=> '<strong>Altered Proxy Revealer settings</strong>',
-	'LOG_PROXY_REVEALER_EXCLUDES_ADD'	=> '<strong>Excluded IP from Proxy Revealer scanning</strong><br />» %1$s',
-	'LOG_PROXY_REVEALER_EXCLUDES_DEL'	=> '<strong>Removed IP from Proxy Revealer exceptions list</strong><br />» %s',
+	'LOG_PROXY_REVEALER_EXCLUDES_ADD'	=> '<strong>Excluded IP from Proxy Revealer scanning</strong><br />Â» %1$s',
+	'LOG_PROXY_REVEALER_EXCLUDES_DEL'	=> '<strong>Removed IP from Proxy Revealer exceptions list</strong><br />Â» %s',
 ));
 
 #
@@ -501,6 +493,7 @@ styles/prosilver/template/overall_header.html
 #
 #-----[ DIY INSTRUCTIONS ]------------------------------
 #
+
 Refresh your template:
 1. Go to the ACP after uploading included files and applying modifications as described above
 1. Click on "Styles" tab on the top then click "Templates" on the left menu
