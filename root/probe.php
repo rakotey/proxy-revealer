@@ -5,7 +5,7 @@
 * @author jasmineaura < jasmine.aura@yahoo.com >
 *
 * @package phpBB3
-* @version $Id: probe.php 11 2008-09-08 07:12:00GMT jasmineaura $
+* @version $Id$
 * @copyright (c) 2006 TerraFrost
 * @copyright (c) 2008 jasmineaura
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License 
