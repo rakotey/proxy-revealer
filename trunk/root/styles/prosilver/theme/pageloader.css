@@ -5,33 +5,32 @@ html, body {
 }
 
 #loading-mask {
-	top: 0px;
-	left: 0px;
+	display: none;
+	position: absolute;
+	z-index: 20000;
+	top: 0px; left: 0px;
 	width: 100%;
 	height: 100%;
-	height: expression(document.documentElement.scrollHeight+'px');	/* IE */
-	width: expression(document.documentElement.scrollWidth+'px');	/* IE */
 	background-color: #000000;
 	opacity: 0.7;				/* Safari, Opera */
 	-moz-opacity:0.70; 			/* FireFox */
 	filter: alpha(opacity=70);	/* IE */
-	position: absolute;
-	z-index: 20000;
 }
 
 #loading {
-	position: fixed;
+	display: none;
+	position: absolute;
+	z-index: 20001;
 	top: 30%;
-	left: 50%;
+	left: 50%;					/* 50% from left to center */
 	width: 200px;
 	height: 40px;
 	border: 3px solid #BBC0C4;
 	padding: 10px;
+	margin-left: -113px;		/* subtract (width / 2) + border + padding */
 	background: #EFEFEF;
-	margin-left: -113px;
 	text-align: left;
 	font:bold 13px tahoma,arial,helvetica;
-	z-index: 20001;
 }
 
 #loading img {
