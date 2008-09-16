@@ -4,7 +4,7 @@
 * acp_proxy_revealer [English]
 *
 * @package language
-* @version $Id: proxy_revealer.php 11 2008-09-08 23:08:00GMT jasmineaura $
+* @version $Id$
 * @copyright (c) 2006 by TerraFrost (c) 2008 by jasmineaura
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License
 *

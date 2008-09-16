@@ -4,7 +4,7 @@
 * @author TerraFrost < terrafrost@phpbb.com >,  jasmineaura < jasmine.aura@yahoo.com >
 *
 * @package acp
-* @version $Id: acp_proxy_revealer.php 11 2008-09-08 07:12:00GMT jasmineaura $
+* @version $Id$
 * @copyright (c) 2006 by TerraFrost (c) 2008 by Jasmine Hasan
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License
 *

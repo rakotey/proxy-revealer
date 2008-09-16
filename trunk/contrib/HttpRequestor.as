@@ -1,6 +1,8 @@
 ﻿// HttpRequestor.as (ActionScript 3.0 code)
-// Flash addon for phpbb2 mod Proxy Revealer 2.0.1 (Original Author: TerraFrost < terrafrost@phpbb.com >)
+// Flash addon for Proxy Revealer Olympus (phpBB3 MOD)
 // Author: Jasmine < jasmine.aura@yahoo.com >
+// Licensed under http://opensource.org/licenses/gpl-license.php GNU Public License
+// $Id$
 
 import flash.display.LoaderInfo;
 import flash.errors.*;
