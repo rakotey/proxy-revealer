@@ -5,9 +5,7 @@
 	<header>
 		<license>http://opensource.org/licenses/gpl-license.php GNU General Public License v2</license>
 		<title lang="en">Proxy Revealer Olympus (phpBB3)</title>
-		<description lang="en">
-			Attempts to determine someone's &quot;real&quot; IP address, using a myriad of techniques, and &quot;blocks&quot; such people.
-		</description>
+		<description lang="en">Attempts to determine someone's "real" IP address, using a myriad of techniques, and "blocks" such people.</description>
 		<author-notes lang="en"><![CDATA[
 
 OVERVIEW
@@ -122,6 +120,11 @@ The above two workarounds are the only solutions I could find. If you are aware 
 				<homepage>http://www.frostjedi.com/terra/wordpress/</homepage>
 			</author>
 		</author-group>
+
+		<link-group>
+			<link type="template" href="subsilver2.xml" lang="en">subsilver2 template changes</link>
+		</link-group>
+
 
 		<mod-version>0.0.1</mod-version>
 
