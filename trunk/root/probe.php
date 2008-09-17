@@ -20,10 +20,7 @@ define('IN_PHPBB', true);
 $phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : './';
 $phpEx = substr(strrchr(__FILE__, '.'), 1);
 include($phpbb_root_path . 'common.' . $phpEx);
-
-// We need this to be able to use the user_ban() function - if IP Masking Ban ($config['ip_ban']) is enabled
 include($phpbb_root_path . 'includes/functions_user.' . $phpEx);
-// We also need functions.php to use the short_ipv6() function in case an ipv6 address was detected
 include($phpbb_root_path . 'includes/functions.' . $phpEx);
 
 if ( !isset($_GET['extra']) || !preg_match('/^[A-Za-z0-9,]*$/',trim($_GET['extra'])) )
@@ -100,6 +97,7 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 	//  (Adapted from session_begin() in session.php)
 	if (strpos($ip_address, ':') !== false && strpos($info, ':') !== false)
 	{
+		// short_ipv6() from includes/functions.php
 		$f_ip = short_ipv6($ip_address, $config['ip_check']);
 		$r_ip = short_ipv6($info, $config['ip_check']);
 	}
@@ -155,7 +153,7 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 			$ban_reason			= $config['ip_ban_reason'];
 			$ban_give_reason	= $config['ip_ban_give_reason'];
 
-			// Ready, Set, BAN! :-)
+			// user_ban() function from includes/functions_user.php
 			user_ban('ip', $ip_address, $ban_len, $ban_len_other, $ban_exclude, $ban_reason, $ban_give_reason);
 		}
 	}
@@ -183,16 +181,31 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 	}
 }
 
-// this pass concerns itself with x_forwarded_for, which may be able to identify transparent http proxies.
-// $user->ip represents our current "spoofed" address and $_SERVER['HTTP_X_FORWARDED_FOR'] represents our possibly "real"
-// address
-if ( !empty($_SERVER['HTTP_X_FORWARDED_FOR']) && $_SERVER['HTTP_X_FORWARDED_FOR'] != $user->ip )
+/**
+* This pass concerns itself with the X-Forwarded-For header, which may be able to identify transparent http proxies.
+* The X-Forwarded-For header might contain multiple addresses, comma+space separated, if the request was forwarded through multiple proxies.
+* Example: "X-Forwarded-For: client1, proxy1, proxy2, proxy3"... For more info, see: http://en.wikipedia.org/wiki/X-Forwarded-For
+*/ 
+if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
 {
-	// We use $db->sql_escape() in all our SQL statements rather than str_replace("\'","''",$_SERVER['var']) on each var as it comes in
-	// This is to avoid confusion and to avoid escaping the same text twice and ending up with too many backslshes in the final result
-	$x_forwarded_for = htmlspecialchars($_SERVER['HTTP_X_FORWARDED_FOR']);
+	// Adapted from session_begin() in includes/session.php
+	$forwarded_for = (string) $_SERVER['HTTP_X_FORWARDED_FOR'];
+	$forwarded_for = preg_replace('#, +#', ', ', $forwarded_for);
 
-	insert_ip($user->ip,X_FORWARDED_FOR,$x_forwarded_for);
+	// Split the list of IPs
+	$ips = explode(', ', $forwarded_for);
+
+	// Possible real address is the first IP in the $ips array ( $ips[0] ), the rest (if there are any) are most likely chained proxies
+	// get_preg_expression() from includes/functions.php helps us match valid IPv4/IPv6 addresses only :)
+	if (!empty($ips[0]) && (preg_match(get_preg_expression('ipv4'), $ips[0]) || preg_match(get_preg_expression('ipv6'), $ips[0])))
+	{
+		// We're only going to log the proxy IP from which the original request came ($user->ip), rather than loop through the list
+		// of (possibly) chained proxies and log them if they don't match $ips[0], just to prevent possible abuse!
+		if ($ips[0] != $user->ip)
+		{
+			insert_ip($user->ip,X_FORWARDED_FOR,$ips[0]);
+		}
+	}
 }
 
 switch ($mode):
