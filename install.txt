@@ -45,8 +45,8 @@
 ##############################################################
 ## Author Notes:
 ##
-##   Probably the easiest way to hide ones IP address is to use an open HTTP/SOCKS4/SOCKS5 proxy or
-##   to use a so-called CGI proxy.  These techniques, however, aren't full proof.  Transparent HTTP
+##   Probably the easiest way to hide one's IP address is to use an open HTTP/SOCKS4/SOCKS5 proxy or
+##   to use a so-called CGI proxy.  These techniques, however, aren't fool-proof.  Transparent HTTP
 ##   proxies, for instance, include an X-Forwarded-For header that usually includes the originating
 ##   IP address.
 ##
@@ -101,7 +101,7 @@
 ##   (meaning few milliseconds). Multiplexing using IO::Select to handle multiple clients, in 
 ##   case there are some lazy/slow clients who take their sweet time to send their request, we 
 ##   dont want to delay the rest - so the ip checking could be done quickly). In my tests, running
-##   a two sequential connections/requests (XML Policy File request then IP request right after) a 
+##   a pair of sequential connections/requests (XML Policy File request then IP request right after) a 
 ##   100 times (from local server shell) took about 2 seconds
 ##   From browser and over a 256kbps adsl - once the 1kb swf is loaded from probe.php - with network
 ##   overhead, the XMLPolicyFile request and the IP request both happen in less than a second :)
