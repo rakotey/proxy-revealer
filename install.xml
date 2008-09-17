@@ -163,7 +163,7 @@ The above two workarounds are the only solutions I could find. If you are aware 
 			<file from="root/styles/prosilver/theme/images/loading.gif" to="styles/prosilver/theme/images/loading.gif"/>
 		</copy>
 
-		<sql>
+		<sql><![CDATA[
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_block','14');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_length','0');
@@ -184,8 +184,7 @@ CREATE TABLE phpbb_speculative_ips (
 CREATE TABLE phpbb_speculative_excludes (
    ip_address varchar(40) DEFAULT '0' NOT NULL,
    KEY ip_address (ip_address)
-);
-		</sql>
+); ]]></sql>
 
 		<open src="includes/constants.php">
 			<edit>
