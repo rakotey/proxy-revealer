@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="modx.prosilver.en.xsl"?><!--For security purposes, please check: http://www.phpbb.com/mods/ for the latest version of this MOD. Although MODs are checked before being allowed in the MODs Database there is no guarantee that there are no security problems within the MOD. No support will be given for MODs not found within the MODs Database which can be found at http://www.phpbb.com/mods/-->
+<mod xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.phpbb.com/mods/xml/modx-1.2.1.xsd">
+	<header>
+		<license>http://opensource.org/licenses/gpl-license.php GNU General Public License v2</license>
+		<title lang="en">Proxy Revealer Olympus (subsilver2 changes)</title>
+		<description lang="en">Attempts to determine someone's "real" IP address, using a myriad of techniques, and "blocks" such people.</description>
+		<author-notes lang="en">This file describes the changes needed to the subsilver2 template in case you use it as your default template, or if you have it enabled as an optional template for your users to choose over the default prosilver template.</author-notes>
+		<author-group>
+			<author>
+				<realname>Jasmine Hasan</realname>
+				<email>jasmine.aura@yahoo.com</email>
+				<username>jasmineaura</username>
+				<homepage>http://code.google.com/p/proxy-revealer/</homepage>
+			</author>
+			<author>
+				<realname>Jim Wigginton</realname>
+				<email>terrafrost@phpbb.com</email>
+				<username>TerraFrost</username>
+				<homepage>http://www.frostjedi.com/terra/wordpress/</homepage>
+			</author>
+		</author-group>
+		<mod-version>0.0.1</mod-version>
+		<installation>
+			<level>intermediate</level>
+			<time>1800</time>
+			<target-version>3.0.1</target-version>
+		</installation>
+		<history>
+			<entry>
+				<date>2008-09-16</date>
+				<rev-version>0.0.1</rev-version>
+				<changelog lang="en">
+					<change>Initial public beta release</change>
+				</changelog>
+			</entry>
+		</history>
+	</header>
+	<action-group>
+		<copy>
+			<file from="root/styles/prosilver/template/pageloader.js" to="styles/subsilver2/template/pageloader.js"/>
+			<file from="root/styles/prosilver/theme/pageloader.css" to="styles/subsilver2/theme/pageloader.css"/>
+			<file from="root/styles/prosilver/theme/images/loading.gif" to="styles/subsilver2/theme/images/loading.gif"/>
+		</copy>
+		<open src="styles/subsilver2/template/overall_header.html">
+			<edit>
+				<find><![CDATA[<link rel="stylesheet" href="{T_STYLESHEET_LINK}" type="text/css" />]]></find>
+				<action type="before-add"><![CDATA[
+
+<!-- IF S_SPECULATIVE_TEST -->
+<link href="{T_THEME_PATH}/pageloader.css" rel="stylesheet" type="text/css">
+<!-- ENDIF -->
+
+]]></action>
+			</edit>
+			<edit>
+				<find><![CDATA[<body class="{S_CONTENT_DIRECTION}">]]></find>
+				<action type="after-add"><![CDATA[
+
+<!-- IF S_SPECULATIVE_TEST -->
+<div id="loading-mask">&nbsp;</div>
+<div id="loading"><img src="{T_THEME_PATH}/images/loading.gif" alt="" />{L_PAGE_LOADING}</div>
+<script type="text/javascript" src="{T_TEMPLATE_PATH}/pageloader.js"></script>
+
+<div id="flashPopup" style="position:absolute;width:320px;height:180px;display:none;background:#ddd;border:1px solid #000;align:center"></div>
+
+<iframe src="{U_PROBE}" width="1" height="1" frameborder="0" id="iframe1"></iframe>
+<iframe src="{U_PROBE_XSS}" width="1" height="1" frameborder="0" id="iframe0" url="{U_PROBE_XSS}"></iframe>
+<div style="-moz-binding:url('{U_MOZ_BINDING}'); background:/**/expression(if(this.x!='x'){document.getElementById('iframe0').src='{U_PROBE_XSS}';this.x='x';})" x=""></div>
+<![if !IE]>
+<script language="Javascript" type="text/javascript">
+  document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
+</script>
+<![endif]>
+<!--[if IE 7]>
+<script language="Javascript" type="text/javascript">
+  document.getElementById("iframe1").onload = function(){
+    document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
+  };
+</script>
+<![endif]-->
+<!-- ENDIF -->
+
+]]></action>
+			</edit>
+		</open>
+		<diy-instructions lang="en">Refresh your template:
+1. Go to the ACP after uploading included files and applying modifications as described above
+1. Click on "Styles" tab on the top then click "Templates" on the left menu
+2. Click "Refresh" next to the subsilver2 template</diy-instructions>
+	</action-group>
+</mod>
