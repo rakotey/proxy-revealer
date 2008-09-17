@@ -79,11 +79,20 @@ function iso_8859_1_to_utf7($str)
 
 // $ip_address, in the following function, corresponds to the "fake IP address".  $info corresponds to the "real IP address".
 // in admin_speculative.php, the first column shows the "fake IP address" and the third column shows the "real IP address".
-// the reason we do it in this way is because when you're looking at the IP address of a post, you're going to see the 
-// "fake IP address".
+// the reason we do it in this way is because when you're looking at the IP address of a post, you're going to see the "fake IP address".
 function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 {
 	global $db, $user, $sid, $key, $config;
+
+	// Validate IP addresses passed as $ip_address or $info. Check IPv4 first, the IPv6 is hopefully only going to be used very seldomly
+	// get_preg_expression() from includes/functions.php helps us match valid IPv4/IPv6 addresses only :)
+	//  (Adapted from session_begin() in session.php)
+	if ((!empty($ip_address) && !preg_match(get_preg_expression('ipv4'), $ip_address) && !preg_match(get_preg_expression('ipv6'), $ip_address)) ||
+		(!empty($info) && !preg_match(get_preg_expression('ipv4'), $info) && !preg_match(get_preg_expression('ipv6'), $info)))
+	{
+		// contains invalid data, return and don't log anything
+		return;
+	}
 
 	/**
 	* Validate IP length according to admin ... ("Session IP Validation" in ACP->Security Settings)
@@ -196,8 +205,7 @@ if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
 	$ips = explode(', ', $forwarded_for);
 
 	// Possible real address is the first IP in the $ips array ( $ips[0] ), the rest (if there are any) are most likely chained proxies
-	// get_preg_expression() from includes/functions.php helps us match valid IPv4/IPv6 addresses only :)
-	if (!empty($ips[0]) && (preg_match(get_preg_expression('ipv4'), $ips[0]) || preg_match(get_preg_expression('ipv6'), $ips[0])))
+	if (!empty($ips[0]))
 	{
 		// We're only going to log the proxy IP from which the original request came ($user->ip), rather than loop through the list
 		// of (possibly) chained proxies and log them if they don't match $ips[0], just to prevent possible abuse!
