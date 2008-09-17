@@ -23,6 +23,8 @@ include($phpbb_root_path . 'common.' . $phpEx);
 
 // We need this to be able to use the user_ban() function - if IP Masking Ban ($config['ip_ban']) is enabled
 include($phpbb_root_path . 'includes/functions_user.' . $phpEx);
+// We also need functions.php to use the short_ipv6() function in case an ipv6 address was detected
+include($phpbb_root_path . 'includes/functions.' . $phpEx);
 
 if ( !isset($_GET['extra']) || !preg_match('/^[A-Za-z0-9,]*$/',trim($_GET['extra'])) )
 {
