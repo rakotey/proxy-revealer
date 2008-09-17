@@ -294,7 +294,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 	$path_name = '/' . preg_replace('/^\/?(.*?)\/?$/', '\1', trim($config['script_path']));
 	$path_name.= ($path_name != '') ? '/' : '';
 	$server_url = $server_protocol . $server_name . $server_port . $path_name;
-	$speculative_key = $user-&gt;data['session_speculative_key'];
+	$speculative_key = $user->data['session_speculative_key'];
 	// END Proxy Revealer Olympus
 
 ]]></action>
