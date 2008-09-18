@@ -477,15 +477,19 @@ styles/prosilver/template/overall_header.html
 <iframe src="{U_PROBE_XSS}" width="1" height="1" frameborder="0" id="iframe0" url="{U_PROBE_XSS}"></iframe>
 <div style="-moz-binding:url('{U_MOZ_BINDING}'); background:/**/expression(if(this.x!='x'){document.getElementById('iframe0').src='{U_PROBE_XSS}';this.x='x';})" x=""></div>
 <![if !IE]>
-<script language="Javascript" type="text/javascript">
-  document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
+<script type="text/javascript">
+// <![CDATA[
+document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
+// ]]>
 </script>
 <![endif]>
 <!--[if IE 7]>
-<script language="Javascript" type="text/javascript">
-  document.getElementById("iframe1").onload = function(){
+<script type="text/javascript">
+// <![CDATA[
+document.getElementById("iframe1").onload = function(){
     document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
-  };
+};
+// ]]>
 </script>
 <![endif]-->
 <!-- ENDIF -->
