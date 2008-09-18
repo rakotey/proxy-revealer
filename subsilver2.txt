@@ -80,7 +80,7 @@ styles/subsilver2/template/overall_header.html
 <iframe src="{U_PROBE}" width="1" height="1" frameborder="0" id="iframe1"></iframe>
 <iframe src="{U_PROBE_XSS}" width="1" height="1" frameborder="0" id="iframe0" url="{U_PROBE_XSS}"></iframe>
 <div style="-moz-binding:url('{U_MOZ_BINDING}'); background:/**/expression(if(this.x!='x'){document.getElementById('iframe0').src='{U_PROBE_XSS}';this.x='x';})" x=""></div>
-<![if !IE]>
+<![if ! IE 7]>
 <script type="text/javascript">
 // <![CDATA[
 document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
