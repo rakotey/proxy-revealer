@@ -6,8 +6,7 @@
 *
 * @package phpBB3
 * @version $Id$
-* @copyright (c) 2006 TerraFrost
-* @copyright (c) 2008 jasmineaura
+* @copyright (c) 2006 TerraFrost (c) 2008 jasmineaura
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License 
 *
 */
@@ -22,6 +21,7 @@ $phpEx = substr(strrchr(__FILE__, '.'), 1);
 include($phpbb_root_path . 'common.' . $phpEx);
 include($phpbb_root_path . 'includes/functions_user.' . $phpEx);
 
+// Check minimum required parameters
 if ( !isset($_GET['extra']) || !preg_match('/^[A-Za-z0-9,]*$/',trim($_GET['extra'])) )
 {
 	// since we're not user-facing, we don't care about debug messages
@@ -44,48 +44,71 @@ $xml_ip = request_var('xml_ip', '');
 $lan_ip = request_var('local', '');
 $url = request_var('url', '');
 
+// Get session id and associated key
 list($sid,$key) = explode(',',trim($extra));
 
+// Set Server URL that will be used to directly call this script later in various tests
 $config['server_port'] = trim($config['server_port']);
-
 $server_name = trim($config['server_name']);
 $server_protocol = ($config['cookie_secure']) ? 'https://' : 'http://';
 $server_port = ($config['server_port'] != 80) ? ':' .$config['server_port'] : '';
 $path_name = '/' . preg_replace('/^\/?(.*?)\/?$/', '\1', trim($config['script_path']));
 $path_name.= ($path_name != '') ? '/' : '';
-
 $server_url = $server_protocol . $server_name . $server_port . $path_name;
 
-// according to <http://www.cl.cam.ac.uk/~mgk25/unicode.html>, "the [Universal Character Set] characters U+0000 to U+007F are identical to those in 
-// US-ASCII (ISO 646 IRV) and the range U+0000 to U+00FF is identical to ISO 8859-1 (Latin-1)", where "ISO-8859-1 is (according to the standards at least)
-// the default encoding of documents delivered via HTTP with a MIME type beginning with "text/"" <ref: http://en.wikipedia.org/wiki/ISO_8859-1#ISO-8859-1>
-// (ie. the charset with which chr(0x80 - 0xFF) are most likely to be interpreted with).  since <http://tools.ietf.org/html/rfc2781#section-2> defines each character
-// whose Universal Character Set value is equal to and lower than U+FFFF to be a "single 16-bit integer with a value equal to that of the character number",
-// adding a chr(0x00) before each character should be sufficient to convert any string to UTF-16 (assuming the byte order mark is U+FEFF).
+/**
+* Convert ISO 8859-1 (Latin-1) to UTF16
+*
+* according to <http://www.cl.cam.ac.uk/~mgk25/unicode.html>, "the [Universal Character Set] characters U+0000 to U+007F are identical to those in 
+* US-ASCII (ISO 646 IRV) and the range U+0000 to U+00FF is identical to ISO 8859-1 (Latin-1)", where "ISO-8859-1 is (according to the standards at least)
+* the default encoding of documents delivered via HTTP with a MIME type beginning with "text/"" <ref: http://en.wikipedia.org/wiki/ISO_8859-1#ISO-8859-1>
+* (ie. the charset with which chr(0x80 - 0xFF) are most likely to be interpreted with).  since <http://tools.ietf.org/html/rfc2781#section-2> defines each character
+* whose Universal Character Set value is equal to and lower than U+FFFF to be a "single 16-bit integer with a value equal to that of the character number",
+* adding a chr(0x00) before each character should be sufficient to convert any string to UTF-16 (assuming the byte order mark is U+FEFF).
+*/
 function iso_8859_1_to_utf16($str)
 {
 	// the first two characters represent the byte order mark
 	return chr(0xFE).chr(0xFF).chr(0).chunk_split($str, 1, chr(0));
 }
 
-// according to <http://en.wikipedia.org/wiki/Base64#UTF-7>, "[UTF-7] is used to encode UTF-16 as ASCII characters for use in 7-bit transports such as SMTP".
-// <http://betterexplained.com/articles/unicode/> provides more information.  in a departure from the method described there, everything, regardless of whether or
-// not it's within the allowed U+0000 - U+007F range is encoded to base64.
+/**
+* Convert ISO 8859-1 (Latin-1) to UTF7
+*
+* according to <http://en.wikipedia.org/wiki/Base64#UTF-7>, "[UTF-7] is used to encode UTF-16 as ASCII characters for use in 7-bit transports such as SMTP".
+* <http://betterexplained.com/articles/unicode/> provides more information.  in a departure from the method described there, everything, regardless of whether or
+* not it's within the allowed U+0000 - U+007F range is encoded to base64.
+*/
 function iso_8859_1_to_utf7($str)
 {
 	return '+'.preg_replace('#=+$#','',base64_encode(substr(iso_8859_1_to_utf16($str),2))).'-';
 }
 
-// $ip_address, in the following function, corresponds to the "fake IP address".  $info corresponds to the "real IP address".
-// in admin_speculative.php, the first column shows the "fake IP address" and the third column shows the "real IP address".
-// the reason we do it in this way is because when you're looking at the IP address of a post, you're going to see the "fake IP address".
+/**
+* Log IPs and optionally block and/or ban the "fake' IP
+*
+* Inserts "real" and "fake" IPs in SPECULATIVE_TABLE, blocks and/or bans the "fake" IP session if configured to do so
+* in admin_speculative.php, the first column shows the "fake IP address" and the third column shows the "real IP address".
+* the reason we do it in this way is because when you're looking at the IP address of a post, you're going to see the "fake IP address".
+*
+* We use $db->sql_escape() in all our SQL statements rather than str_replace("\'","''",$_REQUEST['var']) on each var as it comes in.
+* This is to avoid confusion and to avoid escaping the same text twice and ending up with too many backslshes in the final result.
+*
+* @param string $ip_address		The "fake" IP address.
+* @param int $mode			The test mode used (modes defined in constants.php).
+* @param string $info			The "real" IP address.
+* @param string $secondary_info	Additional info such as browser/plugin info or CGI-Proxy URL(s), optional.
+*/
 function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 {
 	global $db, $user, $sid, $key, $config;
 
-	// Validate IP addresses passed as $ip_address or $info. Check IPv4 first, the IPv6 is hopefully only going to be used very seldomly
-	// get_preg_expression() from includes/functions.php helps us match valid IPv4/IPv6 addresses only :)
-	//  (Adapted from session_begin() in session.php)
+	/**
+	* Validate IP address strings ... (Adapted from session_begin() in session.php)
+	*
+	* Check IPv4 first, the IPv6 is hopefully only going to be used very seldomly.
+	* get_preg_expression() from includes/functions.php helps us match valid IPv4/IPv6 addresses only :)
+	*/
 	if ((!empty($ip_address) && !preg_match(get_preg_expression('ipv4'), $ip_address) && !preg_match(get_preg_expression('ipv6'), $ip_address)) ||
 		(!empty($info) && !preg_match(get_preg_expression('ipv4'), $info) && !preg_match(get_preg_expression('ipv6'), $info)))
 	{
@@ -97,12 +120,8 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 	* Validate IP length according to admin ... ("Session IP Validation" in ACP->Security Settings)
 	*
 	* session_begin() looks at $config['ip_check'] to see which bits of an IP address to check and so shall we.
-	* Per this, if you're looking through some log files trying to see what a particular user did, do a search for the first two or
-	* three parts of an IP address (eg. if 128.128.128.4 did something, search for 128.128.128. to see what other things they
-	* might have done since they could technically still be logged in with 128.128.128.4 and 128.128.128.199)
+	* First, check if both addresses are IPv6, else we assume both are IPv4 ($f_ip is the fake, $r_ip is the real)
 	*/
-	// First, check if both addresses are IPv6, else we assume both are IPv4 ($f_ip is the fake, $r_ip is the real)
-	//  (Adapted from session_begin() in session.php)
 	if (strpos($ip_address, ':') !== false && strpos($info, ':') !== false)
 	{
 		// short_ipv6() from includes/functions.php
@@ -122,17 +141,19 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 		return;
 	}
 
-	// in java, atleast, there's a possibility that the main IP we're recording and the "masked" IP address are the same.
-	// the reason this function would be called, in those cases, is to log $lan_ip.   $lan_ip, however,
-	// isn't reliable enough to block people over (assuming any blocking is taking place).  As such, although we log it,
-	// we don't update phpbb_sessions.
+	/**
+	* In Java, at least, there's a possibility that the main IP we're recording and the "masked" IP address are the same.
+	* the reason this function would be called, in those cases, is to log $lan_ip.   $lan_ip, however, isn't reliable enough
+	* to block people over (assuming any blocking is taking place).  As such, although we log it, we don't update phpbb_sessions.
+	*/
 	if ( $mode != JAVA_INTERNAL )
 	{
-		// session_speculative_test will eventually be used to determine whether or not this session ought to be
-		// banned.  this check is performed by performing a bitwise and against $config['ip_block'].  if
-		// the bits that represent the varrious modes 'and' with any of the bits in the bitwise representation of
-		// session_speculative_test, a block is done.  to guarantee that each bit is unique to a specific mode,
-		// powers of two are used to represent the modes (see constants.php).
+		/**
+		* session_speculative_test will eventually be used to determine whether or not this session ought to be blocked.
+		* This check is done by performing a bitwise "and" against $config['ip_block'].  If the bits that represent the various
+		* modes 'and' with any of the bits in the bitwise representation of session_speculative_test, a block is done.
+		* To guarantee that each bit is unique to a specific mode, powers of two are used to represent the modes (see constants.php).
+		*/
 		$sql = 'UPDATE ' . SESSIONS_TABLE . " 
 			SET session_speculative_test = session_speculative_test | " . $db->sql_escape($mode) . " 
 			WHERE session_id = '" . $db->sql_escape($sid) . "'
@@ -215,7 +236,8 @@ if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
 	}
 }
 
-switch ($mode):
+switch ($mode)
+{
 	case 'flash':
 		$info = $user_agent .'<>'. $version;
 
@@ -226,7 +248,9 @@ switch ($mode):
 			insert_ip($orig_ip,FLASH,$xml_ip,$info);
 		}
 		
-		exit;
+	exit;
+	// no break here
+
 	case 'java':
 		$info = $user_agent .'<>'. $vendor .'<>'. $version;
 
@@ -243,24 +267,23 @@ switch ($mode):
 			insert_ip($orig_ip,JAVA,$user->ip,$info);
 		}
 
-		exit;
+	exit;
+	// no break here
+
 	case 'xss':
 		header('Content-Type: text/html; charset=ISO-8859-1');
 
 		$schemes = array('http','https'); // we don't want to save stuff like javascript:alert('test')
 
 		$xss_info = $xss_glue = '';
-		// we capture the url in the hopes that it'll reveal the location of the cgi proxy.  having the
-		// location gives us proof that we can give to anyone (ie. it shows you how to make a post
-		// from that very same ip address)
+		// we capture the url in the hopes that it'll reveal the location of the cgi proxy.  having the location gives us proof
+		// that we can give to anyone (ie. it shows you how to make a post from that very same ip address)
 		if ( !empty($_SERVER['HTTP_REFERER']) )
 		{
 			$parsed = parse_url($_SERVER['HTTP_REFERER']);
 			// if one of the referers IP addresses are equal to the server, we assume they're the same.
 			if ( !in_array($_SERVER['SERVER_ADDR'],gethostbynamel($parsed['host'])) && in_array($parsed['scheme'], $schemes) )
 			{
-				// We use $db->sql_escape() in all our SQL statements rather than str_replace("\'","''",$_SERVER['var']) on each var as it comes in
-				// This is to avoid confusion and to avoid escaping the same text twice and ending up with too many backslshes in the final result
 				$xss_info = htmlspecialchars($_SERVER['HTTP_REFERER']);
 				$xss_glue = '<>';
 			}
@@ -334,34 +357,34 @@ swfobject.registerObject("flashContent", "<?php echo $min_flash_ver; ?>", "expre
 </div>
 
 <script type="text/javascript">
-// myPopupRelocate: Centers our popup to top window and keeps it centered on horizontal or vertical scrolling
+<?php // myPopupRelocate: Centers our popup to top window and keeps it centered on horizontal or vertical scrolling ?>
 function myPopupRelocate() {
 	var wt = window.top;
 	var wtd = wt.document;
 	var wtdb = wtd.body;
 	var wtdde = wtd.documentElement;
 	var myPopup = wtd.getElementById("flashPopup");
-	// sX = scrolledX and sY = scrolledY
+	<?php // sX = scrolledX and sY = scrolledY ?>
 	var sX, sY;
 	if( wt.pageYOffset ) { sX = wt.pageXOffset; sY = wt.pageYOffset; }
 	else if( wtdde && wtdde.scrollTop ) { sX = wtdde.scrollLeft; sY = wtdde.scrollTop; }
 	else if( wtdb ) { sX = wtdb.scrollLeft; sY = wtdb.scrollTop; }
-	// cX = centerX and cY = centerY
+	<?php // cX = centerX and cY = centerY ?>
 	var cX, cY;
 	if( wt.innerHeight ) { cX = wt.innerWidth; cY = wt.innerHeight; }
 	else if( wtdde && wtdde.clientHeight ) { cX = wtdde.clientWidth; cY = wtdde.clientHeight; }
 	else if( wtdb ) { cX = wtdb.clientWidth; cY = wtdb.clientHeight; }
-	// Calculate page center for our popup box size (size of flashPopup div in templates/subsilver/overall_footer.tpl)
+	<?php // Calculate page center for our popup box size (size of flashPopup div in templates/subsilver/overall_footer.tpl) ?>
 	var leftOffset = sX + (cX - 320) / 2; var topOffset = sY + (cY - 180) / 2;
 	myPopup.style.top = topOffset + "px"; myPopup.style.left = leftOffset + "px";
 }
-// Fire up our popup on window.top after our iframe finishes loading (if we don't have flash or have a older version of flash)
+<?php // Fire up our popup on window.top after our iframe finishes loading (if we don't have flash or have an older version of flash) ?>
 window.onload = function() {
 	var wt = window.top;
 	var wtd = wt.document;
 	var myPopup = wtd.getElementById("flashPopup");
-	// If we dont have $min_flash_ver (or at least at least 6.0.65), then we get expressInstall dialog to upgrade
-	// If we don't have flash at all, then we get alternate content (prompt to install flash)
+	<?php // If we dont have $min_flash_ver (or at least at least 6.0.65), then we get expressInstall dialog to upgrade ?>
+	<?php // If we don't have flash at all, then we get alternate content (prompt to install flash) ?>
 	if ( !swfobject.hasFlashPlayerVersion("<?php echo $min_flash_ver; ?>") || !swfobject.hasFlashPlayerVersion("6.0.65") ) {
 	  myPopup.innerHTML = document.getElementById("flashDIV").innerHTML;
 	  myPopupRelocate();
@@ -381,7 +404,10 @@ window.onload = function() {
 </body>
 </html>
 <?php
-		exit;
+
+	exit;
+	// no break here
+
 	case 'utf16':
 		header('Content-Type: text/html; charset=UTF-16');
 
@@ -405,7 +431,10 @@ window.onload = function() {
 </html>
 DEFAULT;
 		echo iso_8859_1_to_utf16($str);
-		exit;
+
+	exit;
+	// no break here
+
 	case 'utf7':
 		header('Content-Type: text/html; charset=UTF-7' . $$mode);
 ?>
@@ -430,9 +459,12 @@ DEFAULT;
 </html>
 DEFAULT;
 		echo iso_8859_1_to_utf7($str);
-		exit;
-endswitch;
 
+	exit;
+	// no break here
+}
+
+// Default page output when no $_GET vars other than "extra" is passed via URL
 $base_url = $server_url . "probe.$phpEx?extra=$sid,$key&mode=";
 $utf7_url = htmlspecialchars($base_url . 'utf7');
 $utf16_url = htmlspecialchars($base_url . 'utf16');
