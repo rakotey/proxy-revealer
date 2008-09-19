@@ -39,3 +39,30 @@ html, body {
 	float: left;
 	margin-right:20px;
 }
+
+#js-required-mask {
+	position: absolute;
+	z-index: 30000;
+	top: 0px; left: 0px;
+	width: 100%;
+	height: 100%;
+	background-color: #000000;
+	opacity: 0.7;				/* Safari, Opera */
+	-moz-opacity:0.70; 			/* FireFox */
+	filter: alpha(opacity=70);	/* IE */
+}
+
+#js-required {
+	position: absolute;
+	z-index: 30001;
+	top: 30%;
+	left: 50%;					/* 50% from left to center */
+	width: 300px;
+	height: auto;
+	border: 3px solid #BBC0C4;
+	padding: 10px;
+	margin-left: -163px;		/* subtract (width / 2) + border + padding */
+	background: #EFEFEF;
+	text-align: center;
+	font:13px tahoma,arial,helvetica;
+}

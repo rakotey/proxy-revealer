@@ -293,6 +293,7 @@ class acp_proxy_revealer
 						'java_mask'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => false, 'method' => false, 'explain' => false,),
 						'xss_mask'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => false, 'method' => false, 'explain' => false,),
 						'x_forwarded_for_mask'	=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => false, 'method' => false, 'explain' => false,),
+						'require_javascript'	=> array('lang' => 'IP_REQUIRE_JS',		'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
 						'ip_ban'				=> array('lang' => 'IP_MASK_BAN',		'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
 						'ip_ban_length'			=> array('lang' => 'BAN_LENGTH',		'validate' => 'int',	'type' => 'custom', 'method' => 'ipbanlength_select', 'explain' => false),
 						'ip_ban_length_other'	=> array('lang' => 'BAN_LENGTH',		'validate' => 'string',	'type' => false, 'method' => false, 'explain' => false),

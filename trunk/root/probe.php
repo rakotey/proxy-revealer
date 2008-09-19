@@ -156,7 +156,7 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 		*/
 		$sql = 'UPDATE ' . SESSIONS_TABLE . " 
 			SET session_speculative_test = session_speculative_test | " . $db->sql_escape($mode) . " 
-			WHERE session_id = '" . $db->sql_escape($sid) . "'
+			WHERE session_id = '" . $db->sql_escape($sid) . "' 
 				AND session_speculative_key = '" . $db->sql_escape($key) . "'";
 
 		if ( !($result = $db->sql_query($sql)) )
@@ -238,6 +238,16 @@ if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
 
 switch ($mode)
 {
+	case 'reprobe':
+		$sql = "UPDATE ".SESSIONS_TABLE." 
+			SET session_speculative_test = -1 
+			WHERE session_id = '" . $db->sql_escape($sid) . "' 
+				AND session_speculative_key = '" . $db->sql_escape($key) . "'";
+		$db->sql_query($sql);
+
+	exit;
+	// no break here
+
 	case 'flash':
 		$info = $user_agent .'<>'. $version;
 
