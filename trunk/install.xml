@@ -136,6 +136,19 @@ The above two workarounds are the only solutions I could find. If you are aware 
 
 		<history>
 			<entry>
+				<date>2008-09-19</date>
+				<rev-version>0.1.0</rev-version>
+				<changelog lang="en">
+					<change>Improved the X_FORWARDED_FOR check to validate the contents of X-Forwarded-For header and to recognize when it contains multiple addresses and handle that properly.</change>
+					<change>Added validation of IPv4/IPv6 address strings passed to the insert_ip() function.</change>
+					<change>probe.php comments organization/cleanup. Minor code cleanup of the HUGE switch statement to adhere with coding guidelines. Hidden the comments in the javascript (which is used to detect flash and generate a pop-up if flash version is old or flash not installed) by enclosing the comments in php tags so they're not downloaded by browsers.</change>
+					<change>Placed the one or two-liner javascript code (which is part of the modification added to overall_header.html) in CDATA tags for XHTML validation purposes. Updated install.txt/.xml and subsilver2.txt/.xml accordingly.</change>
+					<change>Minor fix to the conditional IE7 check in the overall_header.html modification. ("!IE" should be "! IE 7")</change>
+					<change>Fixed minor bug in "Settings" where one couldn't uncheck all the "IP Masking Block" options because at least one had to stay checked for the settings to be committed. (Thanks, sotis!)</change>
+					<change>Introduced "Require Javascript enabled" feature, enable/disable it in "Settings".</change>
+				</changelog>
+			</entry>
+			<entry>
 				<date>2008-09-16</date>
 				<rev-version>0.0.1</rev-version>
 				<changelog lang="en">
