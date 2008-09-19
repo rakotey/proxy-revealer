@@ -320,6 +320,7 @@ class acp_proxy_revealer
 					{
 						// Reset 'ip_block' to ZERO before we proceed to loop through *_mask checkboxes
 						$this->new_config['ip_block'] = 0;
+						set_config('ip_block', 0);
 
 						foreach ($display_vars['vars'] as $config_name => $null)
 						{
