@@ -55,6 +55,18 @@
 			</edit>
 			<edit>
 				<find><![CDATA[<body class="{S_CONTENT_DIRECTION}">]]></find>
+				<action type="before-add"><![CDATA[
+
+<!-- IF S_REQUIRE_JS -->
+<noscript>
+<body scroll="no" style="overflow:hidden;">
+<div id="js-required-mask">&nbsp;</div>
+<div id="js-required">{L_REQUIRE_JS}</div>
+<iframe src="{U_REPROBE}" width="1" height="1" frameborder="0" id="iframe-reprobe"></iframe>
+</noscript>
+<!-- ENDIF -->
+
+]]></action>
 				<action type="after-add"><![CDATA[
 
 <!-- IF S_SPECULATIVE_TEST -->

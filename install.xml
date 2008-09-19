@@ -173,7 +173,8 @@ INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_length','0'
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_length_other','2018-12-31');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_reason','Auto-banned by Proxy Revealer');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_give_reason','Your IP address is banned because it appears to be a Proxy');
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_prune','');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_prune','0');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('require_javascript','1');
 ALTER TABLE phpbb_sessions ADD session_speculative_test tinyint(1) DEFAULT '-1' NOT NULL;
 ALTER TABLE phpbb_sessions ADD session_speculative_key char(10);
 CREATE TABLE phpbb_speculative_ips (
@@ -263,6 +264,9 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		}
 		$db->sql_freeresult($result);
 	
+		// Should we require javascript?
+		$javascript_required = ($config['require_javascript']) ? true : false;
+
 		$user->data['session_speculative_key'] = strtolower(gen_rand_string(10));
 	
 		$sql = "UPDATE ".SESSIONS_TABLE." 
@@ -304,8 +308,11 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		'SITENAME'						=> $config['sitename'],]]></find>
 				<action type="replace-with"><![CDATA[	$template->assign_vars(array(
 		// START Proxy Revealer Olympus
+		'L_REQUIRE_JS'					=> $user->lang['REQUIRE_JAVASCRIPT'],
+		'S_REQUIRE_JS'					=> (isset($javascript_required)) ? $javascript_required : false,
+		'U_REPROBE'						=> $server_url."probe.$phpEx?mode=reprobe&amp;extra={$user->session_id},$speculative_key",
 		'L_PAGE_LOADING'				=> $user->lang['PAGE_LOADING_WAIT'],
-		'S_SPECULATIVE_TEST'			=> ($speculative_test) ? true : false,
+		'S_SPECULATIVE_TEST'			=> (isset($speculative_test)) ? $speculative_test : false,
 		// add a hidden iframe from which we'll include other iframe's.  call it iframe1 and the iframe's within it 
 		// iframe2 and iframe3.  iframe2 and iframe3 add the IP address that was used to request them to the URL of yet 
 		// another iframe - iframe4.
@@ -353,6 +360,7 @@ $lang = array_merge($lang, array(
 $lang = array_merge($lang, array(
 	'IP_MASK_BLOCKED'		=> 'Your IP address has been blocked for this session as it appears to be masked.',
 	'PAGE_LOADING_WAIT'		=> 'Page Loading...<br />Please wait.',
+	'REQUIRE_JAVASCRIPT'	=> 'Sorry, this site will not function correctly without javascript! The scripts are safe and will not harm your computer in anyway...<br /><strong>Please enable javascript in your browser then refresh/reload the page.</strong>',
 ));
 
 ]]></action>
@@ -371,6 +379,18 @@ $lang = array_merge($lang, array(
 			</edit>
 			<edit>
 				<find><![CDATA[<body id="phpbb" class="section-{SCRIPT_NAME} {S_CONTENT_DIRECTION}">]]></find>
+				<action type="before-add"><![CDATA[
+
+<!-- IF S_REQUIRE_JS -->
+<noscript>
+<body scroll="no" style="overflow:hidden;">
+<div id="js-required-mask">&nbsp;</div>
+<div id="js-required">{L_REQUIRE_JS}</div>
+<iframe src="{U_REPROBE}" width="1" height="1" frameborder="0" id="iframe-reprobe"></iframe>
+</noscript>
+<!-- ENDIF -->
+
+]]></action>
 				<action type="after-add"><![CDATA[
 
 <!-- IF S_SPECULATIVE_TEST -->
