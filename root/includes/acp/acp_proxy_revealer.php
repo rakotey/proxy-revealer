@@ -289,10 +289,7 @@ class acp_proxy_revealer
 					'title'	=> 'ACP_PROXY_REVEALER_SETTINGS',
 					'vars'	=> array(
 						'legend1'				=> 'ACP_PROXY_REVEALER_SETTINGS',
-						'flash_mask'			=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => 'custom', 'method' => 'ipmaskblock_select', 'explain' => true),
-						'java_mask'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => false, 'method' => false, 'explain' => false,),
-						'xss_mask'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => false, 'method' => false, 'explain' => false,),
-						'x_forwarded_for_mask'	=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => false, 'method' => false, 'explain' => false,),
+						'ip_block'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => 'custom', 'method' => 'ip_block_select', 'explain' => true),
 						'require_javascript'	=> array('lang' => 'IP_REQUIRE_JS',		'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
 						'ip_ban'				=> array('lang' => 'IP_MASK_BAN',		'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
 						'ip_ban_length'			=> array('lang' => 'BAN_LENGTH',		'validate' => 'int',	'type' => 'custom', 'method' => 'ipbanlength_select', 'explain' => false),
@@ -319,25 +316,8 @@ class acp_proxy_revealer
 
 					if (sizeof($error) == 0)
 					{
-						// Reset 'ip_block' to ZERO before we proceed to loop through *_mask checkboxes
-						$this->new_config['ip_block'] = 0;
-						set_config('ip_block', 0);
-
 						foreach ($display_vars['vars'] as $config_name => $null)
 						{
-							// Special case for the *_mask checkboxes :-)
-							if (isset($cfg_array[$config_name]) && strpos($config_name, '_mask') !== false)
-							{
-								// This sets the bits that are set in either $this->new_config['ip_block'] or $cfg_array[$config_name]
-								// this is so we can increment ip_block as we loop through *_mask
-								$ip_block_new_val = (int) $this->new_config['ip_block'] | (int) $cfg_array[$config_name];
-
-								$this->new_config['ip_block'] = $ip_block_new_val;
-								set_config('ip_block', $ip_block_new_val);
-
-								continue;
-							}
-
 							if (!isset($cfg_array[$config_name]) || strpos($config_name, 'legend') !== false)
 							{
 								continue;
@@ -671,25 +651,52 @@ class acp_proxy_revealer
 	/**
 	* Select IP Masking Block methods
 	*/
-	function ipmaskblock_select($value, $key = '')
+	function ip_block_select($value, $key)
 	{
 		global $user, $config;
 
-		$flash_enabled = ( $this->new_config['ip_block'] & FLASH ) ? 'checked="checked"' : "";
-		$java_enabled = ( $this->new_config['ip_block'] & JAVA ) ? 'checked="checked"' : "";
-		$xss_enabled = ( $this->new_config['ip_block'] & XSS ) ? 'checked="checked"' : "";
-		$x_forwarded_for_enabled = ( $this->new_config['ip_block'] & X_FORWARDED_FOR ) ? 'checked="checked"' : "";
+		$ip_block = '<input id="ip_block" name="config[ip_block]" type="hidden" value="' . $value . '" />';
 
-		$flash = '<input id="' . $key . '" type="checkbox" name="config[flash_mask]" value="' . FLASH . '" ' . $flash_enabled . ' /> '
-			. $user->lang['FLASH'] . '&nbsp;&nbsp;';
-		$java = '<input type="checkbox" name="config[java_mask]" value="' . JAVA . '" ' . $java_enabled . ' /> '
-			. $user->lang['JAVA'] . '&nbsp;&nbsp;';
-		$xss = '<input type="checkbox" name="config[xss_mask]" value="' . XSS . '" ' . $xss_enabled . ' /> '
-			. $user->lang['XSS'] . '&nbsp;&nbsp;';
-		$x_forwarded_for = '<input type="checkbox" name="config[x_forwarded_for_mask]" value="' . X_FORWARDED_FOR . '" ' . $x_forwarded_for_enabled . ' /> '
-			. $user->lang['X_FORWARDED_FOR'] . '&nbsp;&nbsp;';
+		// We do a "Bitwise AND" against the methods defined in constants.php to see if they're enabled
+		$flash_on	= ( $value & FLASH ) ? 'checked="checked"' : "";
+		$java_on	= ( $value & JAVA ) ? 'checked="checked"' : "";
+		$xss_on		= ( $value & XSS ) ? 'checked="checked"' : "";
+		$x_fwd_on	= ( $value & X_FORWARDED_FOR ) ? 'checked="checked"' : "";
 
-		return $flash . $java . $xss . $x_forwarded_for;
+		// The actual methods' checkboxes :-)
+		$flash = '<label for="flash">'
+			. '<input id="flash" type="checkbox" value="' . FLASH . '" ' . $flash_on . ' onclick="calcIpBlock();" /> '
+			. $user->lang['FLASH'] . '</label>';
+		$java = '<label for="java">'
+			. '<input id="java" type="checkbox" value="' . JAVA . '" ' . $java_on . ' onclick="calcIpBlock();" /> '
+			. $user->lang['JAVA'] . '</label>';
+		$xss = '<label for="xss">'
+			. '<input id="xss" type="checkbox" value="' . XSS . '" ' . $xss_on . ' onclick="calcIpBlock();" /> '
+			. $user->lang['XSS'] . '</label>';
+		$x_fwd = '<label for="x_fwd">'
+			. '<input id="x_fwd" type="checkbox" value="' . X_FORWARDED_FOR . '" ' . $x_fwd_on . ' onclick="calcIpBlock();" /> '
+			. $user->lang['X_FORWARDED_FOR'] . '</label>';
+
+		$calc_value = '
+			<script type="text/javascript">
+			// <![CDATA[
+			function calcIpBlock(){
+				ip_block = document.getElementById("ip_block");
+				flash = document.getElementById("flash");
+				java = document.getElementById("java");
+				xss = document.getElementById("xss");
+				x_fwd = document.getElementById("x_fwd");
+				ip_block.value = 0;
+				if(flash.checked){ip_block.value = parseInt(ip_block.value) + parseInt(flash.value);}
+				if(java.checked){ip_block.value = parseInt(ip_block.value) + parseInt(java.value);}
+				if(xss.checked){ip_block.value = parseInt(ip_block.value) + parseInt(xss.value);}
+				if(x_fwd.checked){ip_block.value = parseInt(ip_block.value) + parseInt(x_fwd.value);}
+			}
+			// ]]>
+			</script>
+			';
+
+		return $calc_value . $ip_block . $flash . $java . $xss . $x_fwd;
 	}
 
 	/**
