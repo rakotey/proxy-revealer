@@ -118,7 +118,7 @@ class acp_proxy_revealer
 				$form_key = 'acp_proxy_revealer';
 				add_form_key($form_key);
 
-				if ((isset($_REQUEST['show']) || isset($_REQUEST['order']) || isset($_REQUEST['ip'])) && !check_form_key($form_key))
+				if ((isset($_POST['show']) || isset($_POST['order']) || isset($_POST['ip'])) && !check_form_key($form_key))
 				{
 					trigger_error($user->lang['FORM_INVALID'] . adm_back_link($this->u_action), E_USER_WARNING);
 				}
