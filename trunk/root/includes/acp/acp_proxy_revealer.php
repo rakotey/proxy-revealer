@@ -168,7 +168,7 @@ class acp_proxy_revealer
 				$i = 0;
 				while ( $row = $db->sql_fetchrow($result) )
 				{
-					$real_ip = preg_replace('#(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})#','$1',$row['real_ip']);
+					$real_ip = $row['real_ip'];
 					$real_ip_url = '<a href="' . $this->u_action . "&amp;action=whois&amp;ip=$real_ip" . '" '
 						. 'title="' . sprintf($user->lang['IP_WHOIS_FOR'], $real_ip) . '" '
 						. 'onclick="popup(this.href, 700, 500, \'_whois\'); return false;">' . $real_ip . '</a>';
@@ -177,22 +177,29 @@ class acp_proxy_revealer
 
 					switch ( $row['method'] )
 					{
+						case COOKIE:
+							$method = $user->lang['COOKIE'];
+						break;
+
 						case FLASH:
 							$method = '<a href="'
 								. $this->u_action . "&amp;action=flash&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
 								. '" title="' . $user->lang['SPECULATIVE_IP_FLASH'] . '" '
 								. 'onclick="popup(this.href, 700, 300, \'_flash\'); return false;">' . $user->lang['FLASH'] . '</a>';
-							break;
+						break;
+
 						case JAVA:
 						case JAVA_INTERNAL:
 							$method = '<a href="'
 								. $this->u_action . "&amp;action=java&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
 								. '" title="' . $user->lang['SPECULATIVE_IP_JAVA'] . '" '
 								. 'onclick="popup(this.href, 700, 300, \'_java\'); return false;">' . $user->lang['JAVA'] . '</a>';
-							break;
+						break;
+
 						case X_FORWARDED_FOR:
 							$method = $user->lang['X_FORWARDED_FOR'];
-							break;
+						break;
+
 						case XSS:
 							$urls = explode('<>', $row['info']);
 							$count = count($urls);
@@ -200,13 +207,15 @@ class acp_proxy_revealer
 							{
 								case !$count:
 									$method = $user->lang['XSS'];
-									break;
+								break;
+
 								case $count == 1 || empty($urls[1]):
 									$method =  !empty($urls[0]) ? '<a href="' . $urls[0]
 										. '" title="' . $user->lang['XSS_URL'] . '" '
 										. 'onclick="popup(this.href, 700, 500, \'_xss\'); return false;">' . $user->lang['XSS'] . '</a>'
 										: $user->lang['XSS'];
-									break;
+								break;
+
 								case $count == 2: // eg. default; there can be up to two url's in $urls.  if there is, represent the link to the second one with "(2)"
 									$method =  !empty($urls[0]) ? '<a href="' . $urls[0]
 										. '" title="' . $user->lang['XSS_URL'] . '" '
@@ -216,7 +225,9 @@ class acp_proxy_revealer
 										. '" title="' . $user->lang['XSS_URL'] . '" '
 										. 'onclick="popup(this.href, 700, 500, \'_xss\'); return false;">(2)</a>'
 										: '';
+								break;
 							}
+						break;
 					}
 
 					$template->assign_block_vars('speculativerow', array(
@@ -290,6 +301,7 @@ class acp_proxy_revealer
 					'vars'	=> array(
 						'legend1'				=> 'ACP_PROXY_REVEALER_SETTINGS',
 						'ip_block'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => 'custom', 'method' => 'ip_block_select', 'explain' => true),
+						'ip_cookie_age'			=> array('lang' => 'IP_COOKIE_AGE',		'validate' => 'int',	'type' => 'text:3:4', 'explain' => true, 'append' => ' ' . $user->lang['HOURS']),
 						'require_javascript'	=> array('lang' => 'IP_REQUIRE_JS',		'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
 						'ip_ban'				=> array('lang' => 'IP_MASK_BAN',		'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
 						'ip_ban_length'			=> array('lang' => 'BAN_LENGTH',		'validate' => 'int',	'type' => 'custom', 'method' => 'ipbanlength_select', 'explain' => false),
@@ -658,12 +670,16 @@ class acp_proxy_revealer
 		$ip_block = '<input id="ip_block" name="config[ip_block]" type="hidden" value="' . $value . '" />';
 
 		// We do a "Bitwise AND" against the methods defined in constants.php to see if they're enabled
+		$cookie_on	= ( $value & COOKIE ) ? 'checked="checked"' : "";
 		$flash_on	= ( $value & FLASH ) ? 'checked="checked"' : "";
 		$java_on	= ( $value & JAVA ) ? 'checked="checked"' : "";
 		$xss_on		= ( $value & XSS ) ? 'checked="checked"' : "";
 		$x_fwd_on	= ( $value & X_FORWARDED_FOR ) ? 'checked="checked"' : "";
 
 		// The actual methods' checkboxes :-)
+		$cookie = '<label for="cookie">'
+			. '<input id="cookie" type="checkbox" value="' . COOKIE . '" ' . $cookie_on . ' onclick="calcIpBlock();" /> '
+			. $user->lang['COOKIE'] . '</label>';
 		$flash = '<label for="flash">'
 			. '<input id="flash" type="checkbox" value="' . FLASH . '" ' . $flash_on . ' onclick="calcIpBlock();" /> '
 			. $user->lang['FLASH'] . '</label>';
@@ -682,11 +698,13 @@ class acp_proxy_revealer
 			// <![CDATA[
 			function calcIpBlock(){
 				ip_block = document.getElementById("ip_block");
+				cookie = document.getElementById("cookie");
 				flash = document.getElementById("flash");
 				java = document.getElementById("java");
 				xss = document.getElementById("xss");
 				x_fwd = document.getElementById("x_fwd");
 				ip_block.value = 0;
+				if(cookie.checked){ip_block.value = parseInt(ip_block.value) + parseInt(cookie.value);}
 				if(flash.checked){ip_block.value = parseInt(ip_block.value) + parseInt(flash.value);}
 				if(java.checked){ip_block.value = parseInt(ip_block.value) + parseInt(java.value);}
 				if(xss.checked){ip_block.value = parseInt(ip_block.value) + parseInt(xss.value);}
@@ -696,7 +714,7 @@ class acp_proxy_revealer
 			</script>
 			';
 
-		return $calc_value . $ip_block . $flash . $java . $xss . $x_fwd;
+		return $calc_value . $ip_block . $flash . $java . $xss . "<br /><br />" . $cookie . $x_fwd;
 	}
 
 	/**

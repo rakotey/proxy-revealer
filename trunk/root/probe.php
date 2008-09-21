@@ -236,6 +236,36 @@ if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
 	}
 }
 
+/**
+* IPT (IP Tracking) Cookie monster begins here :-)
+*/
+if (isset($_COOKIE[$config['cookie_name'] . '_ipt']))
+{
+	$cookie_ip = request_var($config['cookie_name'] . '_ipt', '', false, true);
+
+	// $orig_ip represents our old "spoofed" address and $cookie_ip represents our possibly "real" address.
+	// if they're different, we've probably managed to break out of the proxy, so we log it.
+	if ( $orig_ip != $cookie_ip )
+	{
+		insert_ip($orig_ip,COOKIE,$cookie_ip);
+	}
+}
+else
+{
+	$hours = (isset($config['ip_cookie_age'])) ? $config['ip_cookie_age'] : 6;
+	$cookie_expire = time() + ($hours * 3600);
+	$user->set_cookie('ipt', $orig_ip, $cookie_expire);
+}
+
+/**
+* This is where most of the action happens.
+*
+* reprobe:		called via an iframe from overall_header if "require javascript enabled" is on so we restart our tests till user enables javascript.
+* flash:		called when the flash plugin connects back to the server with useful information such as xml_ip (detected real ip) and plugin info.
+* java:		called when the java applet directly connects back to the server so we can log the IP of the direct connection (and perhaps lan_ip).
+* xss:			called via an iframe from overall_header, this initiates the XSS test, embeds the flash and java applet.
+* utf7 & utf16	called via iframes from default page output here when no $_GET vars other than "extra" is passed (see the end of this script).
+*/
 switch ($mode)
 {
 	case 'reprobe':
@@ -252,7 +282,7 @@ switch ($mode)
 		$info = $user_agent .'<>'. $version;
 
 		// $orig_ip represents our old "spoofed" address and $xml_ip represents our current "real" address.
-		// if they're different, we've probably managed to break out of the HTTP proxy, so we log it.
+		// if they're different, we've probably managed to break out of the proxy, so we log it.
 		if ( $orig_ip != $xml_ip )
 		{
 			insert_ip($orig_ip,FLASH,$xml_ip,$info);
@@ -271,7 +301,7 @@ switch ($mode)
 		}
 
 		// $orig_ip represents our old "spoofed" address and $user->ip represents our current "real" address.
-		// if they're different, we've probably managed to break out of the HTTP proxy, so we log it.
+		// if they're different, we've probably managed to break out of the proxy, so we log it.
 		if ( $orig_ip != $user->ip )
 		{
 			insert_ip($orig_ip,JAVA,$user->ip,$info);
@@ -317,6 +347,9 @@ switch ($mode)
 			insert_ip($orig_ip,XSS,$user->ip,$xss_info);
 		}
 
+		/**
+		* Flash & Java embedding begins here
+		*/
 		$java_url = $path_name . "probe.$phpEx?mode=java&amp;ip=$orig_ip&amp;extra=$sid,$key";
 
 		// XML Socket Policy file server port
@@ -474,7 +507,9 @@ DEFAULT;
 	// no break here
 }
 
-// Default page output when no $_GET vars other than "extra" is passed via URL
+/**
+* Default page output when no $_GET vars other than "extra" is passed via URL
+*/
 $base_url = $server_url . "probe.$phpEx?extra=$sid,$key&mode=";
 $utf7_url = htmlspecialchars($base_url . 'utf7');
 $utf16_url = htmlspecialchars($base_url . 'utf16');
