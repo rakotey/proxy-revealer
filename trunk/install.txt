@@ -195,6 +195,12 @@
 ##############################################################
 ## MOD History:
 ##
+##   2008-09-21 - Version 0.2.0
+##      - Code rewrite of how the ip_block config value is set in the ACP module. Old way was too
+##        hackish, new way (using javascript) is much cleaner I think :-)
+##      - Fixed a minor bug in the ACP module that caused a form-key-check error when clicking on
+##        pagination links. (Thanks, sotis!)
+##      - Introduced the "IP-Tracking Cookie" feature
 ##   2008-09-19 - Version 0.1.0
 ##      - Improved the X_FORWARDED_FOR check to validate the contents of X-Forwarded-For header
 ##        and to recognize when it contains multiple addresses and handle that properly.
