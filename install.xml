@@ -136,6 +136,15 @@ The above two workarounds are the only solutions I could find. If you are aware 
 
 		<history>
 			<entry>
+				<date>2008-09-21</date>
+				<rev-version>0.2.0</rev-version>
+				<changelog lang="en">
+					<change>Code rewrite of how the ip_block config value is set in the ACP module. Old way was too hackish, new way (using javascript) is much cleaner I think :-)</change>
+					<change>Fixed a minor bug in the ACP module that caused a form-key-check error when clicking on pagination links. (Thanks, sotis!)</change>
+					<change>Introduced the "IP-Tracking Cookie" feature</change>
+				</changelog>
+			</entry>
+			<entry>
 				<date>2008-09-19</date>
 				<rev-version>0.1.0</rev-version>
 				<changelog lang="en">
