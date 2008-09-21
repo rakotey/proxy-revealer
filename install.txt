@@ -8,11 +8,10 @@
 ## Installation Level: Intermediate
 ## Installation Time: 30 Minutes
 ##
-## Files To Edit: 6
+## Files To Edit: 5
 ##      includes/constants.php
 ##      includes/session.php
 ##      includes/functions.php
-##      language/en/acp/common.php
 ##      language/en/common.php
 ##      styles/prosilver/template/overall_header.html
 ##
@@ -434,30 +433,6 @@ includes/functions.php
 #
 #-----[ OPEN ]------------------------------------------
 #
-language/en/acp/common.php
-#
-#-----[ FIND ]------------------------------------------
-#
-?>
-#
-#-----[ BEFORE, ADD ]------------------------------------
-#
-
-// Proxy Revealer Olympus
-$lang = array_merge($lang, array(
-	'ACP_PROXY_REVEALER'				=> 'Proxy Revealer Olympus',
-	'ACP_PROXY_REVEALER_EXTERNAL'		=> 'External IPs',
-	'ACP_PROXY_REVEALER_INTERNAL'		=> 'Internal IPs',
-	'ACP_PROXY_REVEALER_SETTINGS'		=> 'Settings',
-	'ACP_PROXY_REVEALER_EXCLUDES'		=> 'Exceptions',
-	'LOG_PROXY_REVEALER_SETTINGS'		=> '<strong>Altered Proxy Revealer settings</strong>',
-	'LOG_PROXY_REVEALER_EXCLUDES_ADD'	=> '<strong>Excluded IP from Proxy Revealer scanning</strong><br />» %1$s',
-	'LOG_PROXY_REVEALER_EXCLUDES_DEL'	=> '<strong>Removed IP from Proxy Revealer exceptions list</strong><br />» %s',
-));
-
-#
-#-----[ OPEN ]------------------------------------------
-#
 language/en/common.php
 #
 #-----[ FIND ]------------------------------------------
@@ -554,6 +529,7 @@ Install the ACP module(s):
 3.  Click on "Administration Control Panel" in the "Module Management" section on the left
 4.  Click on the ".MODs" folder
 5.  Choose "Proxy Revealer Olympus" from the drop-down box beside the "Add Module" button
+    (under Proxy Revealer Olympus) and click "Add Module" and confirm by clicking "Yes"
 6.  Activate the module "Proxy Revealer Olympus" by clicking "Enable"
 7.  Click on the "Proxy Revealer Olympus" folder
 8.  Choose "External IPs" from the drop-down box beside the "Add Module" button
@@ -568,8 +544,8 @@ Install the ACP module(s):
 14. Choose "Exceptions" from the drop-down box beside the "Add Module" button
     (under Proxy Revealer Olympus) and click "Add Module" and confirm by clicking "Yes"
 15. Activate the module "Exceptions" by clicking "Enable"
-16. You can now administrate Proxy Revealer Olympus by clicking on ".MODs" tab on the top under
-    the category "Proxy Revealer Olympus" on the left
+16. You can now administrate Proxy Revealer Olympus by clicking on ".MODs" tab on the top
+    under the category "Proxy Revealer Olympus" on the left
 
 #
 #-----[ SAVE/CLOSE ALL FILES ]--------------------------

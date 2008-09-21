@@ -35,15 +35,6 @@ if (empty($lang) || !is_array($lang))
 // equally where a string contains only two placeholders which are used to wrap text
 // in a url you again do not need to specify an order e.g., 'Click %sHERE%s' is fine
 
-// Proxy Revealer Olympus ACP Titles
-$lang = array_merge($lang, array(
-	'ACP_PROXY_REVEALER'			=> 'Proxy Revealer Olympus',
-	'ACP_PROXY_REVEALER_EXTERNAL'	=> 'External IPs',
-	'ACP_PROXY_REVEALER_INTERNAL'	=> 'Internal IPs',
-	'ACP_PROXY_REVEALER_SETTINGS'	=> 'Settings',
-	'ACP_PROXY_REVEALER_EXCLUDES'	=> 'Exceptions',
-));
-
 // Proxy Revealer Olympus Internal and External IP Log
 $lang = array_merge($lang, array(
 	'SPECULATIVE_IP_EXTERNAL'	=> 'Someone who hasn’t taken care in masking their IP address risks revealing it through any number of mechanisms - mechanisms that although not entirely fool-proof, themselves, should be sufficient to “catch” the average IP-masker.  You can also view “%sInternal IP Addresses%s” or “%sDisable Scanning%s” for certain IP address (helpful if you’re running your own proxy and are already logging stuff through that).',
