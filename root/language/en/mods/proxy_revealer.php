@@ -74,17 +74,20 @@ $lang = array_merge($lang, array(
 
 // Proxy Revealer Olympus Settings
 $lang = array_merge($lang, array(
-	'PROXY_REVEALER_EXPLAIN'	=> 'Attempts to determine someone’s “real” IP address, using a myriad of techniques, and “blocks” such people.',
+	'PROXY_REVEALER_EXPLAIN'	=> 'Attempts to determine someone’s “real” IP address, using a myriad of techniques, and “blocks” such people. Blocking is done within the confines of the “Session IP Validation” setting (Set it at “Security Settings” under “Server Configuation”)',
 
 	'DAYS'					=> 'Days',
+	'HOURS'					=> 'Hours',
 	'IP_MASK_BAN'			=> 'IP Masking Ban',
-	'IP_MASK_BAN_EXPLAIN'	=> 'Permanently bans people who were blocked by the above detection methods.',
+	'IP_MASK_BAN_EXPLAIN'	=> 'Permanently bans the proxy IPs used by people who were blocked by the above detection methods.',
 	'IP_MASK_BLOCK'			=> 'IP Masking Block',
 	'IP_MASK_BLOCK_EXPLAIN'	=> 'Select which detection methods you would like to have block users. Users are blocked for the duration of their session.',
 	'IP_MASK_PRUNE'			=> 'Masked IP Age Limit',
 	'IP_MASK_PRUNE_EXPLAIN'	=> 'Determines when masked IPs will be automatically deleted.  Leave blank (or 0) to disable.',
 	'IP_REQUIRE_JS'			=> 'Require Javascript enabled',
-	'IP_REQUIRE_JS_EXPLAIN'	=> 'Require users to have Javascript enabled, so that: CGI-Proxy URLs get logged by XSS, Flash auto-loads in IE6/7 & Opera9+, detect old flash or no flash installed, and force Firefox users with “NoScript” to “Allow this site” (enables Java/Flash plugins)',
+	'IP_REQUIRE_JS_EXPLAIN'	=> 'Require users to have Javascript enabled, so that: CGI-Proxy URLs get logged by XSS, Flash auto-loads in IE6/7 & Opera9+, detect old flash or no flash installed, and force Firefox users with “NoScript” to “Allow this site” (enables Java/Flash plugins).',
+	'IP_COOKIE_AGE'			=> 'IP-tracking Cookie Age',
+	'IP_COOKIE_AGE_EXPLAIN'	=> 'How long before cookie expires. Keep this low to avoid false positives, as some users’ IPs may change often. If you block with this method, it’s wise to set “Session IP Validation” to A.B.C or even A.B only.',
 ));
 
 // Proxy Revealer Olympus Exceptions - These are similar to 'IP_BAN', 'IP_UNBAN', 'IP_NO_BANNED', 'BAN_UPDATE_SUCCESSFUL', etc.
@@ -103,6 +106,7 @@ $lang = array_merge($lang, array(
 
 // Proxy Revealer Olympus Common words - Not sure why anyone would want to translate the following, but whatever.
 $lang = array_merge($lang, array(
+	'COOKIE'			=> 'Cookie',
 	'FLASH'				=> 'Flash',
 	'JAVA'				=> 'Java',
 	'X_FORWARDED_FOR'	=> 'X-Forwarded-For',
