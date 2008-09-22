@@ -47,13 +47,41 @@ $url = request_var('url', '');
 // Get session id and associated key
 list($sid,$key) = explode(',',trim($extra));
 
-// Set Server URL that will be used to directly call this script later in various tests
-$config['server_port'] = trim($config['server_port']);
-$server_name = trim($config['server_name']);
-$server_protocol = ($config['cookie_secure']) ? 'https://' : 'http://';
-$server_port = ($config['server_port'] != 80) ? ':' .$config['server_port'] : '';
-$path_name = '/' . preg_replace('/^\/?(.*?)\/?$/', '\1', trim($config['script_path']));
-$path_name.= ($path_name != '') ? '/' : '';
+// Set Server URL that will be used to directly call this script later in various tests (Adapted from generate_board_url() in functions.php)
+// We don't use generate_board_url() directly because we need $server_name and $path_name later for Java and $server_name for Flash
+// Also, we may need $server_protocol and $server_port for the optional edit described in the "Java Limitation" section in author notes
+$server_name = $user->host;
+$server_port = (!empty($_SERVER['SERVER_PORT'])) ? (int) $_SERVER['SERVER_PORT'] : (int) getenv('SERVER_PORT');
+
+if ($config['force_server_vars'] || !$server_name)
+{
+	$server_protocol = ($config['server_protocol']) ? $config['server_protocol'] : (($config['cookie_secure']) ? 'https://' : 'http://');
+	$server_name = $config['server_name'];
+	$server_port = (int) $config['server_port'];
+	$path_name = $config['script_path'];
+}
+else
+{
+	$server_protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 'https://' : 'http://';
+	$path_name = $user->page['root_script_path'];
+}
+
+if ($server_port && (($config['cookie_secure'] && $server_port <> 443) || (!$config['cookie_secure'] && $server_port <> 80)))
+{
+	if (strpos($server_name, ':') === false)
+	{
+		$server_port = ':' . $server_port;
+	}
+}
+else
+{
+	$server_port = '';
+}
+
+// Add / to $path_name if it's empty
+$path_name .= ($path_name == '') ? '/' : '';
+// Add / to the end of $path_name if needed
+$path_name .= (substr($path_name, -1, 1) != '/') ? '/' : '';
 $server_url = $server_protocol . $server_name . $server_port . $path_name;
 
 /**
