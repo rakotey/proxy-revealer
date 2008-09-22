@@ -315,13 +315,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 				<action type="after-add"><![CDATA[
 
 	// START Proxy Revealer Olympus
-	$config['server_port'] = trim($config['server_port']);
-	$server_name = trim($config['server_name']);
-	$server_protocol = ($config['cookie_secure']) ? 'https://' : 'http://';
-	$server_port = ($config['server_port'] != 80) ? ':' . $config['server_port'] : '';
-	$path_name = '/' . preg_replace('/^\/?(.*?)\/?$/', '\1', trim($config['script_path']));
-	$path_name.= ($path_name != '') ? '/' : '';
-	$server_url = $server_protocol . $server_name . $server_port . $path_name;
+	$server_url = generate_board_url() . '/';
 	$speculative_key = $user->data['session_speculative_key'];
 	// END Proxy Revealer Olympus
 
