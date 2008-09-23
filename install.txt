@@ -340,6 +340,11 @@ includes/functions.php
 #
 
 	// START Proxy Revealer Olympus
+	if (isset($user->data['session_admin']) && $user->data['session_admin'])
+	{
+		$user->data['session_speculative_test'] = 0;
+	}
+
 	if ((!empty($user->session_id) && !isset($user->data['session_speculative_test'])) || (int) $user->data['session_speculative_test'] < 0)
 	{
 		$sql = "SELECT ip_address 
