@@ -67,6 +67,9 @@ $lang = array_merge($lang, array(
 $lang = array_merge($lang, array(
 	'PROXY_REVEALER_EXPLAIN'	=> 'Attempts to determine someone’s “real” IP address, using a myriad of techniques, and “blocks” such people. Blocking is done within the confines of the “Session IP Validation” setting (Set it at “Security Settings” under “Server Configuation”)',
 
+	'PROXY_REVEALER_ON'			=> 'Proxy Revealer Enabled',
+	'PROXY_REVEALER_ON_EXPLAIN'	=> 'Setting this to “no” will completely disable this MOD.',
+
 	'DAYS'					=> 'Days',
 	'HOURS'					=> 'Hours',
 	'IP_MASK_BAN'			=> 'IP Masking Ban',

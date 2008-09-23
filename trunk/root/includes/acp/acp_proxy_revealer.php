@@ -348,6 +348,7 @@ class acp_proxy_revealer
 			'title'	=> 'ACP_PROXY_REVEALER_SETTINGS',
 			'vars'	=> array(
 				'legend1'				=> 'ACP_PROXY_REVEALER_SETTINGS',
+				'proxy_revealer_on'		=> array('lang' => 'PROXY_REVEALER_ON',	'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
 				'ip_block'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => 'custom', 'method' => 'ip_block_select', 'explain' => true),
 				'ip_cookie_age'			=> array('lang' => 'IP_COOKIE_AGE',		'validate' => 'int',	'type' => 'text:3:4', 'explain' => true, 'append' => ' ' . $user->lang['HOURS']),
 				'require_javascript'	=> array('lang' => 'IP_REQUIRE_JS',		'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
