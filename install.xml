@@ -189,15 +189,16 @@ The above two workarounds are the only solutions I could find. If you are aware 
 		</copy>
 
 		<sql><![CDATA[
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('proxy_revealer_on','1');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_block','14');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_length','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_length_other','2018-12-31');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_reason','Auto-banned by Proxy Revealer');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_give_reason','Your IP address is banned because it appears to be a Proxy');
+INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_cookie_age','6');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_prune','0');
 INSERT INTO phpbb_config (config_name, config_value) VALUES ('require_javascript','1');
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_cookie_age','6');
 ALTER TABLE phpbb_sessions ADD session_speculative_test tinyint(1) DEFAULT '-1' NOT NULL;
 ALTER TABLE phpbb_sessions ADD session_speculative_key char(10);
 CREATE TABLE phpbb_speculative_ips (
@@ -268,7 +269,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 				<action type="after-add"><![CDATA[
 
 	// START Proxy Revealer Olympus
-	if (isset($user->data['session_admin']) && $user->data['session_admin'])
+	if ((isset($user->data['session_admin']) && $user->data['session_admin']) || !$config['proxy_revealer_on'])
 	{
 		$user->data['session_speculative_test'] = 0;
 	}
