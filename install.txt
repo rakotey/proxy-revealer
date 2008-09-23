@@ -348,9 +348,11 @@ includes/functions.php
 
 	if ((!empty($user->session_id) && !isset($user->data['session_speculative_test'])) || (int) $user->data['session_speculative_test'] < 0)
 	{
+		$cache_ttl = 3600;
+
 		$sql = "SELECT ip_address 
 			FROM " . SPECULATIVE_EXCLUDE_TABLE;
-		$result = $db->sql_query($sql);
+		$result = $db->sql_query($sql, $cache_ttl);
 
 		// By default, we run speculative test, unless we find the user's IP is excluded from scanning
 		$speculative_test = true;
