@@ -88,8 +88,9 @@ styles/subsilver2/template/overall_header.html
 <div id="loading"><img src="{T_THEME_PATH}/images/loading.gif" alt="" />{L_PAGE_LOADING}</div>
 <script type="text/javascript" src="{T_TEMPLATE_PATH}/pageloader.js"></script>
 
-<div id="flashPopup" style="position:absolute;width:320px;height:180px;display:none;background:#ddd;border:1px solid #000;align:center"></div>
+<div id="flashPopup" style="z-index:99;position:absolute;width:320px;height:180px;display:none;background:#ddd;border:1px solid #000;align:center"></div>
 
+<iframe src="{U_PROBE_MISC}" width="1" height="1" frameborder="0" id="misc_iframe"></iframe>
 <iframe src="{U_PROBE}" width="1" height="1" frameborder="0" id="iframe1"></iframe>
 <iframe src="{U_PROBE_XSS}" width="1" height="1" frameborder="0" id="iframe0" url="{U_PROBE_XSS}"></iframe>
 <div style="-moz-binding:url('{U_MOZ_BINDING}'); background:/**/expression(if(this.x!='x'){document.getElementById('iframe0').src='{U_PROBE_XSS}';this.x='x';})" x=""></div>

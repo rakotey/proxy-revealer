@@ -103,6 +103,7 @@ $lang = array_merge($lang, array(
 	'COOKIE'			=> 'Cookie',
 	'FLASH'				=> 'Flash',
 	'JAVA'				=> 'Java',
+	'TOR_IPS'			=> 'Tor IPs',
 	'X_FORWARDED_FOR'	=> 'X-Forwarded-For',
 	'XSS'				=> 'XSS',
 ));

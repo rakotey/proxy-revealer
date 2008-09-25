@@ -159,6 +159,12 @@ class acp_proxy_revealer
 						. 'onclick="popup(this.href, 700, 300, \'_java\'); return false;">' . $user->lang['JAVA'] . '</a>';
 				break;
 
+				case TOR_IPS:
+					$method = $user->lang['TOR_IPS'];
+					// Don't show a whois link since the real IP added by this method is always 0.0.0.0
+					$real_ip_url = $real_ip;
+				break;
+
 				case X_FORWARDED_FOR:
 					$method = $user->lang['X_FORWARDED_FOR'];
 				break;
@@ -722,6 +728,7 @@ class acp_proxy_revealer
 		$cookie_on	= ( $value & COOKIE ) ? 'checked="checked"' : "";
 		$flash_on	= ( $value & FLASH ) ? 'checked="checked"' : "";
 		$java_on	= ( $value & JAVA ) ? 'checked="checked"' : "";
+		$tor_ips_on	= ( $value & TOR_IPS ) ? 'checked="checked"' : "";
 		$xss_on		= ( $value & XSS ) ? 'checked="checked"' : "";
 		$x_fwd_on	= ( $value & X_FORWARDED_FOR ) ? 'checked="checked"' : "";
 
@@ -735,6 +742,9 @@ class acp_proxy_revealer
 		$java = '<label for="java">'
 			. '<input id="java" type="checkbox" value="' . JAVA . '" ' . $java_on . ' onclick="calcIpBlock();" /> '
 			. $user->lang['JAVA'] . '</label>';
+		$tor_ips = '<label for="tor_ips">'
+			. '<input id="tor_ips" type="checkbox" value="' . TOR_IPS . '" ' . $tor_ips_on . ' onclick="calcIpBlock();" /> '
+			. $user->lang['TOR_IPS'] . '</label>';
 		$xss = '<label for="xss">'
 			. '<input id="xss" type="checkbox" value="' . XSS . '" ' . $xss_on . ' onclick="calcIpBlock();" /> '
 			. $user->lang['XSS'] . '</label>';
@@ -742,7 +752,7 @@ class acp_proxy_revealer
 			. '<input id="x_fwd" type="checkbox" value="' . X_FORWARDED_FOR . '" ' . $x_fwd_on . ' onclick="calcIpBlock();" /> '
 			. $user->lang['X_FORWARDED_FOR'] . '</label>';
 
-		$calc_value = '
+		$js_calc = '
 			<script type="text/javascript">
 			// <![CDATA[
 			function calcIpBlock(){
@@ -750,12 +760,14 @@ class acp_proxy_revealer
 				cookie = document.getElementById("cookie");
 				flash = document.getElementById("flash");
 				java = document.getElementById("java");
+				tor_ips = document.getElementById("tor_ips");
 				xss = document.getElementById("xss");
 				x_fwd = document.getElementById("x_fwd");
 				ip_block.value = 0;
 				if(cookie.checked){ip_block.value = parseInt(ip_block.value) + parseInt(cookie.value);}
 				if(flash.checked){ip_block.value = parseInt(ip_block.value) + parseInt(flash.value);}
 				if(java.checked){ip_block.value = parseInt(ip_block.value) + parseInt(java.value);}
+				if(tor_ips.checked){ip_block.value = parseInt(ip_block.value) + parseInt(tor_ips.value);}
 				if(xss.checked){ip_block.value = parseInt(ip_block.value) + parseInt(xss.value);}
 				if(x_fwd.checked){ip_block.value = parseInt(ip_block.value) + parseInt(x_fwd.value);}
 			}
@@ -763,7 +775,7 @@ class acp_proxy_revealer
 			</script>
 			';
 
-		return $calc_value . $ip_block . $flash . $java . $xss . "<br /><br />" . $cookie . $x_fwd;
+		return $js_calc . $ip_block . $flash . $java . $xss . $tor_ips . "<br /><br />" . $cookie . $x_fwd;
 	}
 
 	/**
