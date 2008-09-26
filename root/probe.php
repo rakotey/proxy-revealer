@@ -375,23 +375,34 @@ switch ($mode)
 
 	case 'misc':
 
+		$defer = request_var('defer', 0);
+
 		/**
 		* Check if user's IP is a Tor exit-node IP
 		*/
-		tor_dnsel_check($user->ip);
+		if (!((int) $defer & TOR_IPS))
+		{
+			tor_dnsel_check($user->ip);
+		}
 
 		/**
 		* This pass concerns itself with the X-Forwarded-For header, which may be able to identify transparent http proxies.
 		*/ 
-		if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
+		if (!((int) $defer & X_FORWARDED_FOR))
 		{
-			x_forwarded_check($user->ip);
+			if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
+			{
+				x_forwarded_check($user->ip);
+			}
 		}
 
 		/**
 		* IPT (IP Tracking) Cookie monster begins here :-)
 		*/
-		ip_cookie_check();
+		if (!((int) $defer & COOKIE))
+		{
+			ip_cookie_check();
+		}
 
 		/**
 		* Flash & Java embedding begins here
@@ -411,14 +422,23 @@ switch ($mode)
 			<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 			<html>
 			<head><title>
-			</title>
+			</title>';
+
+		if (!((int) $defer & FLASH))
+		{
+			echo '
 			<script type="text/javascript" src="swfobject.js"></script>
 			<script type="text/javascript">
 			swfobject.registerObject("flashContent", "' . $min_flash_ver . '", "expressInstall.swf");
 			</script>
-			</head>
+			</head>';
+		}
 
-			<body>
+		echo '<body>';
+
+		if (!((int) $defer & FLASH))
+		{
+			echo '
 			<div id="flashDIV">
 			  <object id="flashContent" classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="1" height="1">
 				<param name="movie" value="HttpRequestor.swf" /><param name="loop" value="false" /><param name="menu" value="false" />
@@ -441,17 +461,23 @@ switch ($mode)
 
 			<script type="text/javascript">
 			function myPopupRelocate(){var wt=window.top;var wtd=wt.document;var wtdb=wtd.body;var wtdde=wtd.documentElement;var myPopup=wtd.getElementById("flashPopup");var sX, sY, cX, cY;if(wt.pageYOffset){sX=wt.pageXOffset;sY=wt.pageYOffset;}else if(wtdde&&wtdde.scrollTop){sX=wtdde.scrollLeft;sY=wtdde.scrollTop;}else if(wtdb){sX=wtdb.scrollLeft;sY=wtdb.scrollTop;}if(wt.innerHeight){cX=wt.innerWidth;cY=wt.innerHeight;}else if(wtdde&&wtdde.clientHeight){cX=wtdde.clientWidth;cY=wtdde.clientHeight;}else if(wtdb){cX=wtdb.clientWidth;cY=wtdb.clientHeight;}var leftOffset=sX+(cX-320)/2;var topOffset=sY+(cY-180)/2;myPopup.style.top=topOffset+"px";myPopup.style.left=leftOffset+"px";}window.onload=function(){var wt=window.top;var wtd=wt.document;var myPopup=wtd.getElementById("flashPopup");if(!swfobject.hasFlashPlayerVersion("9.0.0")||!swfobject.hasFlashPlayerVersion("6.0.65")){myPopup.innerHTML=document.getElementById("flashDIV").innerHTML;myPopupRelocate();myPopup.style.display="block";wtd.body.onscroll=myPopupRelocate;wt.onscroll=myPopupRelocate;}}
-			</script>
+			</script>';
+		}
 
+		if (!((int) $defer & JAVA))
+		{
+			echo '
 			<applet width="0" height="0" code="HttpRequestor.class" codebase=".">
 			  <param name="domain" value="' . $server_name . '">
 			  <param name="port" value="' . $config['server_port'] . '">
 			  <param name="path" value="' . $java_url . '">
 			  <param name="user_agent" value="' . htmlspecialchars($_SERVER['HTTP_USER_AGENT']) . '">
-			</applet>
+			</applet>';
+		}
+
+		echo'
 			</body>
-			</html>
-		';
+			</html>';
 
 	exit;
 	// no break here

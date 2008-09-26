@@ -45,4 +45,45 @@
 <!-- ENDIF -->
 </form>
 
+<br />
+
+<form id="add_users" method="post" action="{U_ACTION}">
+<fieldset>
+	<legend>{L_ADD_USER}</legend>
+<dl>
+	<dt><label for="add_user">{L_USERNAME}:</label><br /><span>{L_ADD_USER_EXPLAIN}</span></dt>
+	<dd><textarea name="add_user" cols="40" rows="3" id="add_user"></textarea></dd>
+	<dd>[ <a href="{U_FIND_USERNAME}" onclick="find_username(this.href); return false;">{L_FIND_USERNAME}</a> ]</dd>
+</dl>
+<p class="submit-buttons">
+	<input class="button1" type="submit" id="add_users_submit" name="add_users_submit" value="{L_SUBMIT}" />&nbsp;
+	<input class="button2" type="reset" id="add_users_reset" name="add_users_reset" value="{L_RESET}" />
+</p>
+{S_FORM_TOKEN}
+</fieldset>
+</form>
+
+<br />
+
+<form id="del_users" method="post" action="{U_ACTION}">
+<fieldset>
+	<legend>{L_REMOVE_USER}</legend>
+<!-- IF S_REMOVE_USERS -->
+	<dl>
+		<dt><label for="remove_user">{L_USERNAME}:</label><br /><span>{L_REMOVE_USER_EXPLAIN}</span></dt>
+		<dd><select id="remove_user" name="remove_user[]" multiple="multiple" size="10" style="width: 50%">{S_REMOVE_USERLIST_SELECT}</select></dd>
+	</dl>
+<p class="submit-buttons">
+	<input class="button1" type="submit" id="del_users_submit" name="del_users_submit" value="{L_SUBMIT}" />&nbsp;
+	<input class="button2" type="reset" id="del_users_reset" name="del_users_reset" value="{L_RESET}" />
+</p>
+{S_FORM_TOKEN}
+</fieldset>
+<!-- ELSE -->
+<p>{L_NO_USER}</p>
+{S_FORM_TOKEN}
+</fieldset>
+<!-- ENDIF -->
+</form>
+
 <!-- INCLUDE overall_footer.html -->
