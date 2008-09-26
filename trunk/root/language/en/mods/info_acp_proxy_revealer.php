@@ -43,8 +43,10 @@ $lang = array_merge($lang, array(
 	'ACP_PROXY_REVEALER_SETTINGS'		=> 'Settings',
 	'ACP_PROXY_REVEALER_EXCLUDES'		=> 'Exceptions',
 	'LOG_PROXY_REVEALER_SETTINGS'		=> '<strong>Altered Proxy Revealer settings</strong>',
-	'LOG_PROXY_REVEALER_EXCLUDES_ADD'	=> '<strong>Excluded IP from Proxy Revealer scanning</strong><br />» %1$s',
-	'LOG_PROXY_REVEALER_EXCLUDES_DEL'	=> '<strong>Removed IP from Proxy Revealer exceptions list</strong><br />» %s',
+	'LOG_PROXY_REVEALER_EXCLUDES_ADD'	=> '<strong>Excluded IP(s) from Proxy Revealer scanning</strong><br />» %1$s',
+	'LOG_PROXY_REVEALER_EXCLUDES_DEL'	=> '<strong>Removed IP(s) from Proxy Revealer exceptions list</strong><br />» %s',
+	'LOG_PROXY_REVEALER_UEXCLUDES_ADD'	=> '<strong>Excluded Username(s) from Proxy Revealer scanning</strong><br />» %1$s',
+	'LOG_PROXY_REVEALER_UEXCLUDES_DEL'	=> '<strong>Removed Username(s) from Proxy Revealer exceptions list</strong><br />» %s',
 ));
 
 ?>

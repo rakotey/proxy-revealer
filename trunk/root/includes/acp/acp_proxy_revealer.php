@@ -356,6 +356,7 @@ class acp_proxy_revealer
 				'legend1'				=> 'ACP_PROXY_REVEALER_SETTINGS',
 				'proxy_revealer_on'		=> array('lang' => 'PROXY_REVEALER_ON',	'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
 				'ip_block'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => 'custom', 'method' => 'ip_block_select', 'explain' => true),
+				'ip_block_defer'		=> array('lang' => 'SCAN_DEFER',		'validate' => 'int',	'type' => 'custom', 'method' => 'ip_block_select', 'explain' => true),
 				'ip_cookie_age'			=> array('lang' => 'IP_COOKIE_AGE',		'validate' => 'int',	'type' => 'text:3:4', 'explain' => true, 'append' => ' ' . $user->lang['HOURS']),
 				'require_javascript'	=> array('lang' => 'IP_REQUIRE_JS',		'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
 				'ip_ban'				=> array('lang' => 'IP_MASK_BAN',		'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
@@ -473,16 +474,19 @@ class acp_proxy_revealer
 	function display_exceptions()
 	{
 		global $db, $user, $cache, $template;
+		global $phpbb_root_path, $phpEx;
 
 		$this->tpl_name = 'acp_proxy_revealer_excludes';
 
 		$form_key = 'acp_proxy_revealer_excludes';
 		add_form_key($form_key);
 
-		$add_excludes_submit = (isset($_POST['add_excludes_submit'])) ? true : false;
-		$del_excludes_submit = (isset($_POST['del_excludes_submit'])) ? true : false;
+		$add_excludes_submit	= (isset($_POST['add_excludes_submit'])) ? true : false;
+		$del_excludes_submit	= (isset($_POST['del_excludes_submit'])) ? true : false;
+		$add_users_submit		= (isset($_POST['add_users_submit'])) ? true : false;
+		$del_users_submit		= (isset($_POST['del_users_submit'])) ? true : false;
 
-		if (($add_excludes_submit || $del_excludes_submit) && !check_form_key($form_key))
+		if (($add_excludes_submit || $del_excludes_submit || $add_users_submit || $del_users_submit) && !check_form_key($form_key))
 		{
 			trigger_error($user->lang['FORM_INVALID'] . adm_back_link($this->u_action), E_USER_WARNING);
 		}
@@ -678,10 +682,143 @@ class acp_proxy_revealer
 		}
 
 		//
+		// Adapted from acp_ban.php and user_ban() in functions_user.php
+		//
+		if ($add_users_submit)
+		{
+			$add_user = request_var('add_user', '');
+			$user_list = (!is_array($add_user)) ? array_unique(explode("\n", $add_user)) : $add_user;
+			$user_list_log = implode(', ', $user_list);
+
+			$userlist_ary = array();
+
+			// Select the relevant user_ids.
+			$sql_usernames = array();
+
+			foreach ($user_list as $username)
+			{
+				$username = trim($username);
+				if ($username != '')
+				{
+					$clean_name = utf8_clean_string($username);
+					$sql_usernames[] = $clean_name;
+				}
+			}
+
+			// Make sure we have been given someone to exclude
+			if (!sizeof($sql_usernames))
+			{
+				trigger_error('NO_USER_SPECIFIED');
+			}
+
+			$sql = 'SELECT user_id
+				FROM ' . USERS_TABLE . '
+				WHERE ' . $db->sql_in_set('username_clean', $sql_usernames);
+			$result = $db->sql_query($sql);
+
+			if ($row = $db->sql_fetchrow($result))
+			{
+				do
+				{
+					$userlist_ary[] = (int) $row['user_id'];
+				}
+				while ($row = $db->sql_fetchrow($result));
+			}
+			else
+			{
+				trigger_error('NO_USERS');
+			}
+			$db->sql_freeresult($result);
+
+			// Fetch currently set excludes. Prevent duplicate excludes.
+			$sql = 'SELECT user_id 
+				FROM ' . SPECULATIVE_EXCLUDE_TABLE;
+			$result = $db->sql_query($sql);
+
+			if ($row = $db->sql_fetchrow($result))
+			{
+				$userlist_ary_tmp = array();
+				do
+				{
+					$userlist_ary_tmp[] = $row['user_id'];
+				}
+				while ($row = $db->sql_fetchrow($result));
+
+				$userlist_ary = array_unique(array_diff($userlist_ary, $userlist_ary_tmp));
+				unset($userlist_ary_tmp);
+			}
+			$db->sql_freeresult($result);
+
+			// We have some user_ids to exclude
+			if (sizeof($userlist_ary))
+			{
+				$sql_ary = array();
+
+				foreach ($userlist_ary as $user_entry)
+				{
+					$sql_ary[] = array('user_id' => $user_entry,);
+				}
+
+				$db->sql_multi_insert(SPECULATIVE_EXCLUDE_TABLE, $sql_ary);
+			}
+
+			// Add to moderator and admin log
+			add_log('admin', 'LOG_PROXY_REVEALER_UEXCLUDES_ADD', $user_list_log);
+			add_log('mod', 0, 0, 'LOG_PROXY_REVEALER_UEXCLUDES_ADD', $user_list_log);
+
+			$cache->destroy('sql', SPECULATIVE_EXCLUDE_TABLE);
+
+			trigger_error($user->lang['EXCLUDE_UPDATE_SUCCESSFUL'] . adm_back_link($this->u_action));
+		}
+
+		//
+		// Adapted from acp_ban.php and user_unban() in functions_user.php
+		//
+		if ($del_users_submit)
+		{
+			$remove_user = request_var('remove_user', array(''));
+
+			if (!is_array($remove_user))
+			{
+				$remove_user = array($remove_user);
+			}
+
+			if (sizeof($remove_user))
+			{
+				// Grab details of excludes for logging information later
+				$sql = 'SELECT u.username AS remove_info
+					FROM ' . USERS_TABLE . ' u, ' . SPECULATIVE_EXCLUDE_TABLE . ' e
+					WHERE ' . $db->sql_in_set('e.user_id', $remove_user) . '
+						AND u.user_id = e.user_id';
+				$result = $db->sql_query($sql);
+
+				$l_remove_list = '';
+				while ($row = $db->sql_fetchrow($result))
+				{
+					$l_remove_list .= (($l_remove_list != '') ? ', ' : '') . $row['remove_info'];
+				}
+				$db->sql_freeresult($result);
+
+				$sql = 'DELETE FROM ' . SPECULATIVE_EXCLUDE_TABLE . '
+					WHERE ' . $db->sql_in_set('user_id', $remove_user);
+				$db->sql_query($sql);
+
+				// Add to moderator and admin log
+				add_log('admin', 'LOG_PROXY_REVEALER_UEXCLUDES_DEL', $l_remove_list);
+				add_log('mod', 0, 0, 'LOG_PROXY_REVEALER_UEXCLUDES_DEL', $l_remove_list);
+
+				$cache->destroy('sql', SPECULATIVE_EXCLUDE_TABLE);
+
+				trigger_error($user->lang['EXCLUDE_UPDATE_SUCCESSFUL'] . adm_back_link($this->u_action));
+			}
+		}
+
+		//
 		// Output relevant page
 		//
 		$sql = 'SELECT ip_address 
-			FROM ' . SPECULATIVE_EXCLUDE_TABLE;
+			FROM ' . SPECULATIVE_EXCLUDE_TABLE . " 
+			WHERE ip_address <> ''";
 		$result = $db->sql_query($sql);
 
 		$current_ip_list = $db->sql_fetchrowset($result);
@@ -695,34 +832,63 @@ class acp_proxy_revealer
 			$select_iplist .= '<option value="' . $ip_address . '">' . $ip_address . '</option>';
 		}
 
+		$sql = 'SELECT e.user_id, u.user_id, u.username, u.username_clean 
+			FROM ' . SPECULATIVE_EXCLUDE_TABLE . ' e, ' . USERS_TABLE . ' u 
+			WHERE u.user_id = e.user_id 
+			ORDER BY u.username_clean ASC';
+		$result = $db->sql_query($sql);
+
+		$current_user_list = $db->sql_fetchrowset($result);
+		$db->sql_freeresult($result);
+
+		$select_userlist = '';
+
+		for ($i = 0; $i < count($current_user_list); $i++)
+		{
+			$user_id = $current_user_list[$i]['user_id'];
+			$username = $current_user_list[$i]['username'];
+			$select_userlist .= '<option value="' . $user_id . '">' . $username . '</option>';
+		}
+
 		$template->assign_vars(array(
 			'L_PROXY_REVEALER'				=> $user->lang['ACP_PROXY_REVEALER'],
 			'L_PROXY_REVEALER_EXCLUDES'		=> $user->lang['ACP_PROXY_REVEALER_EXCLUDES'],
 			'L_SPECULATIVE_IP_EXCLUDE_DESC'	=> $user->lang['SPECULATIVE_IP_EXCLUDE'],
 			'L_ADD_IP' 						=> $user->lang['ADD_IP'],
 			'L_ADD_IP_EXPLAIN'				=> $user->lang['ADD_IP_EXPLAIN'],
+			'L_ADD_USER' 					=> $user->lang['ADD_USER'],
+			'L_ADD_USER_EXPLAIN'			=> $user->lang['ADD_USER_EXPLAIN'],
 			'L_REMOVE_IP'					=> $user->lang['REMOVE_IP'],
 			'L_REMOVE_IP_EXPLAIN'			=> $user->lang['REMOVE_IP_EXPLAIN'],
+			'L_REMOVE_USER'					=> $user->lang['REMOVE_USER'],
+			'L_REMOVE_USER_EXPLAIN'			=> $user->lang['REMOVE_USER_EXPLAIN'],
 			'L_IP_OR_HOSTNAME'				=> $user->lang['IP_HOSTNAME'],
+			'L_USERNAME'					=> $user->lang['USERNAME'],
 			'L_SUBMIT'						=> $user->lang['SUBMIT'],
 			'L_RESET'						=> $user->lang['RESET'],
 			'L_NO_IP'						=> $user->lang['NO_IP'],
+			'L_NO_USER'						=> $user->lang['NO_USER'],
 
 			'S_REMOVE_IPS'					=> ($select_iplist) ? true : false,
 			'S_REMOVE_IPLIST_SELECT'		=> $select_iplist,
+			'S_REMOVE_USERS'				=> ($select_userlist) ? true : false,
+			'S_REMOVE_USERLIST_SELECT'		=> $select_userlist,
 
 			'U_ACTION'						=> $this->u_action,
+			'U_FIND_USERNAME'				=> append_sid("{$phpbb_root_path}memberlist.$phpEx", 'mode=searchuser&amp;form=add_users&amp;field=add_user'),
 		));
 	}
 
 	/**
-	* Select IP Masking Block methods
+	* Select IP Masking Block methods (or scanning methods to defer)
+	*
+	* $key can be either 'ip_block' or 'ip_block_defer', depending on which setting uses this function
 	*/
-	function ip_block_select($value, $key)
+	function ip_block_select($value, $key = '')
 	{
 		global $user, $config;
 
-		$ip_block = '<input id="ip_block" name="config[ip_block]" type="hidden" value="' . $value . '" />';
+		$ip_block = '<input id="'.$key.'" name="config['.$key.']" type="hidden" value="'.$value.'" />';
 
 		// We do a "Bitwise AND" against the methods defined in constants.php to see if they're enabled
 		$cookie_on	= ( $value & COOKIE ) ? 'checked="checked"' : "";
@@ -733,36 +899,30 @@ class acp_proxy_revealer
 		$x_fwd_on	= ( $value & X_FORWARDED_FOR ) ? 'checked="checked"' : "";
 
 		// The actual methods' checkboxes :-)
-		$cookie = '<label for="cookie">'
-			. '<input id="cookie" type="checkbox" value="' . COOKIE . '" ' . $cookie_on . ' onclick="calcIpBlock();" /> '
+		$cookie = '<label><input id="'.$key.'_'.'cookie" type="checkbox" class="radio" value="'.COOKIE.'" '.$cookie_on.' onclick="calc'.$key.'();" /> '
 			. $user->lang['COOKIE'] . '</label>';
-		$flash = '<label for="flash">'
-			. '<input id="flash" type="checkbox" value="' . FLASH . '" ' . $flash_on . ' onclick="calcIpBlock();" /> '
+		$flash = '<label><input id="'.$key.'_'.'flash" type="checkbox" class="radio" value="'.FLASH.'" '.$flash_on.' onclick="calc'.$key.'();" /> '
 			. $user->lang['FLASH'] . '</label>';
-		$java = '<label for="java">'
-			. '<input id="java" type="checkbox" value="' . JAVA . '" ' . $java_on . ' onclick="calcIpBlock();" /> '
+		$java = '<label><input id="'.$key.'_'.'java" type="checkbox" class="radio" value="'.JAVA.'" '.$java_on.' onclick="calc'.$key.'();" /> '
 			. $user->lang['JAVA'] . '</label>';
-		$tor_ips = '<label for="tor_ips">'
-			. '<input id="tor_ips" type="checkbox" value="' . TOR_IPS . '" ' . $tor_ips_on . ' onclick="calcIpBlock();" /> '
+		$tor_ips = '<label><input id="'.$key.'_'.'tor_ips" type="checkbox" class="radio" value="'.TOR_IPS.'" '.$tor_ips_on.' onclick="calc'.$key.'();" /> '
 			. $user->lang['TOR_IPS'] . '</label>';
-		$xss = '<label for="xss">'
-			. '<input id="xss" type="checkbox" value="' . XSS . '" ' . $xss_on . ' onclick="calcIpBlock();" /> '
+		$xss = '<label><input id="'.$key.'_'.'xss" type="checkbox" class="radio" value="'.XSS.'" '.$xss_on.' onclick="calc'.$key.'();" /> '
 			. $user->lang['XSS'] . '</label>';
-		$x_fwd = '<label for="x_fwd">'
-			. '<input id="x_fwd" type="checkbox" value="' . X_FORWARDED_FOR . '" ' . $x_fwd_on . ' onclick="calcIpBlock();" /> '
+		$x_fwd = '<label><input id="'.$key.'_'.'x_fwd" type="checkbox" class="radio" value="'.X_FORWARDED_FOR.'" '.$x_fwd_on.' onclick="calc'.$key.'();" /> '
 			. $user->lang['X_FORWARDED_FOR'] . '</label>';
 
 		$js_calc = '
 			<script type="text/javascript">
 			// <![CDATA[
-			function calcIpBlock(){
-				ip_block = document.getElementById("ip_block");
-				cookie = document.getElementById("cookie");
-				flash = document.getElementById("flash");
-				java = document.getElementById("java");
-				tor_ips = document.getElementById("tor_ips");
-				xss = document.getElementById("xss");
-				x_fwd = document.getElementById("x_fwd");
+			function calc'.$key.'(){
+				ip_block = document.getElementById("'.$key.'");
+				cookie = document.getElementById("'.$key.'_'.'cookie");
+				flash = document.getElementById("'.$key.'_'.'flash");
+				java = document.getElementById("'.$key.'_'.'java");
+				tor_ips = document.getElementById("'.$key.'_'.'tor_ips");
+				xss = document.getElementById("'.$key.'_'.'xss");
+				x_fwd = document.getElementById("'.$key.'_'.'x_fwd");
 				ip_block.value = 0;
 				if(cookie.checked){ip_block.value = parseInt(ip_block.value) + parseInt(cookie.value);}
 				if(flash.checked){ip_block.value = parseInt(ip_block.value) + parseInt(flash.value);}

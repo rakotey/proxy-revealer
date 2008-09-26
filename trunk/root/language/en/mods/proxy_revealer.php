@@ -49,6 +49,8 @@ $lang = array_merge($lang, array(
 	'REAL_IP'					=> 'Real IP Address',
 	'METHOD_USED_EXPLAIN'		=> 'to detect the spoofing',
 	'REAL_IP_EXPLAIN'			=> 'or atleast the best guess',
+	'EXTERNAL_IP'				=> 'External IP Address',
+	'INTERNAL_IP'				=> 'Internal IP Address',
 	'VIEW_LIST'					=> 'View Complete List',
 	'SEARCH_FOR'				=> 'Search For',
 	'MOST_RECENT'				=> 'Most Recent',
@@ -82,6 +84,9 @@ $lang = array_merge($lang, array(
 	'IP_REQUIRE_JS_EXPLAIN'	=> 'Require users to have Javascript enabled, so that: CGI-Proxy URLs get logged by XSS, Flash auto-loads in IE6/7 & Opera9+, detect old flash or no flash installed, and force Firefox users with “NoScript” to “Allow this site” (enables Java/Flash plugins).',
 	'IP_COOKIE_AGE'			=> 'IP-tracking Cookie Age',
 	'IP_COOKIE_AGE_EXPLAIN'	=> 'How long before cookie expires. Keep this low to avoid false positives, as some users’ IPs may change often. If you block with this method, it’s wise to set “Session IP Validation” to A.B.C or even A.B only.',
+	'SCAN_DEFER'			=> 'Defer Scan Methods',
+	'SCAN_DEFER_EXPLAIN'	=> 'This will defer scanning methods till login (or registration). This allows you to exclude certain usernames (ex.: to allow a user to use Tor, check “Tor IPs” and add their username in “Exceptions”).',
+
 ));
 
 // Proxy Revealer Olympus Exceptions - These are similar to 'IP_BAN', 'IP_UNBAN', 'IP_NO_BANNED', 'BAN_UPDATE_SUCCESSFUL', etc.
@@ -90,12 +95,17 @@ $lang = array_merge($lang, array(
 
 	'ADD_IP'					=> 'Add one or more IP addresses or hostnames',
 	'ADD_IP_EXPLAIN'			=> 'To specify several different IPs or hostnames enter each on a new line. To specify a range of IP addresses separate the start and end with a hyphen (-), to specify a wildcard use “*”.',
+	'ADD_USER'					=> 'Add one or more usernames',
+	'ADD_USER_EXPLAIN'			=> 'You can add/exclude multiple users in one go by entering each name on a new line. Use the <span style="text-decoration: underline;">Find a member</span> facility to look up and add one or more users automatically.',
 	'EXCLUDE_UPDATE_SUCCESSFUL'	=> 'The exception list has been updated successfully',
-	'EXTERNAL_IP'				=> 'External IP Address',
-	'INTERNAL_IP'				=> 'Internal IP Address',
 	'NO_IP' 					=> 'No IP addresses',
+	'NO_USER'					=> 'No usernames',
 	'REMOVE_IP'					=> 'Remove one or more IP addresses',
 	'REMOVE_IP_EXPLAIN'			=> 'You can remove multiple IP addresses in one go using the appropriate combination of mouse and keyboard for your computer and browser',
+	'REMOVE_USER'				=> 'Remove one or more usernames',
+	'REMOVE_USER_EXPLAIN'		=> 'You can remove multiple users in one go using the appropriate combination of mouse and keyboard for your computer and browser',
+	'IP_HOSTNAME'				=> 'IP addresses or hostnames',
+	'USERNAME'					=> 'Username',
 ));
 
 // Proxy Revealer Olympus Common words - Not sure why anyone would want to translate the following, but whatever.
