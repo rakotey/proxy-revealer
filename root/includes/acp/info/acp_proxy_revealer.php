@@ -20,13 +20,12 @@ class acp_proxy_revealer_info
 		return array(
 			'filename' => 'acp_proxy_revealer',
 			'title' => 'ACP_PROXY_REVEALER',
-			'version' => '0.0.1',
+			'version' => '1.0.0',
 			'modes' => array(
-				'default'	=> array('title' => 'ACP_PROXY_REVEALER', 'auth' => 'acl_a_board', 'cat' => array('ACP_DOT_MODS')),
-				'external'	=> array('title' => 'ACP_PROXY_REVEALER_EXTERNAL', 'auth' => 'acl_a_board', 'cat' => array('ACP_DOT_MODS')),
-				'internal'	=> array('title' => 'ACP_PROXY_REVEALER_INTERNAL', 'auth' => 'acl_a_board', 'cat' => array('ACP_DOT_MODS')),
-				'settings'	=> array('title' => 'ACP_PROXY_REVEALER_SETTINGS', 'auth' => 'acl_a_board', 'cat' => array('ACP_DOT_MODS')),
-				'excludes'	=> array('title' => 'ACP_PROXY_REVEALER_EXCLUDES', 'auth' => 'acl_a_board', 'cat' => array('ACP_DOT_MODS')),
+				'external'	=> array('title' => 'ACP_PROXY_REVEALER_EXTERNAL', 'auth' => 'acl_a_board', 'cat' => array('ACP_PROXY_REVEALER')),
+				'internal'	=> array('title' => 'ACP_PROXY_REVEALER_INTERNAL', 'auth' => 'acl_a_board', 'cat' => array('ACP_PROXY_REVEALER')),
+				'settings'	=> array('title' => 'ACP_PROXY_REVEALER_SETTINGS', 'auth' => 'acl_a_board', 'cat' => array('ACP_PROXY_REVEALER')),
+				'excludes'	=> array('title' => 'ACP_PROXY_REVEALER_EXCLUDES', 'auth' => 'acl_a_board', 'cat' => array('ACP_PROXY_REVEALER')),
 			),
 		);
 	}
