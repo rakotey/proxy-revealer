@@ -15,7 +15,7 @@
 ##      language/en/common.php
 ##      styles/prosilver/template/overall_header.html
 ##
-## Included Files: 16
+## Included Files: 31
 ##      root/HttpRequestor.class
 ##      root/HttpRequestor.swf
 ##      root/expressInstall.swf
@@ -28,6 +28,21 @@
 ##      root/adm/style/acp_proxy_revealer_settings.html
 ##      root/includes/acp/acp_proxy_revealer.php
 ##      root/includes/info/acp_proxy_revealer.php
+##		root/install/functions_install.php
+##		root/install/index.php
+##		root/install/schemas/firebird_schema.sql
+##		root/install/schemas/mssql_schema.sql
+##		root/install/schemas/mysql_40_schema.sql
+##		root/install/schemas/mysql_41_schema.sql
+##		root/install/schemas/oracle_schema.sql
+##		root/install/schemas/postgres_schema.sql
+##		root/install/schemas/sqlite_schema.sql
+##		root/install/style/install_error.html
+##		root/install/style/install_footer.html
+##		root/install/style/install_header.html
+##		root/install/style/install_main.html
+##      root/language/en/mods/info_acp_proxy_revealer.php
+##      root/language/en/mods/proxy_revealer_install.php
 ##      root/language/en/mods/proxy_revealer.php
 ##      root/styles/prosilver/template/pageloader.js
 ##      root/styles/prosilver/theme/pageloader.css
@@ -221,7 +236,15 @@
 ##
 ##############################################################
 ## Before Adding This MOD To Your Forum, You Should Back Up All Files Related To This MOD
+##
+#############
+#############
+##
+## IMPORTANT: BEFORE APPLYING THE CHANGES TO: includes/functions.php and includes/session.php
+##         -> YOU MUST FIRST FOLLOW THE STEPS IN THE DIY INSTRUCTIONS SECTION AT THE END OF THIS FILE <-
+##
 ##############################################################
+
 #
 #-----[ COPY ]------------------------------------------
 #
@@ -237,42 +260,23 @@ copy root/adm/style/acp_proxy_revealer_plugin.html to adm/style/acp_proxy_reveal
 copy root/adm/style/acp_proxy_revealer_settings.html to adm/style/acp_proxy_revealer_settings.html
 copy root/includes/acp/acp_proxy_revealer.php to includes/acp/acp_proxy_revealer.php
 copy root/includes/info/acp_proxy_revealer.php to includes/info/acp_proxy_revealer.php
+copy root/install/functions_install.php to install/functions_install.php
+copy root/install/index.php to install/index.php
+copy root/install/schemas/firebird_schema.sql to install/schemas/firebird_schema.sql
+copy root/install/schemas/mssql_schema.sql to install/schemas/mssql_schema.sql
+copy root/install/schemas/mysql_40_schema.sql to install/schemas/mysql_40_schema.sql
+copy root/install/schemas/mysql_41_schema.sql to install/schemas/mysql_41_schema.sql
+copy root/install/schemas/oracle_schema.sql to install/schemas/oracle_schema.sql
+copy root/install/schemas/postgres_schema.sql to install/schemas/postgres_schema.sql
+copy root/install/schemas/sqlite_schema.sql to install/schemas/sqlite_schema.sql
+copy root/install/style/install_error.html to install/style/install_error.html
+copy root/install/style/install_footer.html to install/style/install_footer.html
+copy root/install/style/install_header.html to install/style/install_header.html
+copy root/install/style/install_main.html to install/style/install_main.html
 copy root/language/en/mods/proxy_revealer.php to language/en/mods/proxy_revealer.php
 copy root/styles/prosilver/template/pageloader.js to styles/prosilver/template/pageloader.js
 copy root/styles/prosilver/theme/pageloader.css to styles/prosilver/theme/pageloader.css
 copy root/styles/prosilver/theme/images/loading.gif to styles/prosilver/theme/images/loading.gif
-#
-#-----[ SQL ]-------------------------------------------
-#
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('proxy_revealer_on','1');
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_block','46');
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_block_defer','0');
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban','0');
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_length','0');
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_length_other','2018-12-31');
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_reason','Auto-banned by Proxy Revealer');
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_ban_give_reason','Your IP address is banned because it appears to be a Proxy');
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_cookie_age','6');
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('ip_prune','0');
-INSERT INTO phpbb_config (config_name, config_value) VALUES ('require_javascript','1');
-ALTER TABLE phpbb_sessions ADD session_speculative_test tinyint(1) DEFAULT '-1' NOT NULL;
-ALTER TABLE phpbb_sessions ADD session_speculative_key char(10);
-CREATE TABLE phpbb_speculative_ips (
-   ip_address varchar(40) DEFAULT '0' NOT NULL,
-   method tinyint(1) DEFAULT '0' NOT NULL,
-   discovered int(11) DEFAULT '0' NOT NULL,
-   real_ip varchar(40),
-   info text,
-   KEY ip_address (ip_address)
-);
-CREATE TABLE phpbb_speculative_excludes (
-  exclude_id mediumint(8) unsigned NOT NULL auto_increment,
-  user_id mediumint(8) unsigned NOT NULL default '0',
-  ip_address varchar(40) NOT NULL default '',
-  PRIMARY KEY  (exclude_id),
-  KEY ip_address (ip_address),
-  KEY user_id (user_id)
-);
 #
 #-----[ OPEN ]------------------------------------------
 #
@@ -571,34 +575,13 @@ document.getElementById("iframe1").onload = function(){
 #-----[ DIY INSTRUCTIONS ]------------------------------
 #
 
-Refresh your template:
-1. Go to the ACP after uploading included files and applying modifications as described above
-1. Click on "Styles" tab on the top then click "Templates" on the left menu
-2. Click "Refresh" next to the prosilver template
+IMPORTANT: BEFORE APPLYING THE CHANGES TO: includes/functions.php and includes/session.php
 
-Install the ACP module(s):
-1.  Go to the ACP
-2.  Click on "System" tab on the top
-3.  Click on "Administration Control Panel" in the "Module Management" section on the left
-4.  Click on the ".MODs" folder
-5.  Choose "Proxy Revealer Olympus" from the drop-down box beside the "Add Module" button
-    (under Proxy Revealer Olympus) and click "Add Module" and confirm by clicking "Yes"
-6.  Activate the module "Proxy Revealer Olympus" by clicking "Enable"
-7.  Click on the "Proxy Revealer Olympus" folder
-8.  Choose "External IPs" from the drop-down box beside the "Add Module" button
-    (under Proxy Revealer Olympus) and click "Add Module" and confirm by clicking "Yes"
-9.  Activate the module "External IPs" by clicking "Enable"
-10. Choose "Internal IPs" from the drop-down box beside the "Add Module" button
-    (under Proxy Revealer Olympus) and click "Add Module" and confirm by clicking "Yes"
-11. Activate the module "Internal IPs" by clicking "Enable"
-12. Choose "Settings" from the drop-down box beside the "Add Module" button
-    (under Proxy Revealer Olympus) and click "Add Module" and confirm by clicking "Yes"
-13. Activate the module "Settings" by clicking "Enable"
-14. Choose "Exceptions" from the drop-down box beside the "Add Module" button
-    (under Proxy Revealer Olympus) and click "Add Module" and confirm by clicking "Yes"
-15. Activate the module "Exceptions" by clicking "Enable"
-16. You can now administrate Proxy Revealer Olympus by clicking on ".MODs" tab on the top
-    under the category "Proxy Revealer Olympus" on the left
+1. Login to the ACP after uploading included files and applying modifications as described above.
+   -> (EXCEPT the modifications to includes/functions.php and includes/session.php) <-
+2. Point your browser to http://yoursite.com/forum-path/install/
+3. Click Install and delete the install directory when you're finished.
+4. Apply the modifications to includes/functions.php and includes/session.php as described above.
 
 #
 #-----[ SAVE/CLOSE ALL FILES ]--------------------------

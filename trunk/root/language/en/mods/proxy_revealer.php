@@ -1,7 +1,7 @@
 <?php
 /**
 *
-* acp_proxy_revealer [English]
+* proxy_revealer [English]
 *
 * @package language
 * @version $Id$
