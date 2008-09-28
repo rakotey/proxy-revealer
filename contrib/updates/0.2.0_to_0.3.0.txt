@@ -316,9 +316,8 @@ styles/prosilver/template/overall_header.html
 1. Login to the ACP after uploading included files and applying modifications as described above.
 2. Point your browser to http://yoursite.com/forum-path/install/
 3. Click Update and delete the install directory when you're finished.
-4. Open the install.xml file in the root directory of this archive, or the install.txt in the contrib/
-   directory if you choose, then apply the modifications to includes/functions.php and includes/session.php
-   as described there.
+4. Open the install.xml file in the root directory of this archive, then apply the modifications 
+   to includes/functions.php and includes/session.php as described there.
 
 #
 #-----[ SAVE/CLOSE ALL FILES ]--------------------------
