@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="modx.prosilver.en.xsl"?>
+<?xml-stylesheet type="text/xsl" href="contrib/modx.prosilver.en.xsl"?>
 <!--For security purposes, please check: http://www.phpbb.com/mods/ for the latest version of this MOD. Although MODs are checked before being allowed in the MODs Database there is no guarantee that there are no security problems within the MOD. No support will be given for MODs not found within the MODs Database which can be found at http://www.phpbb.com/mods/-->
 <mod xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.phpbb.com/mods/xml/modx-1.2.1.xsd">
 	<header>
@@ -34,7 +34,10 @@ FLASH DETECTION METHOD SETUP REQUIREMENTS
 
 To be enable the Flash detection, you need to have shell access on your server and be able to run xmlsockd.pl daemon script (as a normal user) in a directory where it has write access so it can write the log and PID Files. Make sure this directory is outside your httpdocs/docroot!
 
+
 Choose only one of the following three scripts to run:
+
+The scripts are available in the contrib/daemon/ directory 
 
 * xmlsockd.pl: What most admins want to run.
   - Single Threaded script which could handle a few simultaneous connections at the same time. (meaning few milliseconds). Multiplexing using IO::Select to handle multiple clients, in case there are some lazy/slow clients who take their sweet time to send their request, we dont want to delay the rest - so the ip checking could be done quickly). In my tests, running a pair of sequential connections/requests (XML Policy File request then IP request right after) a 100 times (from local server shell) took about 2 seconds. From browser and over a 256kbps adsl - once the 1kb swf is loaded from probe.php - with network overhead, the XMLPolicyFile request and the IP request both happen in less than a second :)
@@ -45,7 +48,7 @@ Choose only one of the following three scripts to run:
   - Mutli-threaded script, runs a pool of pre-forked threads to handle much more connections simultaneously. Each thread handles accepting of connections on their own, also using IO::Select to multiplex between connections.
   - Supports same as above, with the optional configuration of number of threads/listener pool.
  
-* xmlsockd-basic.pl: A barebone version of the script. For admins who run on systems with very limited perl installations that don't have modules needed to run xmlsockd.pl such as IO::Socket, IO::Select, Log::Dispatch, Proc::PID::File, etc...
+* xmlsockd-basic.pl: A barebone version of the script. For admins who run on systems with very limited perl installations that don't have the modules needed to run xmlsockd.pl such as IO::Socket, IO::Select, Log::Dispatch, Proc::PID::File, etc...
 
 
 If your server is Linux/BSD then it most likely runs vixiecron, which allows you to use the @reboot syntax in crontab, so that your script can be automatically restarted after reboot.

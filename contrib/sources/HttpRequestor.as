@@ -2,7 +2,7 @@
 // Flash addon for Proxy Revealer Olympus (phpBB3 MOD)
 // Author: Jasmine < jasmine.aura@yahoo.com >
 // Licensed under http://opensource.org/licenses/gpl-license.php GNU Public License
-// $Id$
+// $Id: HttpRequestor.as 23 2008-09-16 13:13:01Z jasmine.aura@yahoo.com $
 
 import flash.display.LoaderInfo;
 import flash.errors.*;
