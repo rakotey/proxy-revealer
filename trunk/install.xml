@@ -125,11 +125,11 @@ The above two workarounds are the only solutions I could find. If you are aware 
 		</author-group>
 
 		<link-group>
-			<link type="template" href="subsilver2.xml" lang="en">subsilver2 template changes</link>
+			<link type="template" href="contrib/subsilver2.xml" lang="en">subsilver2 template changes</link>
 		</link-group>
 
 
-		<mod-version>0.0.1</mod-version>
+		<mod-version>0.3.0</mod-version>
 
 		<installation>
 			<level>intermediate</level>
@@ -138,6 +138,29 @@ The above two workarounds are the only solutions I could find. If you are aware 
 		</installation>
 
 		<history>
+			<entry>
+				<date>2008-09-28</date>
+				<rev-version>0.3.0</rev-version>
+				<changelog lang="en">
+					<change>Moved the language entries that were previously added to language/en/acp/common.php to a seperate file (language/en/mods/info_acp_proxy_reveler.php) to cut down on file edits to core phpBB and to ease translation work.</change>
+					<change>Updated the modification made to functions.php to use generate_board_url() rather than manually setting Server URL. Updated probe.php accordingly, mainly to follow the same behavior and to respect the 'force_server_vars' setting in the ACP.</change>
+					<change>Updated the modification to functions.php so that admins are not scanned a second time when logging in to the ACP after normal login.</change>
+					<change>Cleanup of acp_proxy_revealer.php: organized module modes and actions in functions to reduce clutter in function main().
+</change>
+					<change>Added an option in "Settings" to completely disable this MOD.</change>
+					<change>Updated the modification in functions.php to use caching for the SQL query on the exceptions table.</change>
+					<change>Introduced "Tor IPs" method.</change>
+					<change>Major probe.php cleanup - mainly separation of x_forwarded_for, cookie, and tor_ips checks in separate functions, and calling
+them along with the java/flash embedding in a separate probe.php mode "misc" so that they'll only be called once. So, added a new iframe link to call this from
+functions.php/overall_header.</change>
+					<change>Minor fix to overall_header modification to use z-index property on the flashPopup div so that it doesnt overlap with forums list and cannot be clicked.</change>
+					<change>Slightly modified pageloader.js to add a three-second delay using setTimeout() after page load to delay the fadeout of the loading mask/overlay. This is to account for browsers' delays in loading the java/flash after they're downloaded (and before they connect back) ~2-3sec.</change>
+					<change>Introduced the new feature "Defer Scan Methods" in "Settings". Consequently, added sections in "Exceptions" to add/remove Usernames to/from the exceptions list.</change>
+					<change>Added Installer (also works as Updater for old releases that didn't store the MOD version in the database).</change>
+					<change>Reorganized the contrib/ directory. Sources are now stored in contrib/sources/. Removed the swfobject sources since they can be download from swfobject's page. The perl script(s) needed as a requirement for the FLASH detection method is/are now in contrib/daemon/. Moved subsilver2.xml to the contrib/ directory. All of this is to comply with the latest packaging guidelines.</change>
+					<change>Added update instructions in contrib/updates/. No more install.txt and subsilver2.txt (it's a hassle to edit both the XML and txt templates and not miss anything).</change>
+				</changelog>
+			</entry>
 			<entry>
 				<date>2008-09-21</date>
 				<rev-version>0.2.0</rev-version>
