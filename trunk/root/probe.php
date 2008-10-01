@@ -40,42 +40,8 @@ $mode = request_var('mode', '');
 // Get session id and associated key
 list($sid,$key) = explode(',',trim($extra));
 
-// Set Server URL that will be used to directly call this script later in various tests (Adapted from generate_board_url() in functions.php)
-// We don't use generate_board_url() directly because we need $server_name and $path_name later for Java and $server_name for Flash
-// Also, we may need $server_protocol and $server_port for the optional edit described in the "Java Limitation" section in author notes
-$server_name = $user->host;
-$server_port = (!empty($_SERVER['SERVER_PORT'])) ? (int) $_SERVER['SERVER_PORT'] : (int) getenv('SERVER_PORT');
-
-if ($config['force_server_vars'] || !$server_name)
-{
-	$server_protocol = ($config['server_protocol']) ? $config['server_protocol'] : (($config['cookie_secure']) ? 'https://' : 'http://');
-	$server_name = $config['server_name'];
-	$server_port = (int) $config['server_port'];
-	$path_name = $config['script_path'];
-}
-else
-{
-	$server_protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 'https://' : 'http://';
-	$path_name = $user->page['root_script_path'];
-}
-
-if ($server_port && (($config['cookie_secure'] && $server_port <> 443) || (!$config['cookie_secure'] && $server_port <> 80)))
-{
-	if (strpos($server_name, ':') === false)
-	{
-		$server_port = ':' . $server_port;
-	}
-}
-else
-{
-	$server_port = '';
-}
-
-// Add / to $path_name if it's empty
-$path_name .= ($path_name == '') ? '/' : '';
-// Add / to the end of $path_name if needed
-$path_name .= (substr($path_name, -1, 1) != '/') ? '/' : '';
-$server_url = $server_protocol . $server_name . $server_port . $path_name;
+// Set Server URL
+$server_url = generate_board_url() . '/';
 
 /**
 * Convert ISO 8859-1 (Latin-1) to UTF16
@@ -249,8 +215,7 @@ function tor_dnsel_check($check_ip)
 
 	$query_remote_ip = implode(".",array_reverse(explode(".",$check_ip)));
 	$query_server_ip = implode(".",array_reverse(explode(".",$_SERVER['SERVER_ADDR'])));
-	$server_port = $config['server_port'];
-	$tordnsel_check = gethostbyname("$query_remote_ip.$server_port.$query_server_ip.$tordnsel");
+	$tordnsel_check = gethostbyname("$query_remote_ip.{$config['server_port']}.$query_server_ip.$tordnsel");
 
 	if ($tordnsel_check == "127.0.0.2")
 	{
@@ -319,9 +284,9 @@ function ip_cookie_check()
 * reprobe:		called via an iframe from overall_header if "require javascript enabled" is on so we restart our tests till user enables javascript.
 * flash:		called when the flash plugin connects back to the server with useful information such as xml_ip (detected real ip) and plugin info.
 * java:		called when the java applet directly connects back to the server so we can log the IP of the direct connection (and perhaps lan_ip).
-* misc:		called via an iframe from default page output here. Does Tor/X_FORWARDED_FOR/Cookie checks and embeds flash and java applet.
+* misc:		called via an iframe from overall_header. Does Tor/X_FORWARDED_FOR/Cookie checks and embeds the flash and java applet.
 * utf7 & utf16	called via iframes from default page output here when no $_GET vars other than "extra" is passed (see the end of this script).
-* xss:			called via an iframe from template's overall_header.html and the utf7 & utf16 iframes here, this initiates the XSS tests.
+* xss:			called via an iframe from overall_header as well as the utf7 & utf16 iframes loaded from default page output here.
 */
 switch ($mode)
 {
@@ -407,6 +372,8 @@ switch ($mode)
 		/**
 		* Flash & Java embedding begins here
 		*/
+		$path_name = ($config['force_server_vars']) ? $config['script_path'] : $user->page['root_script_path'];
+		$path_name .= (substr($path_name, -1, 1) != '/') ? '/' : '';	// Add / to the end of $path_name if needed
 		$java_url = $path_name . "probe.$phpEx?mode=java&amp;ip={$user->ip}&amp;extra=$sid,$key";
 
 		// XML Socket Policy file server port
@@ -415,6 +382,7 @@ switch ($mode)
 		// Note that swfobject only looks at the first three numbers (example: "9.0.124").
 		// See: http://code.google.com/p/swfobject/wiki/api for more info
 		$min_flash_ver = "9.0.0";
+		$server_name = ($config['force_server_vars'] || !($user->host)) ? $config['server_name'] : $user->host;
 		$flash_vars = "dhost=$server_name&amp;dport=$xmlsockd_port&amp;flash_url=$server_url"."probe.$phpEx".
 			"&amp;ip={$user->ip}&amp;extra=$sid,$key&amp;user_agent=".htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
 
@@ -467,15 +435,13 @@ switch ($mode)
 		if (!((int) $defer & JAVA))
 		{
 			echo '
-			<applet width="0" height="0" code="HttpRequestor.class" codebase=".">
-			  <param name="domain" value="' . $server_name . '">
-			  <param name="port" value="' . $config['server_port'] . '">
+			<applet width="0" height="0" archive="HttpRequestor.jar" code="HttpRequestor.class" codebase=".">
 			  <param name="path" value="' . $java_url . '">
 			  <param name="user_agent" value="' . htmlspecialchars($_SERVER['HTTP_USER_AGENT']) . '">
 			</applet>';
 		}
 
-		echo'
+		echo '
 			</body>
 			</html>';
 

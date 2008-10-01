@@ -8,39 +8,39 @@
 		<description lang="en">Attempts to determine someone's "real" IP address, using a myriad of techniques, and "blocks" such people.</description>
 		<author-notes lang="en"><![CDATA[
 
-OVERVIEW
---------
+Overview
+---------
 
 Probably the easiest way to hide one's IP address is to use an open HTTP/SOCKS4/SOCKS5 proxy or to use a so-called CGI proxy.  These techniques, however, aren't fool-proof.  Transparent HTTP proxies, for instance, include an X-Forwarded-For header that usually includes the originating IP address.
 
-Code can also be ran on the client-side to reveal more information.  Since Java's Socket object doesn't use the browsers connection settings when connecting to the network, we can use Java to attempt to make a connection to the server as well.  Also, some CGI proxies maintain anonymity by rewritting all all URLs to go through them.  Unfortunately, as XSS vulnerabilities often demonstrate, filtering HTML isn't as easy a task as one might initially think.
+Code can also be ran on the client-side to reveal more information.  Since Java's Socket and URLRequest objects allow for bypassing the browsers connection settings when connecting to the network, we can use Java to attempt to make a direct connection to the server as well.  Also, some CGI proxies maintain anonymity by rewritting all all URLs to go through them.  Unfortunately, as XSS vulnerabilities often demonstrate, filtering HTML isn't as easy a task as one might initially think.
 
 In theory, all one need do to thwart the XSS-like approach is to simply update their CGI proxy to account for it.  Of course, just because the developer of that CGI proxy updates doesn't mean that every website using that CGI proxy will update to the latest version.
 
-The Java part of this mod will not work with boards that are password protected by a .htaccess file or whatever or boards running on SSL/TLS.
+The Java part of this mod will not work with boards that are password protected by a .htaccess file or whatever.
 
-The source code to HttpRequestor.class can be found in the contrib directory.  If you're trying to compile that file, yourself, use "javac HttpRequestor.java -source 1.3 -target 1.1" for maximum compatability.
+The source code to HttpRequestor.class (which is now bundled in HttpRequestor.jar and signed with Thawte certificate) can be found in the contrib directory.  If you're trying to compile that file, yourself, use "javac HttpRequestor.java -source 1.3 -target 1.1" for maximum compatability.
+
+Since we now use a signed Java applet, we are no longer restricted (in theory) to connecting only to origin-host. This is an added advantage because if someone was visiting the site through a CGI-Proxy server, and the Java applet was downloaded from that CGI-Proxy server after it cached it, Java would still be able to connect back to our server so we can log the real IP. In other words, we're no longer restricted the same-origin policy.
 
 Flash is an added method of detection, similar to the Java applet employed in this MOD. Similarly, the flash method uses XMLSocket() to circumvent the browsers connection settings that uses a proxy, and attempts to make a direct connection to the server on a custom port where we run a small perl daemon script that returns the real IP to the hidden (1x1 pixel) flash movie, which in turn connects back to our webserver to submit this information (along with flash version) via one URL request.
 
-Another advantage of the Flash technique is that it uses Adobe's new Flash security model for using XMLSocket Policy File requests to authorize XMLSocket connections, which is automatically done between the Flash movie and the perl daemon script to authorize connection back to the server on the same port, even if the flash movie was downloaded from a different domain.
-In other words, if someone was visiting the site through a CGI-Proxy server, and the Flash movie was downloaded from that CGI-Proxy server after it cached it, Flash would still be able to connect back to our server to get the real IP of the user and submit it back via the URL request. This is an advantage over the Java applet method, which has to abide by the same-domain policy.
+Another advantage of the Flash technique is that it uses Adobe's new Flash security model for using XMLSocket Policy File requests to authorize XMLSocket connections, which is automatically done between the Flash movie and the perl daemon script to authorize connection back to the server on the same port, even if the flash movie was downloaded from a different domain. In other words, if someone was visiting the site through a CGI-Proxy server, and the Flash movie was downloaded from that CGI-Proxy server after it cached it, Flash would still be able to connect back to our server to get the real IP of the user and submit it back via the URL request.
 
 The source code of the flash addon is also available in the contrib directory. If you want to publish that file yourself, you need to have Adobe Flash CS3 program.  If you only want to look at the source code of it, you can just open the HttpRequestor.as file in your favorite text editor :)
 
 
-FLASH DETECTION METHOD SETUP REQUIREMENTS
------------------------------------------
+Flash Detection Method Setup Requirements
+------------------------------------------
 
-To be enable the Flash detection, you need to have shell access on your server and be able to run xmlsockd.pl daemon script (as a normal user) in a directory where it has write access so it can write the log and PID Files. Make sure this directory is outside your httpdocs/docroot!
-
+To be enable the Flash detection, you need to have shell access on your server (or access to cron/task manager) and be able to run xmlsockd.pl daemon script (as a normal user) on an unfiltered/unfirewalled port and in a directory where it has write access so it can write the log and PID Files. Make sure this directory is outside your httpdocs/docroot!
 
 Choose only one of the following three scripts to run:
 
 The scripts are available in the contrib/daemon/ directory 
 
 * xmlsockd.pl: What most admins want to run.
-  - Single Threaded script which could handle a few simultaneous connections at the same time. (meaning few milliseconds). Multiplexing using IO::Select to handle multiple clients, in case there are some lazy/slow clients who take their sweet time to send their request, we dont want to delay the rest - so the ip checking could be done quickly). In my tests, running a pair of sequential connections/requests (XML Policy File request then IP request right after) a 100 times (from local server shell) took about 2 seconds. From browser and over a 256kbps adsl - once the 1kb swf is loaded from probe.php - with network overhead, the XMLPolicyFile request and the IP request both happen in less than a second :)
+  - Single Threaded script which could handle a few simultaneous connections at the same time. (meaning few milliseconds). Multiplexing using IO::Select to handle multiple clients, in case there are some lazy/slow clients who take their sweet time to send their request, we dont want to delay the rest - so the ip checking could be done quickly).
   - Supports logging, optional configuration of port, logging connections
   - Supports running as standalone daemon script from shell, and/or @reboot or periodically from cron
  
@@ -50,8 +50,7 @@ The scripts are available in the contrib/daemon/ directory
  
 * xmlsockd-basic.pl: A barebone version of the script. For admins who run on systems with very limited perl installations that don't have the modules needed to run xmlsockd.pl such as IO::Socket, IO::Select, Log::Dispatch, Proc::PID::File, etc...
 
-
-If your server is Linux/BSD then it most likely runs vixiecron, which allows you to use the @reboot syntax in crontab, so that your script can be automatically restarted after reboot.
+If your server is running Linux/BSD OS, then it most likely runs vixiecron, which allows you to use the @reboot syntax in crontab, so that your script can be automatically restarted after reboot.
 
 Example:
 $ crontab -e
@@ -63,50 +62,6 @@ $ crontab -e
 To test if it's working properly (provided you have netcat installed):
 $ perl -e 'printf "<policy-file-request/>%c",0' | nc yourhost.com 9999
 $ perl -e 'printf "<request>getmyip</request>%c",0' | nc yourhost.com 9999
-
- 
-JAVA LIMITATION / SERVER SIDE ISSUES
-------------------------------------
-
-Due to a Java security update starting with JRE (java browser plugin) version 1.6.0_03, Java applets loaded in a browser configured with HTTP/SOCKS Proxy will do "enhanced DNS checking" to avoid Anti-DNS pinning attacks. If you'd like to know what Anti-DNS pinning attacks mean, look at:
-http://seclists.org/fulldisclosure/2007/Jul/0159.html
- 
-Why does this concern us?
--------------------------
-Basically, if an end user has configured a Proxy in their browser, and has any JRE version from 1.6.0_03 to 1.6.0_07 (latest stable as of date), the Java plugin does "enhanced DNS Checking" before it allows the applet to connect back to our server. That is, Java plugin will first do a DNS lookup of the hostname of the server that loaded the applet (your server), then it will do a Reverse DNS lookup on the IP address it gets to make sure that that IP resolves back to the same hostname to prevent DNS-spoofing attacks. If the IP doesn't resolve back to the same hostname from which the applet was loaded in the end-user's browser, the applet will not be able to connect back (and you will see that Java throws an Access Control Exception in Java Console if you've compiled the applet from the supplied HttpRequestor.java source code file with e.printStackTrace() uncommented).
-
-Example Scenario of who's affected:
------------------------------------
- - Your forum is hosted on domain name your-forum.com
- - your-forum.com resolves to 1.2.3.4
- - Reverse DNS lookup of 1.2.3.4 returns some-other-host.com
-
-Are there any Workarounds?
---------------------------
-Fortunately yes, there are two options, though neither is really flexible for virtual-hosting environments.
-
-1. If you have a dedicated IP address with your hosting package, tell your Hosting Provider to setup the Reverse DNS of that IP to the domain your forum is hosted on (for example, make 1.2.3.4 resolve to your-forum.com)
-
--or-
-
-2. If you have a dedicated IP address with your hosting package but your ISP cannot help you setup the Reverse DNS of that IP and you're sharing that IP for hosting multiple virtual domains, move your-forum.com virtual domain to be the first virtual domain on that shared IP in your web-server config so that:
- -> http://1.2.3.4 goes to http://your-forum.com <-
-
-Then:
----[ OPEN ]--------------------------------------
-  probe.php
----[ FIND ]--------------------------------------
-  $java_url = $path_name . "probe.$phpEx?mode=java&amp;ip={$user->ip}&amp;extra=$sid,$key";
----[ AFTER, ADD ]--------------------------------
-  $codebase_url = $server_protocol . htmlspecialchars($_SERVER['SERVER_ADDR']). $server_port . substr($path_name, 0, -1);
----[ FIND ]--------------------------------------
-  <applet width="0" height="0" code="HttpRequestor.class" codebase=".">
----[ REAPLCE WITH ]------------------------------
-  <applet width="0" height="0" code="HttpRequestor.class" codebase="' . $codebase_url . '">
----[ SAVE/CLOSE ]--------------------------------
-Finally re-upload probe.php to your server, replacing the old copy.
-
-The above two workarounds are the only solutions I could find. If you are aware of any other workaround(s), please feel free to contact me at: jasmine.aura@yahoo.com
 		]]></author-notes>
 
 		<author-group>
@@ -129,15 +84,22 @@ The above two workarounds are the only solutions I could find. If you are aware 
 		</link-group>
 
 
-		<mod-version>0.3.0</mod-version>
+		<mod-version>0.3.1</mod-version>
 
 		<installation>
 			<level>intermediate</level>
 			<time>1800</time>
-			<target-version>3.0.1</target-version>
+			<target-version>0.3.1</target-version>
 		</installation>
 
 		<history>
+			<entry>
+				<date>2008-10-01</date>
+				<rev-version>0.3.1</rev-version>
+				<changelog lang="en">
+					<change>Updated HttpRequestor.java code to use URLRequest instead of Socket and added support for HTTPS. Bundled HttpRequestor.class as a .jar archive so it could be signed with Thawte certificate using jarsigner. Updated probe.php accordingly and removed some of the old unecessary code that was needed for the previously described server-side workaround for the unsigned Java applet reverse-lookup issue.</change>
+				</changelog>
+			</entry>
 			<entry>
 				<date>2008-09-28</date>
 				<rev-version>0.3.0</rev-version>
@@ -196,7 +158,7 @@ functions.php/overall_header.</change>
 
 	<action-group>
 		<copy>
-			<file from="root/HttpRequestor.class" to="HttpRequestor.class"/>
+			<file from="root/HttpRequestor.jar" to="HttpRequestor.jar"/>
 			<file from="root/HttpRequestor.swf" to="HttpRequestor.swf"/>
 			<file from="root/expressInstall.swf" to="expressInstall.swf"/>
 			<file from="root/probe.php" to="probe.php"/>

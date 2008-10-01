@@ -1,0 +1,6 @@
+1. copy root/HttpRequestor.jar to HttpRequestor.jar
+2. copy root/probe.php to probe.php
+3. delete the old HttpRequestor.class file in your phpBB root path.
+(the updated HttpRequestor.class is now bundled in HttpRequestor.jar)
+
+That's it :)
