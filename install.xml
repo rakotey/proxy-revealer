@@ -84,15 +84,24 @@ $ perl -e 'printf "<request>getmyip</request>%c",0' | nc yourhost.com 9999
 		</link-group>
 
 
-		<mod-version>0.3.1</mod-version>
+		<mod-version>0.3.2</mod-version>
 
 		<installation>
 			<level>intermediate</level>
 			<time>1800</time>
-			<target-version>0.3.1</target-version>
+			<target-version>3.0.1</target-version>
 		</installation>
 
 		<history>
+			<entry>
+				<date>2008-10-02</date>
+				<rev-version>0.3.2</rev-version>
+				<changelog lang="en">
+					<change>Changed HttpRequestor.java code so that it uses protocol/domain/port parameters passed to it from (updated) probe.php rather than discovering them with getCodeBase().* since getCodeBase.getHost() could be a CGI-Proxy if one was used. This allows Java detection to work with CGI-Proxies.</change>
+					<change>Minor fix to HttpRequestor.java that caused an error (only visible in Java console) about failing to getOutputStream after getInputstream. We now post something to output stream before trying to open the input stream to guarantee that the direct URL request is sent.</change>
+					<change>Introduced the "RealPlayer" detection method.</change>
+				</changelog>
+			</entry>
 			<entry>
 				<date>2008-10-01</date>
 				<rev-version>0.3.1</rev-version>
@@ -162,6 +171,7 @@ functions.php/overall_header.</change>
 			<file from="root/HttpRequestor.swf" to="HttpRequestor.swf"/>
 			<file from="root/expressInstall.swf" to="expressInstall.swf"/>
 			<file from="root/probe.php" to="probe.php"/>
+			<file from="root/sample.rm" to="sample.rm"/>
 			<file from="root/swfobject.js" to="swfobject.js"/>
 			<file from="root/xss.xml" to="xss.xml"/>
 			<file from="root/adm/style/acp_proxy_revealer.html" to="adm/style/acp_proxy_revealer.html"/>
@@ -204,6 +214,7 @@ define('JAVA',4);
 define('FLASH',8);
 define('COOKIE',16);
 define('TOR_IPS',32);
+define('REALPLAYER',64);
 // this is used in admin_speculative.php
 define('JAVA_INTERNAL',3);
 // END Proxy Revealer Olympus
@@ -459,6 +470,8 @@ IMPORTANT: BEFORE APPLYING THE CHANGES TO: includes/functions.php and includes/s
 2. Point your browser to http://yoursite.com/forum-path/install/
 3. Click Install and delete the install directory when you're finished.
 4. Apply the modifications to includes/functions.php and includes/session.php as described above.
+5. You can now administer Proxy Revealer Olympus from the .MODS tab.
+PLEASE DO NOT check "X_FORWARDED_FOR" and/or "Cookie" for "IP Masking Block" in Settings unless you know what you're doing!!!
 		</diy-instructions>
 
 	</action-group>
