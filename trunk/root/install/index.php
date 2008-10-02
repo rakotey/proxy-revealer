@@ -101,7 +101,7 @@ switch ($mode)
 			),
 			'set_config'		=> array(
 				array('proxy_revealer_on', 1),
-				array('ip_block', 46),
+				array('ip_block', 110),
 				array('ip_block_defer', 0),
 				array('ip_ban', 0),
 				array('ip_ban_length', 0),
@@ -177,7 +177,7 @@ switch ($mode)
 				),
 				'set_config'		=> array(
 					array('proxy_revealer_on', 1),
-					array('ip_block', 46),
+					array('ip_block', 110),
 					array('ip_block_defer', 0),
 					array('ip_ban', 0),
 					array('ip_ban_length', 0),

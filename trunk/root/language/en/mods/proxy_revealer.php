@@ -43,6 +43,7 @@ $lang = array_merge($lang, array(
 
 	'SPECULATIVE_IP_FLASH'		=> 'Extended Flash Plugin Information',
 	'SPECULATIVE_IP_JAVA'		=> 'Extended Java Plugin Information',
+	'SPECULATIVE_IP_REALPLAYER'	=> 'Extended RealPlayer Plugin Information',
 
 	'SPOOFED_IP'				=> 'Masked IP Address',
 	'METHOD_USED'				=> 'Method Used',
@@ -61,6 +62,7 @@ $lang = array_merge($lang, array(
 	'USER_AGENT'				=> 'User-Agent',
 	'FLASH_VERSION'				=> 'Flash Version',
 	'JAVA_VERSION'				=> 'Java Version',
+	'REALPLAYER_VERSION'		=> 'RealPlayer Version',
 	'IP_WHOIS_FOR'				=> 'IP whois for %s',
 	'XSS_URL'					=> 'Web Proxy URL',
 ));
@@ -113,6 +115,7 @@ $lang = array_merge($lang, array(
 	'COOKIE'			=> 'Cookie',
 	'FLASH'				=> 'Flash',
 	'JAVA'				=> 'Java',
+	'REALPLAYER'		=> 'RealPlayer',
 	'TOR_IPS'			=> 'Tor IPs',
 	'X_FORWARDED_FOR'	=> 'X-Forwarded-For',
 	'XSS'				=> 'XSS',

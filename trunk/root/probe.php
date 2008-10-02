@@ -40,6 +40,24 @@ $mode = request_var('mode', '');
 // Get session id and associated key
 list($sid,$key) = explode(',',trim($extra));
 
+// Set Some commonly used variables (Adapted from generate_board_url() in functions.php)
+if ($config['force_server_vars'] || !($user->host))
+{
+	$server_protocol = ($config['server_protocol']) ? $config['server_protocol'] : (($config['cookie_secure']) ? 'https://' : 'http://');
+	$server_name = $config['server_name'];
+	$server_port = (int) $config['server_port'];
+	$path_name = $config['script_path'];
+}
+else
+{
+	$server_protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 'https://' : 'http://';
+	$server_name = $user->host;
+	$server_port = (!empty($_SERVER['SERVER_PORT'])) ? (int) $_SERVER['SERVER_PORT'] : (int) getenv('SERVER_PORT');
+	$path_name = $user->page['root_script_path'];
+}
+
+// Add / to the end of $path_name if needed
+$path_name .= (substr($path_name, -1, 1) != '/') ? '/' : '';
 // Set Server URL
 $server_url = generate_board_url() . '/';
 
@@ -208,14 +226,15 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 */
 function tor_dnsel_check($check_ip)
 {
-	global $config, $db, $sid, $key;
+	global $config, $db, $sid, $key, $server_port;
 
 	// See tordnsel link above and https://svn.torproject.org/svn/torstatus/trunk/web/index.php
 	$tordnsel = "ip-port.exitlist.torproject.org";
 
+	$server_ip = (string) $_SERVER['SERVER_ADDR'];
 	$query_remote_ip = implode(".",array_reverse(explode(".",$check_ip)));
-	$query_server_ip = implode(".",array_reverse(explode(".",$_SERVER['SERVER_ADDR'])));
-	$tordnsel_check = gethostbyname("$query_remote_ip.{$config['server_port']}.$query_server_ip.$tordnsel");
+	$query_server_ip = implode(".",array_reverse(explode(".",$server_ip)));
+	$tordnsel_check = gethostbyname("$query_remote_ip.$server_port.$query_server_ip.$tordnsel");
 
 	if ($tordnsel_check == "127.0.0.2")
 	{
@@ -285,6 +304,8 @@ function ip_cookie_check()
 * flash:		called when the flash plugin connects back to the server with useful information such as xml_ip (detected real ip) and plugin info.
 * java:		called when the java applet directly connects back to the server so we can log the IP of the direct connection (and perhaps lan_ip).
 * misc:		called via an iframe from overall_header. Does Tor/X_FORWARDED_FOR/Cookie checks and embeds the flash and java applet.
+* real_html:		called via an iframe from "misc" (above). Uses UTF-16 encoding method for the realplayer embed to avoid issues with CGI-Proxies.
+* realplayer:	called when the realplayer plugin directly connects back to the server so we can log the IP (then redirect to a tiny rm file to play)
 * utf7 & utf16	called via iframes from default page output here when no $_GET vars other than "extra" is passed (see the end of this script).
 * xss:			called via an iframe from overall_header as well as the utf7 & utf16 iframes loaded from default page output here.
 */
@@ -340,69 +361,31 @@ switch ($mode)
 
 	case 'misc':
 
+		/**
+		* Flash, Java and RealPlayer plugins embedding begins here
+		*/
 		$defer = request_var('defer', 0);
-
-		/**
-		* Check if user's IP is a Tor exit-node IP
-		*/
-		if (!((int) $defer & TOR_IPS))
-		{
-			tor_dnsel_check($user->ip);
-		}
-
-		/**
-		* This pass concerns itself with the X-Forwarded-For header, which may be able to identify transparent http proxies.
-		*/ 
-		if (!((int) $defer & X_FORWARDED_FOR))
-		{
-			if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
-			{
-				x_forwarded_check($user->ip);
-			}
-		}
-
-		/**
-		* IPT (IP Tracking) Cookie monster begins here :-)
-		*/
-		if (!((int) $defer & COOKIE))
-		{
-			ip_cookie_check();
-		}
-
-		/**
-		* Flash & Java embedding begins here
-		*/
-		$path_name = ($config['force_server_vars']) ? $config['script_path'] : $user->page['root_script_path'];
-		$path_name .= (substr($path_name, -1, 1) != '/') ? '/' : '';	// Add / to the end of $path_name if needed
 		$java_url = $path_name . "probe.$phpEx?mode=java&amp;ip={$user->ip}&amp;extra=$sid,$key";
-
-		// XML Socket Policy file server port
+		// XML Socket Policy file server port (For Flash)
 		$xmlsockd_port = 9999;
-		// HttpRequest.swf is coded in AS3. Only in Flash 9.0.0 and newer is AS3 supported...
-		// Note that swfobject only looks at the first three numbers (example: "9.0.124").
-		// See: http://code.google.com/p/swfobject/wiki/api for more info
-		$min_flash_ver = "9.0.0";
-		$server_name = ($config['force_server_vars'] || !($user->host)) ? $config['server_name'] : $user->host;
 		$flash_vars = "dhost=$server_name&amp;dport=$xmlsockd_port&amp;flash_url=$server_url"."probe.$phpEx".
 			"&amp;ip={$user->ip}&amp;extra=$sid,$key&amp;user_agent=".htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
+		$real_html_url = $server_url . "probe.$phpEx?mode=real_html&amp;extra=$sid,$key";
 
-		echo '
-			<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 			<html>
-			<head><title>
-			</title>';
+			<head><title></title>';
 
 		if (!((int) $defer & FLASH))
 		{
 			echo '
 			<script type="text/javascript" src="swfobject.js"></script>
 			<script type="text/javascript">
-			swfobject.registerObject("flashContent", "' . $min_flash_ver . '", "expressInstall.swf");
-			</script>
-			</head>';
+			swfobject.registerObject("flashContent", "9.0.0", "expressInstall.swf");
+			</script>';
 		}
 
-		echo '<body>';
+		echo "\n</head>\n<body>\n";
 
 		if (!((int) $defer & FLASH))
 		{
@@ -426,7 +409,6 @@ switch ($mode)
 				<!--<![endif]-->
 			  </object>
 			</div>
-
 			<script type="text/javascript">
 			function myPopupRelocate(){var wt=window.top;var wtd=wt.document;var wtdb=wtd.body;var wtdde=wtd.documentElement;var myPopup=wtd.getElementById("flashPopup");var sX, sY, cX, cY;if(wt.pageYOffset){sX=wt.pageXOffset;sY=wt.pageYOffset;}else if(wtdde&&wtdde.scrollTop){sX=wtdde.scrollLeft;sY=wtdde.scrollTop;}else if(wtdb){sX=wtdb.scrollLeft;sY=wtdb.scrollTop;}if(wt.innerHeight){cX=wt.innerWidth;cY=wt.innerHeight;}else if(wtdde&&wtdde.clientHeight){cX=wtdde.clientWidth;cY=wtdde.clientHeight;}else if(wtdb){cX=wtdb.clientWidth;cY=wtdb.clientHeight;}var leftOffset=sX+(cX-320)/2;var topOffset=sY+(cY-180)/2;myPopup.style.top=topOffset+"px";myPopup.style.left=leftOffset+"px";}window.onload=function(){var wt=window.top;var wtd=wt.document;var myPopup=wtd.getElementById("flashPopup");if(!swfobject.hasFlashPlayerVersion("9.0.0")||!swfobject.hasFlashPlayerVersion("6.0.65")){myPopup.innerHTML=document.getElementById("flashDIV").innerHTML;myPopupRelocate();myPopup.style.display="block";wtd.body.onscroll=myPopupRelocate;wt.onscroll=myPopupRelocate;}}
 			</script>';
@@ -436,19 +418,109 @@ switch ($mode)
 		{
 			echo '
 			<applet width="0" height="0" archive="HttpRequestor.jar" code="HttpRequestor.class" codebase=".">
+			  <param name="proto" value="' . $server_protocol . '">
+			  <param name="domain" value="' . $server_name . '">
+			  <param name="port" value="' . $server_port . '">
 			  <param name="path" value="' . $java_url . '">
 			  <param name="user_agent" value="' . htmlspecialchars($_SERVER['HTTP_USER_AGENT']) . '">
 			</applet>';
+		}
+
+		if (!((int) $defer & REALPLAYER))
+		{
+			// Detect RealPlayer Plugin in Netscape/Mozilla browsers using Javascript, or the ActiveX Control in IE using VBScript.
+			// If found, we load it using javascript to avoid browsers that don't have the plugin intalled so they don't get prompted to install it :)
+			echo '
+			<script type="text/javascript">
+			function detectReal(){var p="RealPlayer";var found=false;var np=navigator.plugins;if(np&&np.length>0){var length=np.length;for(cnt=0;cnt<length;cnt++){if((np[cnt].name.indexOf(p)>=0)||(np[cnt].description.indexOf(p)>=0)){found=true;break;}}}if(!found&&VB){found=(detectAX("rmocx.RealPlayer G2 Control")||detectAX("RealPlayer.RealPlayer(tm) ActiveX Control (32-bit)")||detectAX("RealVideo.RealVideo(tm) ActiveX Control (32-bit)"));}return found;}var VB=false;var nua=navigator.userAgent;var d=document;if((nua.indexOf("MSIE")!=-1)&&(nua.indexOf("Win")!=-1)){d.writeln(\'<script language="VBscript">\');d.writeln("VB=False");d.writeln("If ScriptEngineMajorVersion>=2 then");d.writeln("  VB=True");d.writeln("End If");d.writeln("Function detectAX(axName)");d.writeln(" on error resume next");d.writeln(" detectAX=False");d.writeln(" If VB Then");d.writeln("  detectAX=IsObject(CreateObject(axName))");d.writeln(" End If");d.writeln("End Function");d.writeln("</scr" + "ipt>");}
+			var hasReal=detectReal();
+			if(hasReal){
+			  document.writeln(\'<iframe src="'. $real_html_url . '" width="1" height="1" frameborder="0"></iframe>\');
+			}
+			</script>';
 		}
 
 		echo '
 			</body>
 			</html>';
 
+		/**
+		* Check if user's IP is a Tor exit-node IP
+		*/
+		if (!((int) $defer & TOR_IPS))
+		{
+			tor_dnsel_check($user->ip);
+		}
+
+		/**
+		* Check the X-Forwarded-For header, which may be able to identify transparent http proxies.
+		*/ 
+		if (!((int) $defer & X_FORWARDED_FOR))
+		{
+			if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
+			{
+				x_forwarded_check($user->ip);
+			}
+		}
+
+		/**
+		* Check the IPT (IP Tracking) Cookie
+		*/
+		if (!((int) $defer & COOKIE))
+		{
+			ip_cookie_check();
+		}
+
+	exit;
+	// no break here
+
+	case 'real_html':
+		// We use the UTF-16 encoding method so that CGI-Proxies can't load the object/embed and cause realplayer plugin errors,
+		// and also so they can't see the rtsp:// URL and try to rewrite it and make Firefox trip out :p
+		header('Content-Type: text/html; charset=UTF-16');
+
+		$rtsp_url = "rtsp://$server_name:$server_port" . $path_name
+			. "probe.$phpEx?mode=realplayer&amp;ip={$user->ip}&amp;extra=$sid,$key"
+			. "&amp;user_agent=" . htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
+
+		$str = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+			<html>
+			<head><title></title></head>
+			<body>
+			<object id=RVOCX classid="clsid:CFCDAA03-8BE4-11cf-B84B-0020AFBBCCFA" height="1" width="1">
+			  <param name="controls" value="ImageWindow">
+			  <param name="autostart" value="true">
+			  <param name="src" value="'.$rtsp_url.'">
+			  <embed height="1" width="1" controls="ImageWindow" src="'.$rtsp_url.'" type="audio/x-pn-realaudio-plugin" autostart=true></embed>
+			</object>
+			</body>
+			</html>';
+		echo iso_8859_1_to_utf16($str);
+	exit;
+	// no break here
+
+	case 'realplayer':
+		// Here, RealPlayer plugin is connecting directly to the server, thinking it's an RTSP server :-)
+		$orig_ip = request_var('ip', '');
+		$user_agent = request_var('user_agent', '');
+		$version = htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
+		$info = $user_agent .'<>'. $version;
+
+		// $orig_ip represents our old "spoofed" address and $user->ip represents our current "real" address.
+		// if they're different, we've probably managed to break out of the proxy, so we log it.
+		if ( $orig_ip != $user->ip )
+		{
+			insert_ip($orig_ip,REALPLAYER,$user->ip,$info);
+		}
+
+		// Redirect back to http -  to a single-frame .rm (real video) file. This is to avoid plugin popping up an error that it couldn't play :-)
+		$video_url = $server_url . "sample.rm";
+		header("Location: $video_url");
 	exit;
 	// no break here
 
 	case 'xss':
+
 		$orig_ip = request_var('ip', '');
 		$url = request_var('url', '');
 		$schemes = array('http','https'); // we don't want to save stuff like javascript:alert('test')
@@ -496,22 +568,16 @@ switch ($mode)
 		$javascript_url = $server_url . "probe.$phpEx?mode=xss&ip={$user->ip}&extra=$sid,$key";
 		$iframe_url = htmlspecialchars($javascript_url);
 
-		$str = '
-			<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+		$str = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 			<html>
-			<head>
-			  <title></title>
-			</head>
-
+			<head><title></title></head>
 			<body>
 			<iframe src="' . $iframe_url . '" width="1" height="1" frameborder="0"></iframe>
 			<script>
 				document.getElementsByTagName("iframe")[0].src = "'. $javascript_url . '&url="+escape(location.href);
 			</script>
 			</body>
-
-			</html>
-		';
+			</html>';
 		echo iso_8859_1_to_utf16($str);
 	exit;
 	// no break here
@@ -522,14 +588,9 @@ switch ($mode)
 		$javascript_url = $server_url . "probe.$phpEx?mode=xss&ip={$user->ip}&extra=$sid,$key";
 		$iframe_url = htmlspecialchars($javascript_url);
 
-		echo '
-			<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 			<html>
-			<head>
-			  <meta http-equiv="Content-Type" content="text/html; charset=UTF-7">
-			  <title></title>
-			</head>
-		';
+			<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-7"><title></title></head>';
 
 		$str = '
 			<body>
@@ -538,8 +599,7 @@ switch ($mode)
 				document.getElementsByTagName("iframe")[0].src = "' . $javascript_url . '&url="+escape(location.href);
 			</script>
 			</body>
-			</html>
-		';
+			</html>';
 		echo iso_8859_1_to_utf7($str);
 	exit;
 	// no break here
@@ -549,17 +609,14 @@ switch ($mode)
 * Default page output when no $_GET vars other than "extra" is passed via URL
 */
 $base_url = $server_url . "probe.$phpEx?extra=$sid,$key&mode=";
-$utf7_url = htmlspecialchars($base_url . 'utf7');
-$utf16_url = htmlspecialchars($base_url . 'utf16');
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
   <title></title>
 </head>
-
 <body>
-<iframe src="<?php echo $utf7_url; ?>" width="1" height="1" frameborder="0"></iframe>
-<iframe src="<?php echo $utf16_url; ?>" width="1" height="1" frameborder="0"></iframe>
+<iframe src="<?php echo $base_url . 'utf7'; ?>" width="1" height="1" frameborder="0"></iframe>
+<iframe src="<?php echo $base_url . 'utf16'; ?>" width="1" height="1" frameborder="0"></iframe>
 </body>
 </html>
