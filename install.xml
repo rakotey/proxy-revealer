@@ -302,19 +302,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 	if ($config['ip_block_defer'] && isset($speculative_test) && $speculative_test &&
 		$user->page['page_name'] != "ucp.$phpEx" && $user->data['user_id'] == ANONYMOUS)
 	{
-		$defer_misc_ary = array(FLASH, JAVA, TOR_IPS, COOKIE, X_FORWARDED_FOR);
-		$defer_misc_val = 0;
-	
-		foreach ($defer_misc_ary as $method)
-		{
-			if ((int) $config['ip_block_defer'] & (int) $method)
-			{
-				$defer_misc_val = $defer_misc_val | (int) $method;
-			}
-		}
-
-		$probe_misc_url .= ($defer_misc_val != 0) ? "&amp;defer=$defer_misc_val" : '';
-	
+		$probe_misc_url .= "&amp;defer=" . $config['ip_block_defer'];
 		$xss_test_on = ((int) $config['ip_block_defer'] & XSS) ? false : true;
 	}
 
