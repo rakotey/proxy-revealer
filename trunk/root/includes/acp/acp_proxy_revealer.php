@@ -53,7 +53,7 @@ class acp_proxy_revealer
 					break;
 
 					default:
-						$this->display_ip_log($mode);
+						$this->display_ip_log($id, $mode);
 					break;
 				}
 
@@ -72,7 +72,7 @@ class acp_proxy_revealer
 	/**
 	* Display External/Internal IP Log
 	*/
-	function display_ip_log($mode = 'external')
+	function display_ip_log($id, $mode = 'external')
 	{
 		global $config, $db, $user, $template;
 		global $phpbb_admin_path, $phpEx;
