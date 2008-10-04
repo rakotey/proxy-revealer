@@ -31,7 +31,6 @@ if ( !isset($_GET['extra']) || !preg_match('/^[A-Za-z0-9,]*$/',trim($_GET['extra
 // Start session management
 $user->session_begin();
 $auth->acl($user->data);
-$user->setup();
 
 // Basic parameter data
 $extra	= request_var('extra', '');
@@ -93,7 +92,7 @@ function iso_8859_1_to_utf7($str)
 * Log IPs and optionally block and/or ban the "fake" IP
 *
 * Inserts "real" and "fake" IPs in SPECULATIVE_TABLE, blocks and/or bans the "fake" IP session if configured to do so
-* in admin_speculative.php, the first column shows the "fake IP address" and the third column shows the "real IP address".
+* in External IPs log, the first column shows the "fake IP address" and the third column shows the "real IP address".
 * the reason we do it in this way is because when you're looking at the IP address of a post, you're going to see the "fake IP address".
 *
 * We use $db->sql_escape() in all our SQL statements rather than str_replace("\'","''",$_REQUEST['var']) on each var as it comes in.
@@ -232,8 +231,8 @@ function tor_dnsel_check($check_ip)
 	$tordnsel = "ip-port.exitlist.torproject.org";
 
 	$server_ip = (string) $_SERVER['SERVER_ADDR'];
-	$query_remote_ip = implode(".",array_reverse(explode(".",$check_ip)));
-	$query_server_ip = implode(".",array_reverse(explode(".",$server_ip)));
+	$query_remote_ip = implode('.', array_reverse(explode('.', $check_ip)));
+	$query_server_ip = implode('.', array_reverse(explode('.', $server_ip)));
 	$tordnsel_check = gethostbyname("$query_remote_ip.$server_port.$query_server_ip.$tordnsel");
 
 	if ($tordnsel_check == "127.0.0.2")
@@ -372,6 +371,14 @@ switch ($mode)
 			"&amp;ip={$user->ip}&amp;extra=$sid,$key&amp;user_agent=".htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
 		$real_html_url = $server_url . "probe.$phpEx?mode=real_html&amp;extra=$sid,$key";
 
+		// If the buffer is not set to 0, there's no need to call ob_start(), because the buffer is started already.
+		// Calling it again will cause a second level of buffering to start and the script won't work.
+		// This is to avoid problems if output buffering is already enabled server-wide in php.ini
+		if (ob_get_level() == 0)
+		{
+			ob_start();
+		}
+
 		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 			<html>
 			<head><title></title>';
@@ -443,6 +450,9 @@ switch ($mode)
 		echo '
 			</body>
 			</html>';
+
+		// Immediately send the contents of the output buffer and turn it off, since we're done outputting data to the browser.
+		ob_end_flush();
 
 		/**
 		* Check if user's IP is a Tor exit-node IP
