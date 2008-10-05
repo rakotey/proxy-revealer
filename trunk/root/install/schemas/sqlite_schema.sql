@@ -17,7 +17,7 @@ CREATE INDEX phpbb_speculative_excludes_ip_address ON phpbb_speculative_excludes
 # Table: 'phpbb_speculative_ips'
 CREATE TABLE phpbb_speculative_ips (
 	ip_address varchar(40) NOT NULL DEFAULT '',
-	method tinyint(1) NOT NULL DEFAULT '0',
+	method INTEGER UNSIGNED NOT NULL DEFAULT '0',
 	discovered INTEGER UNSIGNED NOT NULL DEFAULT '0',
 	real_ip varchar(40) NOT NULL DEFAULT '',
 	info text(65535) NOT NULL DEFAULT ''

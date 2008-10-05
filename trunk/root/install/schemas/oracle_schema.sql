@@ -78,7 +78,7 @@ END;
 */
 CREATE TABLE phpbb_speculative_ips (
 	ip_address varchar2(40) DEFAULT '' ,
-	method number(1) DEFAULT '0' NOT NULL,
+	method number(4) DEFAULT '0' NOT NULL,
 	discovered number(11) DEFAULT '0' NOT NULL,
 	real_ip varchar2(40) DEFAULT '' ,
 	info clob DEFAULT '' 

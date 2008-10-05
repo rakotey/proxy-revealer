@@ -167,10 +167,31 @@ class acp_proxy_revealer
 						. 'onclick="popup(this.href, 700, 300, \'_realplayer\'); return false;">' . $user->lang['REALPLAYER'] . '</a>';
 				break;
 
-				case TOR_IPS:
-					$method = $user->lang['TOR_IPS'];
+				case TOR_DNSEL:
+					$method = $user->lang['TOR_DNSEL'];
 					// Don't show a whois link since the real IP added by this method is always 0.0.0.0
 					$real_ip_url = $real_ip;
+				break;
+
+				case PROXY_DNSBL:
+					// Don't show a whois link since the real IP added by this method is always 0.0.0.0
+					$real_ip_url = $real_ip;
+					$urls = explode('<>', $row['info']);
+					$count = count($urls);
+					switch (true)
+					{
+						case $count == 1: // by default, there has to be at least one url (sorbs.net or spamhaus.org)
+							$method =  '<a href="' . $urls[0] . '" title="' . $user->lang['PROXY_DNSBL_URL'] . '" '
+								. 'onclick="popup(this.href, 700, 500, \'_proxy_dnsbl\'); return false;">' . $user->lang['PROXY_DNSBL'] . '</a>';
+						break;
+
+						case $count == 2: // eg. there can be up to two url's in $urls (sorbs.net and spamhaus.org).  if there is, represent the link to the second one with "(2)"
+							$method =  '<a href="' . $urls[0] . '" title="' . $user->lang['PROXY_DNSBL_URL'] . '" '
+								. 'onclick="popup(this.href, 700, 500, \'_proxy_dnsbl\'); return false;">' . $user->lang['PROXY_DNSBL'] . '</a>';
+							$method.= '&nbsp;&nbsp;<a href="' . $urls[1] . '" title="' . $user->lang['PROXY_DNSBL_URL'] . '" '
+								. 'onclick="popup(this.href, 700, 500, \'_proxy_dnsbl\'); return false;">(2)</a>';
+						break;
+					}
 				break;
 
 				case X_FORWARDED_FOR:
@@ -187,21 +208,15 @@ class acp_proxy_revealer
 						break;
 
 						case $count == 1 || empty($urls[1]):
-							$method =  !empty($urls[0]) ? '<a href="' . $urls[0]
-								. '" title="' . $user->lang['XSS_URL'] . '" '
-								. 'onclick="popup(this.href, 700, 500, \'_xss\'); return false;">' . $user->lang['XSS'] . '</a>'
-								: $user->lang['XSS'];
+							$method =  !empty($urls[0]) ? '<a href="' . $urls[0] . '" title="' . $user->lang['XSS_URL'] . '" '
+								. 'onclick="popup(this.href, 700, 500, \'_xss\'); return false;">' . $user->lang['XSS'] . '</a>' : $user->lang['XSS'];
 						break;
 
 						case $count == 2: // eg. default; there can be up to two url's in $urls.  if there is, represent the link to the second one with "(2)"
-							$method =  !empty($urls[0]) ? '<a href="' . $urls[0]
-								. '" title="' . $user->lang['XSS_URL'] . '" '
-								. 'onclick="popup(this.href, 700, 500, \'_xss\'); return false;">' . $user->lang['XSS'] . '</a>'
-								: $user->lang['XSS'];
-							$method.= !empty($urls[1]) ? '&nbsp;&nbsp;<a href="' . $urls[1]
-								. '" title="' . $user->lang['XSS_URL'] . '" '
-								. 'onclick="popup(this.href, 700, 500, \'_xss\'); return false;">(2)</a>'
-								: '';
+							$method =  !empty($urls[0]) ? '<a href="' . $urls[0] . '" title="' . $user->lang['XSS_URL'] . '" '
+								. 'onclick="popup(this.href, 700, 500, \'_xss\'); return false;">' . $user->lang['XSS'] . '</a>' : $user->lang['XSS'];
+							$method.= !empty($urls[1]) ? '&nbsp;&nbsp;<a href="' . $urls[1] . '" title="' . $user->lang['XSS_URL'] . '" '
+								. 'onclick="popup(this.href, 700, 500, \'_xss\'); return false;">(2)</a>' : '';
 						break;
 					}
 				break;
@@ -900,24 +915,27 @@ class acp_proxy_revealer
 
 		// We do a "Bitwise AND" against the methods defined in constants.php to see if they're enabled
 		$cookie_on	= ( $value & COOKIE ) ? 'checked="checked"' : "";
+		$dnsbl_on	= ( $value & PROXY_DNSBL ) ? 'checked="checked"' : "";
 		$flash_on	= ( $value & FLASH ) ? 'checked="checked"' : "";
 		$java_on	= ( $value & JAVA ) ? 'checked="checked"' : "";
 		$realp_on	= ( $value & REALPLAYER ) ? 'checked="checked"' : "";
-		$tor_ips_on	= ( $value & TOR_IPS ) ? 'checked="checked"' : "";
+		$tor_el_on	= ( $value & TOR_DNSEL ) ? 'checked="checked"' : "";
 		$xss_on		= ( $value & XSS ) ? 'checked="checked"' : "";
 		$x_fwd_on	= ( $value & X_FORWARDED_FOR ) ? 'checked="checked"' : "";
 
 		// The actual methods' checkboxes :-)
 		$cookie = '<label><input id="'.$key.'_'.'cookie" type="checkbox" class="radio" value="'.COOKIE.'" '.$cookie_on.' onclick="calc'.$key.'();" /> '
 			. $user->lang['COOKIE'] . '</label>';
+		$dnsbl = '<label><input id="'.$key.'_'.'dnsbl" type="checkbox" class="radio" value="'.PROXY_DNSBL.'" '.$dnsbl_on.' onclick="calc'.$key.'();" /> '
+			. $user->lang['PROXY_DNSBL'] . '</label>';
 		$flash = '<label><input id="'.$key.'_'.'flash" type="checkbox" class="radio" value="'.FLASH.'" '.$flash_on.' onclick="calc'.$key.'();" /> '
 			. $user->lang['FLASH'] . '</label>';
 		$java = '<label><input id="'.$key.'_'.'java" type="checkbox" class="radio" value="'.JAVA.'" '.$java_on.' onclick="calc'.$key.'();" /> '
 			. $user->lang['JAVA'] . '</label>';
 		$realp = '<label><input id="'.$key.'_'.'realp" type="checkbox" class="radio" value="'.REALPLAYER.'" '.$realp_on.' onclick="calc'.$key.'();" /> '
 			. $user->lang['REALPLAYER'] . '</label>';
-		$tor_ips = '<label><input id="'.$key.'_'.'tor_ips" type="checkbox" class="radio" value="'.TOR_IPS.'" '.$tor_ips_on.' onclick="calc'.$key.'();" /> '
-			. $user->lang['TOR_IPS'] . '</label>';
+		$tor_el = '<label><input id="'.$key.'_'.'tor_el" type="checkbox" class="radio" value="'.TOR_DNSEL.'" '.$tor_el_on.' onclick="calc'.$key.'();" /> '
+			. $user->lang['TOR_DNSEL'] . '</label>';
 		$xss = '<label><input id="'.$key.'_'.'xss" type="checkbox" class="radio" value="'.XSS.'" '.$xss_on.' onclick="calc'.$key.'();" /> '
 			. $user->lang['XSS'] . '</label>';
 		$x_fwd = '<label><input id="'.$key.'_'.'x_fwd" type="checkbox" class="radio" value="'.X_FORWARDED_FOR.'" '.$x_fwd_on.' onclick="calc'.$key.'();" /> '
@@ -929,18 +947,20 @@ class acp_proxy_revealer
 			function calc'.$key.'(){
 				ip_block = document.getElementById("'.$key.'");
 				cookie = document.getElementById("'.$key.'_'.'cookie");
+				dnsbl = document.getElementById("'.$key.'_'.'dnsbl");
 				flash = document.getElementById("'.$key.'_'.'flash");
 				java = document.getElementById("'.$key.'_'.'java");
 				realp = document.getElementById("'.$key.'_'.'realp");
-				tor_ips = document.getElementById("'.$key.'_'.'tor_ips");
+				tor_el = document.getElementById("'.$key.'_'.'tor_el");
 				xss = document.getElementById("'.$key.'_'.'xss");
 				x_fwd = document.getElementById("'.$key.'_'.'x_fwd");
 				ip_block.value = 0;
 				if(cookie.checked){ip_block.value = parseInt(ip_block.value) + parseInt(cookie.value);}
+				if(dnsbl.checked){ip_block.value = parseInt(ip_block.value) + parseInt(dnsbl.value);}
 				if(flash.checked){ip_block.value = parseInt(ip_block.value) + parseInt(flash.value);}
 				if(java.checked){ip_block.value = parseInt(ip_block.value) + parseInt(java.value);}
 				if(realp.checked){ip_block.value = parseInt(ip_block.value) + parseInt(realp.value);}
-				if(tor_ips.checked){ip_block.value = parseInt(ip_block.value) + parseInt(tor_ips.value);}
+				if(tor_el.checked){ip_block.value = parseInt(ip_block.value) + parseInt(tor_el.value);}
 				if(xss.checked){ip_block.value = parseInt(ip_block.value) + parseInt(xss.value);}
 				if(x_fwd.checked){ip_block.value = parseInt(ip_block.value) + parseInt(x_fwd.value);}
 			}
@@ -948,7 +968,8 @@ class acp_proxy_revealer
 			</script>
 			';
 
-		return $js_calc . $ip_block . $flash . $java . $realp . $xss . $tor_ips . "<br /><br />" . $cookie . $x_fwd;
+		return $js_calc . '<div class="optgroup">' . $ip_block . $flash . $java . $realp . $xss . '<br />'
+			. $dnsbl . $tor_el . '<br />' . $cookie . $x_fwd . '<br /></div>';
 	}
 
 	/**

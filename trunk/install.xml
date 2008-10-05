@@ -213,9 +213,10 @@ define('XSS',2);
 define('JAVA',4);
 define('FLASH',8);
 define('COOKIE',16);
-define('TOR_IPS',32);
+define('TOR_DNSEL',32);
 define('REALPLAYER',64);
-// this is used in admin_speculative.php
+define('PROXY_DNSBL',128);
+// this is used in acp_proxy_revealer.php
 define('JAVA_INTERNAL',3);
 // END Proxy Revealer Olympus
 ]]></action>

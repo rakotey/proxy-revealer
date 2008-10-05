@@ -16,7 +16,7 @@ CREATE TABLE phpbb_speculative_excludes (
 # Table: 'phpbb_speculative_ips'
 CREATE TABLE phpbb_speculative_ips (
 	ip_address varchar(40) DEFAULT '' NOT NULL,
-	method tinyint(1) DEFAULT '0' NOT NULL,
+	method smallint(4) UNSIGNED DEFAULT '0' NOT NULL,
 	discovered int(11) UNSIGNED DEFAULT '0' NOT NULL,
 	real_ip varchar(40) DEFAULT '' NOT NULL,
 	info text NOT NULL,

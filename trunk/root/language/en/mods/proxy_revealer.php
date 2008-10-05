@@ -64,12 +64,13 @@ $lang = array_merge($lang, array(
 	'JAVA_VERSION'				=> 'Java Version',
 	'REALPLAYER_VERSION'		=> 'RealPlayer Version',
 	'IP_WHOIS_FOR'				=> 'IP whois for %s',
+	'PROXY_DNSBL_URL'			=> 'DNSBL IP Query Link',
 	'XSS_URL'					=> 'Web Proxy URL',
 ));
 
 // Proxy Revealer Olympus Settings
 $lang = array_merge($lang, array(
-	'PROXY_REVEALER_EXPLAIN'	=> 'Attempts to determine someone’s “real” IP address, using a myriad of techniques, and “blocks” such people. Blocking is done within the confines of the “Session IP Validation” setting (Set it at “Security Settings” under “Server Configuation”)',
+	'PROXY_REVEALER_EXPLAIN'	=> 'Attempts to determine someone’s “real” IP address - whenever possible, using a myriad of techniques, and “blocks” such people. Blocking is done within the confines of the “Session IP Validation” setting (“Security Settings” -> “Server Configuation”). Please DO NOT block with X-Forwarded-For or Cookie unless you know what you’re doing! They’ll still log possible masked/real IPs which you can manually ban later if you like.',
 
 	'PROXY_REVEALER_ON'			=> 'Proxy Revealer Enabled',
 	'PROXY_REVEALER_ON_EXPLAIN'	=> 'Setting this to “no” will completely disable this MOD.',
@@ -83,17 +84,17 @@ $lang = array_merge($lang, array(
 	'IP_MASK_PRUNE'			=> 'Masked IP Age Limit',
 	'IP_MASK_PRUNE_EXPLAIN'	=> 'Determines when masked IPs will be automatically deleted.  Leave blank (or 0) to disable.',
 	'IP_REQUIRE_JS'			=> 'Require Javascript enabled',
-	'IP_REQUIRE_JS_EXPLAIN'	=> 'Require users to have Javascript enabled, so that: CGI-Proxy URLs get logged by XSS, Flash auto-loads in IE6/7 & Opera9+, detect old flash or no flash installed, and force Firefox users with “NoScript” to “Allow this site” (enables Java/Flash plugins).',
+	'IP_REQUIRE_JS_EXPLAIN'	=> 'This ensures that Web-Proxy URLs get logged by XSS, Flash auto-loads in IE6/7 & Opera9+, old/no flash is detected, RealPlayer plugin detection/test occurs, and Firefox users with “NoScript” are forced to “Allow this site” (enables Java/Flash).',
 	'IP_COOKIE_AGE'			=> 'IP-tracking Cookie Age',
-	'IP_COOKIE_AGE_EXPLAIN'	=> 'How long before cookie expires. Keep this low to avoid false positives, as some users’ IPs may change often. If you block with this method, it’s wise to set “Session IP Validation” to A.B.C or even A.B only.',
+	'IP_COOKIE_AGE_EXPLAIN'	=> 'How long before cookie expires. Keep this low to avoid false positives, as some users’ IPs may change often. If you block with this method (not advised,) it’s wise to set “Session IP Validation” to A.B.C or even A.B only.',
 	'SCAN_DEFER'			=> 'Defer Scan Methods',
-	'SCAN_DEFER_EXPLAIN'	=> 'This will defer scanning methods till login (or registration). This allows you to exclude certain usernames (ex.: to allow a user to use Tor, check “Tor IPs” and add their username in “Exceptions”).',
+	'SCAN_DEFER_EXPLAIN'	=> 'This will defer scanning methods till login (or registration) and allows for excluding certain users (ex. to allow a user to use Tor, check “Tor DNSEL” here and add them in “Exceptions”).',
 
 ));
 
 // Proxy Revealer Olympus Exceptions - These are similar to 'IP_BAN', 'IP_UNBAN', 'IP_NO_BANNED', 'BAN_UPDATE_SUCCESSFUL', etc.
 $lang = array_merge($lang, array(
-	'SPECULATIVE_IP_EXCLUDE'	=> 'If you’re running your own proxies, you might prefer to use those proxies logs over the logs this MOD produces. So add them here to exclude them from scanning.',
+	'SPECULATIVE_IP_EXCLUDE'	=> 'If you’re running your own proxies, you might prefer to use those proxies logs over the logs this MOD produces. So add them here to exclude them from scanning. Alternatively, you may wish to exclude certain users from scanning/blocking by certain tests. So add their username here and make sure the appropriate scanning method is set to deferred in “Settings”.',
 
 	'ADD_IP'					=> 'Add one or more IP addresses or hostnames',
 	'ADD_IP_EXPLAIN'			=> 'To specify several different IPs or hostnames enter each on a new line. To specify a range of IP addresses separate the start and end with a hyphen (-), to specify a wildcard use “*”.',
@@ -116,7 +117,8 @@ $lang = array_merge($lang, array(
 	'FLASH'				=> 'Flash',
 	'JAVA'				=> 'Java',
 	'REALPLAYER'		=> 'RealPlayer',
-	'TOR_IPS'			=> 'Tor IPs',
+	'TOR_DNSEL'			=> 'Tor-DNSEL',
+	'PROXY_DNSBL'		=> 'Proxy-DNSBL',
 	'X_FORWARDED_FOR'	=> 'X-Forwarded-For',
 	'XSS'				=> 'XSS',
 ));
