@@ -168,7 +168,7 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 			die();
 		}
 
-		// if neither the session_id or the session_speculative_key are valid (as would be revealed by $db->sql_numrows being 0),
+		// if neither the session_id or the session_speculative_key are valid (as would be revealed by $db->sql_affectedrows being 0),
 		// we assume the information is not trustworthy and quit.
 		if ( !$db->sql_affectedrows($result) )
 		{
@@ -215,6 +215,43 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 }
 
 /**
+* Check IP address against DNS-based lists of Open HTTP/SOCKS Proxies
+*
+* This function only checks DNSBLs which list Open HTTP/SOCKS Proxies, not spammers or open smtp relays, etc..
+* For more info, see: http://en.wikipedia.org/wiki/Comparison_of_DNS_blacklists
+*
+* @param string $check_ip		The IP address to check against the list or Tor exit-node IPs
+*/
+function proxy_dnsbl_check($check_ip)
+{
+	// proxies.dnsbl.sorbs.net is an aggregate zone for (http|socks|misc).dnsbl.sorbs.net
+	$dnsbl_check = array(
+		'proxies.dnsbl.sorbs.net'	=> 'http://www.de.sorbs.net/lookup.shtml?',
+		'web.dnsbl.sorbs.net'		=> 'http://www.de.sorbs.net/lookup.shtml?',
+		'xbl.spamhaus.org'			=> 'http://www.spamhaus.org/query/bl?ip=',
+	);
+
+	$reverse_ip = implode('.', array_reverse(explode('.', $check_ip)));
+	$listed = false;
+	$info_ary = array();
+
+	foreach ($dnsbl_check as $dnsbl => $lookup)
+	{
+		if (phpbb_checkdnsrr($reverse_ip . '.' . $dnsbl . '.', 'A') === true)
+		{
+			$info_ary[] = $lookup . $check_ip;
+			$listed = true;
+		}
+	}
+
+	if ($listed)
+	{
+		$info = implode('<>', array_unique($info_ary));
+		insert_ip($check_ip,PROXY_DNSBL,"0.0.0.0",$info);
+	}
+}
+
+/**
 * Check IP address against DNS-based list of Tor exit-nodes
 *
 * Since Tor supports exit policies, a network service's Tor exit list is a function of its IP address and port.
@@ -237,7 +274,7 @@ function tor_dnsel_check($check_ip)
 
 	if ($tordnsel_check == "127.0.0.2")
 	{
-		insert_ip($check_ip,TOR_IPS,"0.0.0.0");
+		insert_ip($check_ip,TOR_DNSEL,"0.0.0.0");
 	}
 }
 
@@ -455,9 +492,17 @@ switch ($mode)
 		ob_end_flush();
 
 		/**
-		* Check if user's IP is a Tor exit-node IP
+		* Check if user's IP is listed as an Open HTTP/SOCKS Proxy in DNSBL's
 		*/
-		if (!((int) $defer & TOR_IPS))
+		if (!((int) $defer & PROXY_DNSBL))
+		{
+			proxy_dnsbl_check($user->ip);
+		}
+
+		/**
+		* Check if user's IP is listed as a Tor exit-node IP in TorDNSEL
+		*/
+		if (!((int) $defer & TOR_DNSEL))
 		{
 			tor_dnsel_check($user->ip);
 		}

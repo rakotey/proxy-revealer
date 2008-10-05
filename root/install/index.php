@@ -53,7 +53,7 @@ $template->assign_var('T_TEMPLATE_PATH', $phpbb_root_path . 'install/style');
 
 $mode = request_var('mode', '');
 
-$proxyrevealer_version = '0.3.0';
+$proxyrevealer_version = '0.3.3';
 
 // init
 $error = array();
@@ -101,7 +101,7 @@ switch ($mode)
 			),
 			'set_config'		=> array(
 				array('proxy_revealer_on', 1),
-				array('ip_block', 110),
+				array('ip_block', 238),
 				array('ip_block_defer', 0),
 				array('ip_ban', 0),
 				array('ip_ban_length', 0),
@@ -128,47 +128,14 @@ switch ($mode)
 
 	break;
 
-	case 'update_old':
+	case 'update':
 
 		$update_data = array(
-			// Just add new columns first, old column 'ip_address' will be updated in '0.3.0', and the rest of the work will be done there
-			'0.2.9'	=> array(
+			'0.3.3'	=> array(
 				'schema_changes'	=> array(
-					'add_columns'		=> array(
-						SPECULATIVE_EXCLUDE_TABLE	=> array(
-							'exclude_id'		=> array('UINT', NULL),
-							'user_id'			=> array('UINT', 0),
-						),
-					),
-					'add_primary_keys'	=> array(
-						SPECULATIVE_EXCLUDE_TABLE	=> array(
-							'exclude_id',
-						),
-					),
 					'change_columns'	=> array(
-						SPECULATIVE_EXCLUDE_TABLE	=> array(
-							'exclude_id'		=> array('UINT', NULL, 'auto_increment'),
-						),
-					),
-				),
-			),
-			// Here, we drop column 'ip_address' and recreate it so it's no longer the first column, and so it has the new desired type and default value.
-			'0.3.0'	=> array(
-				'schema_changes'	=> array(
-					'drop_columns'		=> array(
-						SPECULATIVE_EXCLUDE_TABLE	=> array(
-							'ip_address',
-						),
-					),
-					'add_columns'		=> array(
-						SPECULATIVE_EXCLUDE_TABLE	=> array(
-							'ip_address'		=> array('VCHAR:40', ''),
-						),
-					),
-					'add_index'			=> array(
-						SPECULATIVE_EXCLUDE_TABLE	=> array(
-							'ip_address'		=> array('ip_address'),
-							'user_id'			=> array('user_id'),
+						SPECULATIVE_TABLE	=> array(
+							'method'		=> array('USINT', 0),
 						),
 					),
 				),
@@ -177,7 +144,7 @@ switch ($mode)
 				),
 				'set_config'		=> array(
 					array('proxy_revealer_on', 1),
-					array('ip_block', 110),
+					array('ip_block', 238),
 					array('ip_block_defer', 0),
 					array('ip_ban', 0),
 					array('ip_ban_length', 0),
@@ -191,41 +158,24 @@ switch ($mode)
 			),
 		);
 
-		if ((!isset($config['ip_block']) && !isset($config['proxyrevealer_version'])) ||
-			(isset($config['proxyrevealer_version']) && !version_compare($config['proxyrevealer_version'], $proxyrevealer_version, '<')))
+		if (!isset($config['proxyrevealer_version']) || !version_compare($config['proxyrevealer_version'], $proxyrevealer_version, '<'))
 		{
 			$page_body .= $user->lang['ALREADY_NOT_INSTALLED'] . '<br /><br />';
 			$page_body .= sprintf($user->lang['RETURN_INSTALL'], '<a href="' . append_sid("{$phpbb_root_path}install/index.$phpEx") . '">', '</a>');
 			break;
 		}
 
-		// Delete the old (manually-installed) ACP modules of this MOD so we can reinstall them afterwards properly
-		$mod = 'ACP_PROXY_REVEALER';
-		$old_mods  = array($mod.'_EXTERNAL', $mod.'_INTERNAL', $mod.'_SETTINGS', $mod.'_EXCLUDES', $mod);
-
-		foreach ($old_mods as $mod_name)
-		{
-			$sql = 'SELECT module_id FROM ' . MODULES_TABLE . " 
-				WHERE module_langname = '$mod_name'";
-			$result = $db->sql_query($sql);
-			$row = $db->sql_fetchrow($result);
-			$db->sql_freeresult($result);
-
-			if ($row && !empty($row['module_id']))
-			{
-				$sql = "DELETE FROM " . MODULES_TABLE . " 
-					WHERE module_id = '{$row['module_id']}'";
-				$db->sql_query($sql);
-			}
-		}
-
-		// Process install
 		foreach ($update_data as $update_version => $update_ary)
 		{
+			// if our version is bigger, skip
+			if (!version_compare($config['proxyrevealer_version'], $update_version, '<'))
+			{
+				continue;
+			}
+
 			process_install($update_ary, $error, $db_tools);
 		}
 
-		// Set our version which was never set before this release (0.3.0) :-)
 		set_config('proxyrevealer_version', $proxyrevealer_version);
 
 		$page_body .= '<br /><br />';
@@ -242,20 +192,13 @@ switch ($mode)
 
 		$page_body .= '<br /><br />';
 
-		if (!isset($config['proxyrevealer_version']) && !isset($config['ip_block']))
+		if (!isset($config['proxyrevealer_version']))
 		{
 			$page_body .= '<a href="' . append_sid("{$phpbb_root_path}install/index.$phpEx", 'mode=install') . '">&raquo; ' . $user->lang['INSTALL'] . '</a><br />';
 		}
-		else if (isset($config['proxyrevealer_version']) && version_compare($config['proxyrevealer_version'], $proxyrevealer_version, '<'))
+		else if (version_compare($config['proxyrevealer_version'], $proxyrevealer_version, '<'))
 		{
-			// This is here only for future updates, as in previous versions we never did set_config proxyrevealer_version
 			$page_body .= '<a href="' . append_sid("{$phpbb_root_path}install/index.$phpEx", 'mode=update') . '">&raquo; ' . $user->lang['UPDATE'] . '</a><br />';
-		}
-		else if (isset($config['ip_block']) && !isset($config['proxyrevealer_version']))
-		{
-			// Update old installs that were non-versioned
-			$page_body .=  $user->lang['UPDATE_NON_VERSIONED'] . '<br /><br />';
-			$page_body .= '<a href="' . append_sid("{$phpbb_root_path}install/index.$phpEx", 'mode=update_old') . '">&raquo; ' . $user->lang['UPDATE'] . '</a><br />';
 		}
 		else
 		{

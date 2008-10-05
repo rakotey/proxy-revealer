@@ -40,7 +40,6 @@ $lang = array_merge($lang, array(
 	'ALREADY_NOT_INSTALLED'	=> 'The MOD has not been installed yet or is up to date.',
 	'NOTHING_TO_INSTALL'	=> 'There is nothing to do.',
 	'CANNOT_DELETE'         => 'It´s not possible to delete the install folder, please delete it manually.',
-	'UPDATE_NON_VERSIONED'	=> 'An old manual installation detected. This installer can attempt to upgrade it. <strong>The excludes table structure will be recreated and all excluded IPs will be deleted as a result. So if you’ve previously added IPs to the “Exceptions” list, back them up before you proceed. You will have to manually re-add them later.</strong>',
 
 	// return messages
 	'DELETE_SELF'			=> '%sAttempt to delete the install folder%s',

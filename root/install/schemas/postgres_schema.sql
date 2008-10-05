@@ -101,7 +101,7 @@ CREATE INDEX phpbb_speculative_excludes_ip_address ON phpbb_speculative_excludes
 */
 CREATE TABLE phpbb_speculative_ips (
 	ip_address varchar(40) DEFAULT '' NOT NULL,
-	method INT2 DEFAULT '0' NOT NULL,
+	method INT2 DEFAULT '0' NOT NULL CHECK (method >= 0),
 	discovered INT4 DEFAULT '0' NOT NULL CHECK (discovered >= 0),
 	real_ip varchar(40) DEFAULT '' NOT NULL,
 	info varchar(4000) DEFAULT '' NOT NULL
