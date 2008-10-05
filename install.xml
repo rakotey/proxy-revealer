@@ -84,7 +84,7 @@ $ perl -e 'printf "<request>getmyip</request>%c",0' | nc yourhost.com 9999
 		</link-group>
 
 
-		<mod-version>0.3.2</mod-version>
+		<mod-version>0.3.3</mod-version>
 
 		<installation>
 			<level>intermediate</level>
@@ -93,6 +93,20 @@ $ perl -e 'printf "<request>getmyip</request>%c",0' | nc yourhost.com 9999
 		</installation>
 
 		<history>
+			<entry>
+				<date>2008-10-05</date>
+				<rev-version>0.3.3</rev-version>
+				<changelog lang="en">
+					<change>Simplified deferred tests checking in the functions.php modification. Deferring the new "RealPlayer" method should now work. Value of ip_block_defer is now passed as is to probe.php?mode=misc since probe.php does its own deferred tests checking in "misc" mode before initiating any of the tests in it.</change>
+					<change>Updated the acp module to pass $id to display_ip_log() from main() as it's used in the links to "Internal IPs" and "Exceptions" displayed from the heading explanation in "External IPs", and used in the link to "External IPs" displayed from the heading explanation in "Internal IPs". Thanks Geisthund!</change>
+					<change>Added output buffering in probe.php's mode "misc" so we can send output to browser immediately after it's available then let the server-side checks run in the background. This is to allow the client's browser to begin downloading the embedded plugins sooner and finish faster.</change>
+					<change>Removed $user->setup() from probe.php. Since it's not user-facing, we don't need to setup user-specific items (like language, style, etc). More importantly, since the blocking in session.php is done from function user(), not calling $user->setup() in probe.php guarantees that if some quick test(s) trigger(s) a session-block (like TorDNSEL, or DNSBL), other tests connecting back with possible useful info (such as the Real IP) don't get blocked before submitting this info - if they use the same session (ex. flash, real_html/realplayer, xss).</change>
+					<change>TOR_IPS method and language names renamed to TOR_DNSEL and "Tor-DNSEL", respectively.</change>
+					<change>Some changes made to proxy_revealer.php language file for sake of clarity/correctness.</change>
+					<change>Updated installer's database schema files (for new installs) and added an update mode to upgrade to 0.3.3, because the SPECULATIVE_TABLE's "method" column type changed from TINT to USINT. This is because TINT is a signed tinyint in mysql (according to phpbb schemas) which has a max value of 127. And since the newly added method PROXY_DNSBL (defined in constants.php) needed a value of 128, this sql column type change was necessary. On the other hand, USINT, which is an unsigned smallint in mysql, has a max value of 65535, which should be sufficient to allow for adding more new methods in the future if needed (such as PROXY_SCAN which would be 256).</change>
+					<change>Added the PROXY_DNSBL (Proxy-DNSBL) detection method (allows blocking IPs listed as Open HTTP/SOCKS proxies in the appropriate DNSBLs).</change>
+				</changelog>
+			</entry>
 			<entry>
 				<date>2008-10-02</date>
 				<rev-version>0.3.2</rev-version>
