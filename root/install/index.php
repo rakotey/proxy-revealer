@@ -92,7 +92,7 @@ switch ($mode)
 				'add_columns'		=> array(
 					SESSIONS_TABLE		=> array(
 						'session_speculative_test'	=> array('TINT:1', -1),
-						'session_speculative_key'	=> array('CHAR:10', NULL),
+						'session_speculative_key'	=> array('CHAR:10', 0),
 					),
 				),
 			),
