@@ -204,7 +204,7 @@ function load_schema($install_path = '', $install_dbms = false)
 
 		if ($install_dbms == 'mysql')
 		{
-			if (version_compare($db->mysql_version, '4.1.3', '>='))
+			if (version_compare($db->sql_server_info(true), '4.1.3', '>='))
 			{
 				$available_dbms[$install_dbms]['SCHEMA'] .= '_41';
 			}
