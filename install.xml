@@ -246,7 +246,6 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		</open>
 		<open src="includes/session.php">
 			<edit>
-				<comment lang="en">!!! IMPORTANT !!! BEFORE APPLYING ANY CHANGES to includes/session.php YOU MUST FIRST FOLLOW THE STEPS IN THE DIY INSTRUCTIONS SECTION AT THE END OF THIS FILE</comment>
 				<find><![CDATA[		if (isset($this->data['session_viewonline']))]]></find>
 				<action type="before-add"><![CDATA[
 
@@ -254,7 +253,8 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		// $this->data['session_speculative_test'] can be thought of as a combination of three bits.  the bits that are set
 		// represent the modes that tested positive for ip masking.  we compare that against the "blocking modes" by means
 		// of a 'bitwise and' and from there, block as appropriate.
-		if ( (int) $this->data['session_speculative_test'] > 0 && ((int) $this->data['session_speculative_test'] & (int) $config['ip_block']) )
+		if ( isset($this->data['session_speculative_test']) && (int) $this->data['session_speculative_test'] > 0 &&
+			((int) $this->data['session_speculative_test'] & (int) $config['ip_block']) )
 		{
 			header('HTTP/1.1 503 Service Unavailable');
 			trigger_error('IP_MASK_BLOCKED');
@@ -265,21 +265,22 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		</open>
 		<open src="includes/functions.php">
 			<edit>
-				<comment lang="en">!!! IMPORTANT !!! BEFORE APPLYING ANY CHANGES to includes/functions.php YOU MUST FIRST FOLLOW THE STEPS IN THE DIY INSTRUCTIONS SECTION AT THE END OF THIS FILE</comment>
 				<find><![CDATA[			ob_start('ob_gzhandler');
 		}
 	}]]></find>
 				<action type="after-add"><![CDATA[
 
 	// START Proxy Revealer Olympus
-	if ((isset($user->data['session_admin']) && $user->data['session_admin']) || !$config['proxy_revealer_on'])
+	if ( (isset($auth) && ($auth->acl_gets('a_', 'm_') || $auth->acl_getf_global('m_'))) ||
+		!isset($config['proxy_revealer_on']) || !$config['proxy_revealer_on'] )
 	{
+		// If logged in as an admin or global moderator, or if the MOD is not enabled (or its sql config not yet added), skip scanning
 		$user->data['session_speculative_test'] = 0;
 	}
 
-	if ((!empty($user->session_id) && !isset($user->data['session_speculative_test'])) || (int) $user->data['session_speculative_test'] < 0)
+	if (!empty($user->session_id) && isset($user->data['session_speculative_test']) && (int) $user->data['session_speculative_test'] < 0)
 	{
-		// By default, we run speculative test, unless we later find that the IP/username is excluded from scanning
+		// By default, we scan right away, unless we find the IP is excluded, or ip_block_defer is on and username is excluded
 		$speculative_test = true;
 
 		// Should we require javascript?
@@ -303,26 +304,25 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 ]]></action>
 			</edit>
 			<edit>
-				<comment lang="en">!!! IMPORTANT !!! BEFORE APPLYING ANY CHANGES to includes/functions.php YOU MUST FIRST FOLLOW THE STEPS IN THE DIY INSTRUCTIONS SECTION AT THE END OF THIS FILE</comment>
 				<find><![CDATA[		$user_lang = substr($user_lang, 0, strpos($user_lang, '-x-'));
 	}]]></find>
 				<action type="after-add"><![CDATA[
 
 	// START Proxy Revealer Olympus
 	$server_url = generate_board_url() . '/';
-	$speculative_key = $user->data['session_speculative_key'];
+	$speculative_key = isset($user->data['session_speculative_key']) ? $user->data['session_speculative_key'] : "0";
 	$probe_misc_url = $server_url."probe.$phpEx?mode=misc&amp;extra={$user->session_id},$speculative_key";
 
 	// If there are tests to defer and speculative_test is set, defer those tests until user logs in (or tries to register)
-	if ($config['ip_block_defer'] && isset($speculative_test) && $speculative_test &&
-		$user->page['page_name'] != "ucp.$phpEx" && $user->data['user_id'] == ANONYMOUS)
+	if (isset($config['proxy_revealer_on']) && $config['proxy_revealer_on'] && $config['ip_block_defer'] &&
+		isset($speculative_test) && $speculative_test && $user->page['page_name'] != "ucp.$phpEx" && $user->data['user_id'] == ANONYMOUS)
 	{
 		$probe_misc_url .= "&amp;defer=" . $config['ip_block_defer'];
 		$xss_test_on = ((int) $config['ip_block_defer'] & XSS) ? false : true;
 	}
 
-	// User logged in, or anonymous user trying to register and there are deferred tests, so run all tests this time.
-	if ($config['ip_block_defer'] && $config['proxy_revealer_on'] && $user->page['page_name'] == "ucp.$phpEx" &&
+	// User logging in, or anonymous user trying to register and there are deferred tests, so run all tests this time.
+	if (isset($config['proxy_revealer_on']) && $config['proxy_revealer_on'] && $config['ip_block_defer'] && $user->page['page_name'] == "ucp.$phpEx" &&
 		(($user->data['user_id'] != ANONYMOUS && $user->page['query_string'] == 'mode=login') || $user->page['query_string'] == 'mode=register' ))
 	{
 		$speculative_test = true;
@@ -360,7 +360,6 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 ]]></action>
 			</edit>
 			<edit>
-				<comment lang="en">!!! IMPORTANT !!! BEFORE APPLYING ANY CHANGES to includes/functions.php YOU MUST FIRST FOLLOW THE STEPS IN THE DIY INSTRUCTIONS SECTION AT THE END OF THIS FILE</comment>
 				<find><![CDATA[	$template->assign_vars(array(
 		'SITENAME'						=> $config['sitename'],]]></find>
 				<action type="replace-with"><![CDATA[	$template->assign_vars(array(
