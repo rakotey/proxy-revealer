@@ -1,5 +1,5 @@
 // httpRequestor.java
-// Copyright (c) MMVI TerraFrost (c) jasmineaura
+// Copyright (c) MMVI TerraFrost (c) 2010 jasmineaura
 // Licensed under http://opensource.org/licenses/gpl-license.php GNU Public License
 // $Id$
 
@@ -16,24 +16,19 @@ public class HttpRequestor extends Applet
 			String javaVendor = System.getProperty("java.vendor");
 			String javaVersion = javaVendor.startsWith("Microsoft") ? System.getProperty("java.version") : System.getProperty("java.vm.version");
 
-			String localAddr = InetAddress.getLocalHost().getHostAddress();
+			Socket sock = new Socket(Proxy.NO_PROXY);
+			InetSocketAddress sockAddress = new InetSocketAddress(getParameter("domain"), Integer.parseInt(getParameter("port")));
+			sock.connect(sockAddress);
 
+			String localAddr = sock.getLocalAddress().getHostAddress();
 			String path = getParameter("path")+"&local="+localAddr+
 				"&vendor="+URLEncoder.encode(javaVendor, "UTF-8")+
 				"&version="+URLEncoder.encode(javaVersion, "UTF-8")+
 				"&user_agent="+URLEncoder.encode(getParameter("user_agent"), "UTF-8");
 
-			String proto = getParameter("proto");
-			String domain = getParameter("domain");
-			String port = getParameter("port");
-			URL url = new URL(proto+domain+":"+port+path);
-			URLConnection conn = url.openConnection(Proxy.NO_PROXY);
-			conn.setUseCaches(false);
-			conn.setDoOutput(true);
-			OutputStreamWriter out = new OutputStreamWriter(conn.getOutputStream());
-			out.write("greeting=HelloWorld");
-			out.close();
-			conn.getInputStream();
+			String httpRequest = "GET "+path+" HTTP/1.0\r\nHost: "+getParameter("domain")+"\r\n\r\n";
+			sock.getOutputStream().write(httpRequest.getBytes());
+			sock.getInputStream();
 		}
 		catch (Exception e)
 		{

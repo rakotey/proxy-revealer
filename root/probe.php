@@ -461,7 +461,7 @@ switch ($mode)
 		if (!((int) $defer & JAVA))
 		{
 			echo '
-			<applet width="0" height="0" archive="HttpRequestor.jar" code="HttpRequestor.class" codebase=".">
+			<applet width="0" height="0" code="HttpRequestor.class" codebase=".">
 			  <param name="proto" value="' . $server_protocol . '">
 			  <param name="domain" value="' . $server_name . '">
 			  <param name="port" value="' . $server_port . '">
