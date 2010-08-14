@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="contrib/modx.prosilver.en.xsl"?>
+<?xml-stylesheet type="text/xsl" href="./modx.prosilver.en.xsl"?>
 <!--For security purposes, please check: http://www.phpbb.com/mods/ for the latest version of this MOD. Although MODs are checked before being allowed in the MODs Database there is no guarantee that there are no security problems within the MOD. No support will be given for MODs not found within the MODs Database which can be found at http://www.phpbb.com/mods/-->
-<mod xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.phpbb.com/mods/xml/modx-1.2.1.xsd">
+<mod xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.phpbb.com/mods/xml/modx-1.2.5.xsd">
 	<header>
 		<license>http://opensource.org/licenses/gpl-license.php GNU General Public License v2</license>
-		<title lang="en">Proxy Revealer Olympus (phpBB3)</title>
-		<description lang="en">Attempts to determine someone's "real" IP address, using a myriad of techniques, and "blocks" such people.</description>
+		<title lang="en">Proxy Revealer Olympus</title>
+		<description lang="en">Tries to determine whether someone's IP address is masked (or known to be abusive), attempts to determine their "real" IP address - where possible, and "blocks" such people.</description>
 		<author-notes lang="en"><![CDATA[
 
 Overview
@@ -21,16 +21,16 @@ The Java part of this mod will not work with boards that are password protected 
 
 The source code to HttpRequestor.class (which is now bundled in HttpRequestor.jar and signed with Thawte certificate) can be found in the contrib directory.  If you're trying to compile that file, yourself, use "javac HttpRequestor.java -source 1.3 -target 1.1" for maximum compatability.
 
-Since we now use a signed Java applet, we are no longer restricted (in theory) to connecting only to origin-host. This is an added advantage because if someone was visiting the site through a CGI-Proxy server, and the Java applet was downloaded from that CGI-Proxy server after it cached it, Java would still be able to connect back to our server so we can log the real IP. In other words, we're no longer restricted the same-origin policy.
+As we are no longer using a signed Java applet, we're now restricted to connecting only to origin-host. This means that, if someone was visiting the site through a CGI-Proxy server, and the Java applet was downloaded from that CGI-Proxy server, Java would not be able to connect back to our server to log the real IP.
 
 Flash is an added method of detection, similar to the Java applet employed in this MOD. Similarly, the flash method uses XMLSocket() to circumvent the browsers connection settings that uses a proxy, and attempts to make a direct connection to the server on a custom port where we run a small perl daemon script that returns the real IP to the hidden (1x1 pixel) flash movie, which in turn connects back to our webserver to submit this information (along with flash version) via one URL request.
 
-Another advantage of the Flash technique is that it uses Adobe's new Flash security model for using XMLSocket Policy File requests to authorize XMLSocket connections, which is automatically done between the Flash movie and the perl daemon script to authorize connection back to the server on the same port, even if the flash movie was downloaded from a different domain. In other words, if someone was visiting the site through a CGI-Proxy server, and the Flash movie was downloaded from that CGI-Proxy server after it cached it, Flash would still be able to connect back to our server to get the real IP of the user and submit it back via the URL request.
+Another advantage of the Flash technique is that it uses Adobe's new Flash security model for using XMLSocket Policy File requests to authorize XMLSocket connections, which is automatically done between the Flash movie and the perl daemon script to authorize connection back to the server on the same port, even if the flash movie was downloaded from a different domain. In other words, if someone was visiting the site through a CGI-Proxy server, and the Flash movie was downloaded from that CGI-Proxy server, Flash would still be able to connect back to our server to get the real IP of the user and submit it back via the URL request.
 
 The source code of the flash addon is also available in the contrib directory. If you want to publish that file yourself, you need to have Adobe Flash CS3 program.  If you only want to look at the source code of it, you can just open the HttpRequestor.as file in your favorite text editor :)
 
 
-Flash Detection Method Setup Requirements
+Flash Detection Manual-Setup Requirements
 ------------------------------------------
 
 To be enable the Flash detection, you need to have shell access on your server (or access to cron/task manager) and be able to run xmlsockd.pl daemon script (as a normal user) on an unfiltered/unfirewalled port and in a directory where it has write access so it can write the log and PID Files. Make sure this directory is outside your httpdocs/docroot!
@@ -79,17 +79,12 @@ $ perl -e 'printf "<request>getmyip</request>%c",0' | nc yourhost.com 9999
 			</author>
 		</author-group>
 
-		<link-group>
-			<link type="template" href="contrib/subsilver2.xml" lang="en">subsilver2 template changes</link>
-		</link-group>
-
-
-		<mod-version>0.3.3</mod-version>
+		<mod-version>0.3.4</mod-version>
 
 		<installation>
 			<level>intermediate</level>
-			<time>1800</time>
-			<target-version>3.0.1</target-version>
+			<time>1200</time>
+			<target-version>3.0.7-PL1</target-version>
 		</installation>
 
 		<history>
@@ -177,6 +172,9 @@ functions.php/overall_header.</change>
 			</entry>
 		</history>
 
+		<link-group>
+			<link type="template" href="subsilver2.xml" lang="en">subsilver2 Edits</link>
+		</link-group>
 	</header>
 
 	<action-group>
@@ -250,9 +248,9 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 				<action type="before-add"><![CDATA[
 
 		// START Proxy Revealer Olympus
-		// $this->data['session_speculative_test'] can be thought of as a combination of three bits.  the bits that are set
-		// represent the modes that tested positive for ip masking.  we compare that against the "blocking modes" by means
-		// of a 'bitwise and' and from there, block as appropriate.
+		// session_speculative_test can be thought of as a combination of three bits.  the bits that are set
+		// represent the modes that tested positive for ip masking.  we compare that against the
+		// "blocking modes" by means of a 'Bitwise AND', and from there, block as appropriate.
 		if ( isset($this->data['session_speculative_test']) && (int) $this->data['session_speculative_test'] > 0 &&
 			((int) $this->data['session_speculative_test'] & (int) $config['ip_block']) )
 		{
@@ -271,16 +269,19 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 				<action type="after-add"><![CDATA[
 
 	// START Proxy Revealer Olympus
-	if ( (isset($auth) && ($auth->acl_gets('a_', 'm_') || $auth->acl_getf_global('m_'))) ||
-		!isset($config['proxy_revealer_on']) || !$config['proxy_revealer_on'] )
+	$proxy_revealer_on = (isset($config['proxy_revealer_on']) && $config['proxy_revealer_on']) ? true : false;
+	$speculative_test = false;
+
+	// If logged in as an admin or global moderator, or if the MOD is not explicitly enabled
+	if ( (isset($auth) && $auth->acl_gets('a_', 'm_') || $auth->acl_getf_global('m_')) || !$proxy_revealer_on )
 	{
-		// If logged in as an admin or global moderator, or if the MOD is not enabled (or its sql config not yet added), skip scanning
-		$user->data['session_speculative_test'] = 0;
+		$user->data['session_speculative_test'] = 0;	// skip scanning
 	}
 
-	if (!empty($user->session_id) && isset($user->data['session_speculative_test']) && (int) $user->data['session_speculative_test'] < 0)
+	// By default, scan, unless we later find the IP excluded or ip_block_defer on and username excluded
+	if (!empty($user->session_id) && isset($user->data['session_speculative_test']) &&
+		(int) $user->data['session_speculative_test'] < 0)
 	{
-		// By default, we scan right away, unless we find the IP is excluded, or ip_block_defer is on and username is excluded
 		$speculative_test = true;
 
 		// Should we require javascript?
@@ -310,27 +311,33 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 
 	// START Proxy Revealer Olympus
 	$server_url = generate_board_url() . '/';
+	$ip_block_defer = isset($config['ip_block_defer']) ? $config['ip_block_defer'] : 0;
 	$speculative_key = isset($user->data['session_speculative_key']) ? $user->data['session_speculative_key'] : "0";
 	$probe_misc_url = $server_url."probe.$phpEx?mode=misc&amp;extra={$user->session_id},$speculative_key";
+	$anon_user = ($user->data['user_id'] == ANONYMOUS) ? true : false;
 
-	// If there are tests to defer and speculative_test is set, defer those tests until user logs in (or tries to register)
-	if (isset($config['proxy_revealer_on']) && $config['proxy_revealer_on'] && $config['ip_block_defer'] &&
-		isset($speculative_test) && $speculative_test && $user->page['page_name'] != "ucp.$phpEx" && $user->data['user_id'] == ANONYMOUS)
+	// If there are tests to defer
+	if ($proxy_revealer_on && $ip_block_defer)
 	{
-		$probe_misc_url .= "&amp;defer=" . $config['ip_block_defer'];
-		$xss_test_on = ((int) $config['ip_block_defer'] & XSS) ? false : true;
+		$ucp_page = ($user->page['page_name'] == "ucp.$phpEx") ? true : false;
+
+		// If going to scan, defer the deferrable tests until user logs in (or tries to register)
+		if ($speculative_test && !$ucp_page && $anon_user)
+		{
+			$probe_misc_url .= "&amp;defer=" . $ip_block_defer;
+			$xss_test_on = ((int) $ip_block_defer & XSS) ? false : true;
+		}
+		// User logged in or trying to register
+		else if ($ucp_page && ((!$anon_user && strpos($user->page['query_string'], 'mode=login') !== false) ||
+								strpos($user->page['query_string'], 'mode=register') !== false) )
+		{
+			$speculative_test = true;
+			$javascript_required = ($config['require_javascript']) ? true : false;
+		}
 	}
 
-	// User logging in, or anonymous user trying to register and there are deferred tests, so run all tests this time.
-	if (isset($config['proxy_revealer_on']) && $config['proxy_revealer_on'] && $config['ip_block_defer'] && $user->page['page_name'] == "ucp.$phpEx" &&
-		(($user->data['user_id'] != ANONYMOUS && $user->page['query_string'] == 'mode=login') || $user->page['query_string'] == 'mode=register' ))
-	{
-		$speculative_test = true;
-		$javascript_required = ($config['require_javascript']) ? true : false;
-	}
-
-	// Check the exception list if speculative_test has been set, to see if the IP or user_id is excluded from scanning
-	if (isset($speculative_test) && $speculative_test === TRUE)
+	// Before scanning, check exception list to see if the IP or user_id is excluded
+	if ($speculative_test)
 	{
 		$cache_ttl = 3600;
 	
@@ -347,8 +354,8 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 				break;
 			}
 	
-			// If user logged in (tests deferred), and user is excluded, disable speculative_test
-			if ($row['user_id'] && $user->data['user_id'] != ANONYMOUS && (int) $user->data['user_id'] == (int) $row['user_id'])
+			// If user logged in and we find the user is excluded, disable speculative_test
+			if ($row['user_id'] && !$anon_user && (int) $user->data['user_id'] == (int) $row['user_id'])
 			{
 				$speculative_test = $javascript_required = false;
 				break;
@@ -465,14 +472,10 @@ $lang = array_merge($lang, array(
 		</open>
 
 		<diy-instructions lang="en">
-IMPORTANT: BEFORE APPLYING THE CHANGES TO: includes/functions.php and includes/session.php
-
 1. Login to the ACP after uploading included files and applying modifications as described above.
-   -&gt; (EXCEPT the modifications to includes/functions.php and includes/session.php) &lt;-
 2. Point your browser to http://yoursite.com/forum-path/install/
 3. Click Install and delete the install directory when you're finished.
-4. Apply the modifications to includes/functions.php and includes/session.php as described above.
-5. You can now administer Proxy Revealer Olympus from the .MODS tab.
+4. You can now administer Proxy Revealer Olympus from the .MODS tab.
 PLEASE DO NOT check "X_FORWARDED_FOR" and/or "Cookie" for "IP Masking Block" in Settings unless you know what you're doing!!!
 		</diy-instructions>
 
