@@ -13,42 +13,32 @@ Overview
 
 Probably the easiest way to hide one's IP address is to use an open HTTP/SOCKS4/SOCKS5 proxy or to use a so-called CGI proxy.  These techniques, however, aren't fool-proof.  Transparent HTTP proxies, for instance, include an X-Forwarded-For header that usually includes the originating IP address.
 
-Code can also be ran on the client-side to reveal more information.  Since Java's Socket and URLRequest objects allow for bypassing the browsers connection settings when connecting to the network, we can use Java to attempt to make a direct connection to the server as well.  Also, some CGI proxies maintain anonymity by rewritting all all URLs to go through them.  Unfortunately, as XSS vulnerabilities often demonstrate, filtering HTML isn't as easy a task as one might initially think.
+Code can also be ran on the client-side to reveal more information.  Since Java's Socket and URLRequest objects allow for bypassing the browsers connection settings when connecting to the network, we can use Java to attempt to make a direct connection to the server as well.  Also, some CGI proxies maintain anonymity by rewritting all URLs to go through them.  Unfortunately, as XSS vulnerabilities often demonstrate, filtering HTML isn't as easy a task as one might initially think. In theory, all one need do to thwart the XSS-like approach is to simply update their CGI proxy to account for it.  Of course, just because the developer of that CGI proxy updates doesn't mean that every website using that CGI proxy will update to the latest version.
 
-In theory, all one need do to thwart the XSS-like approach is to simply update their CGI proxy to account for it.  Of course, just because the developer of that CGI proxy updates doesn't mean that every website using that CGI proxy will update to the latest version.
-
-The Java part of this mod will not work with boards that are password protected by a .htaccess file or whatever.
-
-The source code to HttpRequestor.class (which is now bundled in HttpRequestor.jar and signed with Thawte certificate) can be found in the contrib directory.  If you're trying to compile that file, yourself, use "javac HttpRequestor.java -source 1.3 -target 1.1" for maximum compatability.
+The Java part of this mod will not work with boards that are password protected by a .htaccess file. The source code (HttpRequestor.java) can be found in the contrib directory. If you're want to compile that file yourself:
+For maximum compatability use: "javac HttpRequestor.java -source 1.3 -target 1.1"
+And to bundle it into a JAR archive: "jar cvf HttpRequestor.jar HttpRequestor.class"
 
 As we are no longer using a signed Java applet, we're now restricted to connecting only to origin-host. This means that, if someone was visiting the site through a CGI-Proxy server, and the Java applet was downloaded from that CGI-Proxy server, Java would not be able to connect back to our server to log the real IP.
 
-Flash is an added method of detection, similar to the Java applet employed in this MOD. Similarly, the flash method uses XMLSocket() to circumvent the browsers connection settings that uses a proxy, and attempts to make a direct connection to the server on a custom port where we run a small perl daemon script that returns the real IP to the hidden (1x1 pixel) flash movie, which in turn connects back to our webserver to submit this information (along with flash version) via one URL request.
+Flash is an added method of detection, similar to the Java applet employed in this MOD. The Flash method uses XMLSocket() to circumvent the browsers proxy settings, attempts to make a direct connection to the server on a custom port where we run a small perl daemon script that returns the real IP to the (hidden) flash plugin, which in turn submits this information back to our webserver. And even though we're forced by Adobe's new Flash security model to run a daemon (for Policy File requests) on the server to authorize XMLSocket connections, this has the added advantage of a guaranteed direct-connect-back even if the Flash plugin was downloaded from a different host. In other words, if someone visited the site through a CGI-Proxy server, and the Flash movie was downloaded from that CGI-Proxy server, Flash would still be able to connect back (directly) to our server to log the real IP - submitted via a URL request, provided the xmlsockd.pl daemon script is running on the server to authorize the XMLSocket connection.
 
-Another advantage of the Flash technique is that it uses Adobe's new Flash security model for using XMLSocket Policy File requests to authorize XMLSocket connections, which is automatically done between the Flash movie and the perl daemon script to authorize connection back to the server on the same port, even if the flash movie was downloaded from a different domain. In other words, if someone was visiting the site through a CGI-Proxy server, and the Flash movie was downloaded from that CGI-Proxy server, Flash would still be able to connect back to our server to get the real IP of the user and submit it back via the URL request.
-
-The source code of the flash addon is also available in the contrib directory. If you want to publish that file yourself, you need to have Adobe Flash CS3 program.  If you only want to look at the source code of it, you can just open the HttpRequestor.as file in your favorite text editor :)
+The source code of the flash addon is also available in the contrib directory. If you want to publish that file yourself, you need to have Adobe Flash CS3 (or later).  If you only want to look at the source code of it, you can just open the HttpRequestor.as file in your favorite text editor :)
 
 
-Flash Detection Manual-Setup Requirements
-------------------------------------------
+Flash Detection Additional Setup Requirement
+--------------------------------------------
 
-To be enable the Flash detection, you need to have shell access on your server (or access to cron/task manager) and be able to run xmlsockd.pl daemon script (as a normal user) on an unfiltered/unfirewalled port and in a directory where it has write access so it can write the log and PID Files. Make sure this directory is outside your httpdocs/docroot!
+To be able to take advantage of the Flash detection technique, you need to have shell access on your server (or access to cron/task manager) to run xmlsockd.pl daemon script (as a normal user) on an unfiltered port and in a directory where it has write access so it can write the PID (and optionally log) file. It is recommended that this directory be outside the document root of your site. The scripts are available in the contrib/daemon/ directory.
 
-Choose only one of the following three scripts to run:
+Choose only one of the following two perl scripts to run:
 
-The scripts are available in the contrib/daemon/ directory 
-
-* xmlsockd.pl: What most admins want to run.
+1. xmlsockd.pl: What most admins want to run.
   - Single Threaded script which could handle a few simultaneous connections at the same time. (meaning few milliseconds). Multiplexing using IO::Select to handle multiple clients, in case there are some lazy/slow clients who take their sweet time to send their request, we dont want to delay the rest - so the ip checking could be done quickly).
   - Supports logging, optional configuration of port, logging connections
-  - Supports running as standalone daemon script from shell, and/or @reboot or periodically from cron
- 
-* xmlsockd-threaded.pl: What admins of very large boards might need (boards that get a lot of simultaneous/bursts of logins at the same time at any time of the day. We're talking multiple logins at the same exact second).
-  - Mutli-threaded script, runs a pool of pre-forked threads to handle much more connections simultaneously. Each thread handles accepting of connections on their own, also using IO::Select to multiplex between connections.
-  - Supports same as above, with the optional configuration of number of threads/listener pool.
- 
-* xmlsockd-basic.pl: A barebone version of the script. For admins who run on systems with very limited perl installations that don't have the modules needed to run xmlsockd.pl such as IO::Socket, IO::Select, Log::Dispatch, Proc::PID::File, etc...
+  - Supports being invoked from shell, or via @reboot or periodically from cron
+  
+2. xmlsockd-basic.pl: A barebone version of the script above. For admins who run on systems with very limited perl installations that don't have the modules needed to run xmlsockd.pl such as IO::Socket, IO::Select, Log::Dispatch, Proc::PID::File, etc...
 
 If your server is running Linux/BSD OS, then it most likely runs vixiecron, which allows you to use the @reboot syntax in crontab, so that your script can be automatically restarted after reboot.
 
@@ -182,6 +172,7 @@ functions.php/overall_header.</change>
 			<file from="root/HttpRequestor.jar" to="HttpRequestor.jar"/>
 			<file from="root/HttpRequestor.swf" to="HttpRequestor.swf"/>
 			<file from="root/expressInstall.swf" to="expressInstall.swf"/>
+			<file from="root/install_pro.php" to="install_pro.php"/>
 			<file from="root/probe.php" to="probe.php"/>
 			<file from="root/sample.rm" to="sample.rm"/>
 			<file from="root/swfobject.js" to="swfobject.js"/>
@@ -192,25 +183,12 @@ functions.php/overall_header.</change>
 			<file from="root/adm/style/acp_proxy_revealer_settings.html" to="adm/style/acp_proxy_revealer_settings.html"/>
 			<file from="root/includes/acp/acp_proxy_revealer.php" to="includes/acp/acp_proxy_revealer.php"/>
 			<file from="root/includes/info/acp_proxy_revealer.php" to="includes/info/acp_proxy_revealer.php"/>
-			<file from="root/install/functions_install.php" to="install/functions_install.php"/>
-			<file from="root/install/index.php" to="install/index.php"/>
-			<file from="root/install/schemas/firebird_schema.sql" to="install/schemas/firebird_schema.sql"/>
-			<file from="root/install/schemas/mssql_schema.sql" to="install/schemas/mssql_schema.sql"/>
-			<file from="root/install/schemas/mysql_40_schema.sql" to="install/schemas/mysql_40_schema.sql"/>
-			<file from="root/install/schemas/mysql_41_schema.sql" to="install/schemas/mysql_41_schema.sql"/>
-			<file from="root/install/schemas/oracle_schema.sql" to="install/schemas/oracle_schema.sql"/>
-			<file from="root/install/schemas/postgres_schema.sql" to="install/schemas/postgres_schema.sql"/>
-			<file from="root/install/schemas/sqlite_schema.sql" to="install/schemas/sqlite_schema.sql"/>
-			<file from="root/install/style/install_error.html" to="install/style/install_error.html"/>
-			<file from="root/install/style/install_footer.html" to="install/style/install_footer.html"/>
-			<file from="root/install/style/install_header.html" to="install/style/install_header.html"/>
-			<file from="root/install/style/install_main.html" to="install/style/install_main.html"/>
 			<file from="root/language/en/mods/info_acp_proxy_revealer.php" to="language/en/mods/info_acp_proxy_revealer.php"/>
-			<file from="root/language/en/mods/proxy_revealer_install.php" to="language/en/mods/proxy_revealer_install.php"/>
 			<file from="root/language/en/mods/proxy_revealer.php" to="language/en/mods/proxy_revealer.php"/>
 			<file from="root/styles/prosilver/template/pageloader.js" to="styles/prosilver/template/pageloader.js"/>
 			<file from="root/styles/prosilver/theme/pageloader.css" to="styles/prosilver/theme/pageloader.css"/>
 			<file from="root/styles/prosilver/theme/images/loading.gif" to="styles/prosilver/theme/images/loading.gif"/>
+			<file from="root/umil/*.*" to="umil/*.*" />
 		</copy>
 
 		<open src="includes/constants.php">
@@ -403,7 +381,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 
 // Proxy Revealer Olympus
 $lang = array_merge($lang, array(
-	'IP_MASK_BLOCKED'		=> 'Your IP address has been blocked for this session as it appears to be masked.',
+	'IP_MASK_BLOCKED'		=> 'Your IP address has been blocked for this session as it appears to be masked (or abusive).',
 	'PAGE_LOADING_WAIT'		=> 'Page Loading...<br />Please wait.',
 	'REQUIRE_JAVASCRIPT'	=> 'Sorry, this site will not function correctly without javascript! The scripts are safe and will not harm your computer in anyway...<br /><strong>Please enable javascript in your browser then refresh/reload the page.</strong>',
 ));
@@ -471,12 +449,13 @@ $lang = array_merge($lang, array(
 			</edit>
 		</open>
 
+		<php-installer>install_pro.php</php-installer>
+
 		<diy-instructions lang="en">
-1. Login to the ACP after uploading included files and applying modifications as described above.
-2. Point your browser to http://yoursite.com/forum-path/install/
-3. Click Install and delete the install directory when you're finished.
-4. You can now administer Proxy Revealer Olympus from the .MODS tab.
-PLEASE DO NOT check "X_FORWARDED_FOR" and/or "Cookie" for "IP Masking Block" in Settings unless you know what you're doing!!!
+Don't forget to delete the installer file after you're done!
+The installer purges the cache for you automatically after successful install. Otherwise, you may need to purge the cache yourself.
+You can now administer "Proxy Revealer Olympus" MOD from the .MODS tab.
+PLEASE DO NOT check "X_FORWARDED_FOR" and/or "Cookie" for "IP Masking Block" in Settings unless you really know what you're doing!!!
 		</diy-instructions>
 
 	</action-group>

@@ -47,6 +47,15 @@ $lang = array_merge($lang, array(
 	'LOG_PROXY_REVEALER_EXCLUDES_DEL'	=> '<strong>Removed IP(s) from Proxy Revealer exceptions list</strong><br />» %s',
 	'LOG_PROXY_REVEALER_UEXCLUDES_ADD'	=> '<strong>Excluded Username(s) from Proxy Revealer scanning</strong><br />» %1$s',
 	'LOG_PROXY_REVEALER_UEXCLUDES_DEL'	=> '<strong>Removed Username(s) from Proxy Revealer exceptions list</strong><br />» %s',
+
+	// For UMIL
+	'PROXY_REVEALER_MOD'					=> '“Proxy Revealer Olympus” MOD',
+	'INSTALL_PROXY_REVEALER_MOD'			=> 'Install “Proxy Revealer Olympus” MOD',
+	'INSTALL_PROXY_REVEALER_MOD_CONFIRM'	=> 'Are you sure you want to install the “Proxy Revealer Olympus” MOD?',
+	'UPDATE_PROXY_REVEALER_MOD'				=> 'Update “Proxy Revealer Olympus” MOD',
+	'UPDATE_PROXY_REVEALER_MOD_CONFIRM'		=> 'Are you sure you want to update the “Proxy Revealer Olympus” MOD?',
+	'UNINSTALL_PROXY_REVEALER_MOD'			=> 'Uninstall “Proxy Revealer Olympus” MOD',
+	'UNINSTALL_PROXY_REVEALER_MOD_CONFIRM'	=> 'Are you sure you want to uninstall the “Proxy Revealer Olympus” MOD?',
 ));
 
 ?>
