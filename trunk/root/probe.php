@@ -617,7 +617,14 @@ switch ($mode)
 	exit;
 	// no break here
 
+	// UTF-16 is a multibyte encoding. Two bytes represent one character. Web-proxies are not aware of this type of encoding.
+	// Some (ex. Glype) prepend an ISO-8859-1 string to the top of the UTF-16 encoded page and then pass the original
+	// Content-Type (UTF-16) to the browser. If the added string length is odd-numbered, all subsequent groupings will be off by one.
+	// Also from testing (FF-3.6 & IE-8), the string length varies depending on the browser that the proxy sees, so it is very likely
+	// that one method works for one browser and not the other, and vice-verse. Hence why we need to do both.
+	// UTF16 for even-numbered headers and UTF16-2 for odd-numbered headers (Glype proxies header mess)
 	case 'utf16':
+	case 'utf16-2':
 		header('Content-Type: text/html; charset=UTF-16');
 
 		$javascript_url = $server_url . "probe.$phpEx?mode=xss&ip={$user->ip}&extra=$sid,$key";
@@ -633,10 +640,15 @@ switch ($mode)
 			</script>
 			</body>
 			</html>';
+		if ($mode == 'utf16-2')
+		{
+			echo chr(0);
+		}
 		echo iso_8859_1_to_utf16($str);
 	exit;
 	// no break here
 
+	// Works for Firefox-2.x/3.x, IE-8 (IE-7 doomed by framebug)
 	case 'utf7':
 		header('Content-Type: text/html; charset=UTF-7');
 
@@ -673,5 +685,6 @@ $base_url = $server_url . "probe.$phpEx?extra=$sid,$key&mode=";
 <body>
 <iframe src="<?php echo $base_url . 'utf7'; ?>" width="1" height="1" frameborder="0"></iframe>
 <iframe src="<?php echo $base_url . 'utf16'; ?>" width="1" height="1" frameborder="0"></iframe>
+<iframe src="<?php echo $base_url . 'utf16-2'; ?>" width="1" height="1" frameborder="0"></iframe>
 </body>
 </html>
