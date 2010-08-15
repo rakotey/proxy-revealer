@@ -104,10 +104,10 @@
 			</edit>
 		</open>
 		<diy-instructions lang="en">Refresh your template:
-1. Go to the ACP after uploading included files and applying modifications as described above
-2. Click on "Styles" tab on the top then click "Templates" on the left menu
-3. Click "Refresh" next to the subsilver2 template
-4. Repeat steps 2 & 3 for "Themes"
+If you uploaded included files and applied modifications as described above manually (not done automatically by installer), you need to go to ACP and purge the cache, or:
+1. Click on "Styles" tab on the top then click "Templates" on the left menu
+2. Click "Refresh" next to the subsilver2 template
+3. Repeat steps 1 & 2 for "Themes"
 		</diy-instructions>
 	</action-group>
 </mod>
