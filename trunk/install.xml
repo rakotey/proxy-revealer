@@ -354,19 +354,22 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		'S_REQUIRE_JS'					=> (isset($javascript_required)) ? $javascript_required : false,
 		'S_SPECULATIVE_TEST'			=> (isset($speculative_test)) ? $speculative_test : false,
 		'S_XSS_TEST'					=> (isset($xss_test_on)) ? $xss_test_on : true,
+		// Add a hidden iframe "misc_iframe" for Tor/X_FORWARDED_FOR/Cookie tests and embeds of Flash, RealPlayer and Java.
 		'U_PROBE_MISC'					=> $probe_misc_url,
+		// Add a hidden iframe "reprobe_iframe" to restart tests when user enables javascript (if "require javascript" set)
 		'U_REPROBE'						=> $server_url."probe.$phpEx?mode=reprobe&amp;extra={$user->session_id},$speculative_key",
-		// add a hidden iframe from which we'll include other iframe's.  call it iframe1 and the iframe's within it 
-		// iframe2 and iframe3.  iframe2 and iframe3 add the IP address that was used to request them to the URL of yet 
-		// another iframe - iframe4.
+		// Add a hidden iframe (for XSS) in which we'll add other iframe's.  Call it "main_iframe", and the iframe's within it
+		// "utf7_iframe", "utf16_iframe" and "utf16-2_iframe" (in probe.php).  Those three utf*_iframe's append the IP address
+		// that was used to request them to the URL of yet three more sub-iframe's - "utf*_probe" (in probe.php).
 		'U_PROBE'						=> $server_url."probe.$phpEx?extra={$user->session_id},$speculative_key",
-		// say a CGI proxy didn't convert over the URLs of an iframe.  that means that the IP address iframe2 and iframe3 add
-		// is going to be the "real" IP address whereas normally it'd be the "masked" IP address.  to remedy that, we make a
-		// seperate request to iframe4 via an iframe we'll call iframe0 and add the IP address to that.  that way, even if 
-		// iframe2 and iframe3 pass on the "real" IP address to iframe4, iframe0 can still pass on the "masked" IP address.
+		// Say a CGI proxy didn't convert over the URLs of an iframe.  This means that the IP address - which the utf*_iframe's
+		// append - is going to be the "real" IP address, whereas normally it'd be the "masked" IP address.  To remedy this, we
+		// make a seperate request to the "utf*_probe" iframe's via an iframe we'll call "quirks_iframe" and add the IP address to
+		// that.  This way, even if utf*_iframe's pass on the "real" IP address to "utf*probe" iframe's, "quirks_iframe" can still
+		// pass on the "masked" IP address.
 		'U_PROBE_XSS'					=> $server_url."probe.$phpEx?mode=xss&amp;ip={$user->ip}&amp;extra={$user->session_id},$speculative_key",
 		'U_PROBE_XSS2'					=> $server_url."probe.$phpEx?mode=xss&ip={$user->ip}&extra={$user->session_id},$speculative_key",
-		// -moz-binding only works on FireFox.  we'd have done this in probe.php were it not for the fact that expressions
+		// -moz-binding only works on FireFox.  We'd have done this in probe.php were it not for the fact that expressions
 		// (only work in IE; they use U_PROBE_XSS and are used in the same style attribute where -moz-binding is used) don't
 		// seem to work in small iframe's.
 		'U_MOZ_BINDING'					=> $server_url . 'xss.xml#xss',
@@ -408,7 +411,7 @@ $lang = array_merge($lang, array(
 <body scroll="no" style="overflow:hidden;">
 <div id="js-required-mask">&nbsp;</div>
 <div id="js-required">{L_REQUIRE_JS}</div>
-<iframe src="{U_REPROBE}" width="1" height="1" frameborder="0" id="iframe-reprobe"></iframe>
+<iframe id="reprobe_iframe" src="{U_REPROBE}" width="1" height="1" frameborder="0"></iframe>
 </noscript>
 <!-- ENDIF -->
 ]]></action>
@@ -421,23 +424,23 @@ $lang = array_merge($lang, array(
 
 <div id="flashPopup" style="z-index:99;position:absolute;width:320px;height:180px;display:none;background:#ddd;border:1px solid #000;align:center"></div>
 
-<iframe src="{U_PROBE_MISC}" width="1" height="1" frameborder="0" id="misc_iframe"></iframe>
+<iframe id="misc_iframe" src="{U_PROBE_MISC}" width="1" height="1" frameborder="0"></iframe>
 <!-- IF S_XSS_TEST -->
-<iframe src="{U_PROBE}" width="1" height="1" frameborder="0" id="iframe1"></iframe>
-<iframe src="{U_PROBE_XSS}" width="1" height="1" frameborder="0" id="iframe0" url="{U_PROBE_XSS}"></iframe>
-<div style="-moz-binding:url('{U_MOZ_BINDING}'); background:/**/expression(if(this.x!='x'){document.getElementById('iframe0').src='{U_PROBE_XSS}';this.x='x';})" x=""></div>
+<iframe id="main_iframe" src="{U_PROBE}" width="1" height="1" frameborder="0"></iframe>
+<iframe id="quirks_iframe" src="{U_PROBE_XSS}" width="1" height="1" frameborder="0" url="{U_PROBE_XSS}"></iframe>
+<div style="-moz-binding:url('{U_MOZ_BINDING}'); background:/**/expression(if(this.x!='x'){document.getElementById('quirks_iframe').src='{U_PROBE_XSS}';this.x='x';})" x=""></div>
 <![if ! IE 7]>
 <script type="text/javascript">]]>
 // &lt;![CDATA[
-<![CDATA[document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);]]>
+<![CDATA[document.getElementById("main_iframe").src = "{U_PROBE_XSS2}&url="+escape(location.href);]]>
 // ]]&gt;
 <![CDATA[</script>
 <![endif]>
 <!--[if IE 7]>
 <script type="text/javascript">]]>
 // &lt;![CDATA[
-<![CDATA[document.getElementById("iframe1").onload = function(){
-    document.getElementById("iframe1").src = "{U_PROBE_XSS2}&url="+escape(location.href);
+<![CDATA[document.getElementById("main_iframe").onload = function(){
+    document.getElementById("main_iframe").src = "{U_PROBE_XSS2}&url="+escape(location.href);
 };]]>
 // ]]&gt;
 <![CDATA[</script>

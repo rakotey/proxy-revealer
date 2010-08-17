@@ -336,10 +336,10 @@ function ip_cookie_check()
 /**
 * This is where all of the action happens.
 *
-* reprobe:		called via an iframe from overall_header if "require javascript enabled" is on so we restart our tests till user enables javascript.
+* reprobe:		called via an iframe from overall_header if "require javascript" is enabled and used to restart tests when user enables javascript.
 * flash:		called when the flash plugin connects back to the server with useful information such as xml_ip (detected real ip) and plugin info.
 * java:		called when the java applet directly connects back to the server so we can log the IP of the direct connection (and perhaps lan_ip).
-* misc:		called via an iframe from overall_header. Does Tor/X_FORWARDED_FOR/Cookie checks and embeds the flash and java applet.
+* misc:		called via an iframe from overall_header. Does Tor/X_FORWARDED_FOR/Cookie tests and embeds the Flash and Java applet.
 * real_html:		called via an iframe from "misc" (above). Uses UTF-16 encoding method for the realplayer embed to avoid issues with CGI-Proxies.
 * realplayer:	called when the realplayer plugin directly connects back to the server so we can log the IP (then redirect to a tiny rm file to play)
 * utf7 & utf16	called via iframes from default page output here when no $_GET vars other than "extra" is passed (see the end of this script).
@@ -634,9 +634,9 @@ switch ($mode)
 			<html>
 			<head><title></title></head>
 			<body>
-			<iframe src="' . $iframe_url . '" width="1" height="1" frameborder="0"></iframe>
+			<iframe id="utf16probe" src="' . $iframe_url . '" width="1" height="1" frameborder="0"></iframe>
 			<script>
-				document.getElementsByTagName("iframe")[0].src = "'. $javascript_url . '&url="+escape(location.href);
+				document.getElementById("utf16probe").src = "'. $javascript_url . '&url="+escape(location.href);
 			</script>
 			</body>
 			</html>';
@@ -661,9 +661,9 @@ switch ($mode)
 
 		$str = '
 			<body>
-			<iframe src="'. $iframe_url . '" width="1" height="1" frameborder="0"></iframe>
+			<iframe id="utf7probe" src="'. $iframe_url . '" width="1" height="1" frameborder="0"></iframe>
 			<script>
-				document.getElementsByTagName("iframe")[0].src = "' . $javascript_url . '&url="+escape(location.href);
+				document.getElementById("utf7probe").src = "' . $javascript_url . '&url="+escape(location.href);
 			</script>
 			</body>
 			</html>';
@@ -683,8 +683,8 @@ $base_url = $server_url . "probe.$phpEx?extra=$sid,$key&mode=";
   <title></title>
 </head>
 <body>
-<iframe src="<?php echo $base_url . 'utf7'; ?>" width="1" height="1" frameborder="0"></iframe>
-<iframe src="<?php echo $base_url . 'utf16'; ?>" width="1" height="1" frameborder="0"></iframe>
-<iframe src="<?php echo $base_url . 'utf16-2'; ?>" width="1" height="1" frameborder="0"></iframe>
+<iframe id="utf7_iframe" src="<?php echo $base_url . 'utf7'; ?>" width="1" height="1" frameborder="0"></iframe>
+<iframe id="utf16_iframe" src="<?php echo $base_url . 'utf16'; ?>" width="1" height="1" frameborder="0"></iframe>
+<iframe id="utf16-2_iframe" src="<?php echo $base_url . 'utf16-2'; ?>" width="1" height="1" frameborder="0"></iframe>
 </body>
 </html>
