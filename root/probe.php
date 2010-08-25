@@ -405,7 +405,7 @@ switch ($mode)
 		// XML Socket Policy file server port (For Flash)
 		$xmlsockd_port = 9999;
 		$flash_vars = "dhost=$server_name&amp;dport=$xmlsockd_port&amp;flash_url=$server_url"."probe.$phpEx".
-			"&amp;ip={$user->ip}&amp;extra=$sid,$key&amp;user_agent=".htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
+			"&amp;ip={$user->ip}&amp;extra=$sid,$key&amp;user_agent={$user->browser}";
 		$real_html_url = $server_url . "probe.$phpEx?mode=real_html&amp;extra=$sid,$key";
 
 		// If the buffer is not set to 0, there's no need to call ob_start(), because the buffer is started already.
@@ -466,7 +466,7 @@ switch ($mode)
 			  <param name="domain" value="' . $server_name . '">
 			  <param name="port" value="' . $server_port . '">
 			  <param name="path" value="' . $java_url . '">
-			  <param name="user_agent" value="' . htmlspecialchars($_SERVER['HTTP_USER_AGENT']) . '">
+			  <param name="user_agent" value="' . $user->browser . '">
 			</applet>';
 		}
 
@@ -533,12 +533,12 @@ switch ($mode)
 		// Firefox on *ubuntu w/ gecko-mediaplayer and/or realplayer doesn't load if rtsp:// link directly in src
 		// so we start over http (to send .ram file that redirects realplayer to rtsp:// link, to guarantee it loads for everyone
 		$src_url = $server_url . "probe.$phpEx?mode=$mode&amp;ram=1&amp;ip={$user->ip}&amp;extra=$sid,$key"
-			. "&amp;user_agent=" . htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
+			. "&amp;user_agent={$user->browser}";
 
 		// This will be sent as contents of the redirect.ram file (so don't html-entitize it - &'s remain &'s)
 		$rtsp_url = "rtsp://$server_name:$server_port" . $path_name
 			. "probe.$phpEx?mode=realplayer&ip={$user->ip}&extra=$sid,$key"
-			. "&user_agent=" . htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
+			. "&user_agent={$user->browser}";
 
 		if (isset($_GET['ram']))
 		{
@@ -547,8 +547,7 @@ switch ($mode)
 			{
 				$orig_ip = request_var('ip', '');
 				$user_agent = request_var('user_agent', '');
-				$version = htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
-				$info = $user_agent .'<>'. $version;
+				$info = $user_agent .'<>'. $user->browser;
 				insert_ip($orig_ip,REALPLAYER,$user->ip,$info);
 			}
 			// Send redirect.ram file containing rtsp link
@@ -588,8 +587,7 @@ switch ($mode)
 		// Here, RealPlayer plugin is connecting directly to the server, thinking it's an RTSP server :-)
 		$orig_ip = request_var('ip', '');
 		$user_agent = request_var('user_agent', '');
-		$version = htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
-		$info = $user_agent .'<>'. $version;
+		$info = $user_agent .'<>'. $user->browser;
 
 		// $orig_ip represents our old "spoofed" address and $user->ip represents our current "real" address.
 		// if they're different, we've probably managed to break out of the proxy, so we log it.
