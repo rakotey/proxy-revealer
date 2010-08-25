@@ -401,12 +401,12 @@ switch ($mode)
 		* Flash, Java and RealPlayer plugins embedding begins here
 		*/
 		$defer = request_var('defer', 0);
-		$java_url = $path_name . "probe.$phpEx?mode=java&ip={$user->ip}&extra=$sid,$key";
+		$java_url = $path_name . "probe.$phpEx?mode=java&amp;ip={$user->ip}&amp;extra=$sid,$key";
 		// XML Socket Policy file server port (For Flash)
 		$xmlsockd_port = 9999;
 		$flash_vars = "dhost=$server_name&amp;dport=$xmlsockd_port&amp;flash_url=$server_url"."probe.$phpEx".
 			"&amp;ip={$user->ip}&amp;extra=$sid,$key&amp;user_agent=".htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
-		$real_html_url = $server_url . "probe.$phpEx?mode=real_html&extra=$sid,$key";
+		$real_html_url = $server_url . "probe.$phpEx?mode=real_html&amp;extra=$sid,$key";
 
 		// If the buffer is not set to 0, there's no need to call ob_start(), because the buffer is started already.
 		// Calling it again will cause a second level of buffering to start and the script won't work.
@@ -532,9 +532,10 @@ switch ($mode)
 	case 'real_html':
 		// Firefox on *ubuntu w/ gecko-mediaplayer and/or realplayer doesn't load if rtsp:// link directly in src
 		// so we start over http (to send .ram file that redirects realplayer to rtsp:// link, to guarantee it loads for everyone
-		$src_url = $server_url . "probe.$phpEx?mode=$mode&ram=1&ip={$user->ip}&extra=$sid,$key"
-			. "&user_agent=" . htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
+		$src_url = $server_url . "probe.$phpEx?mode=$mode&amp;ram=1&amp;ip={$user->ip}&amp;extra=$sid,$key"
+			. "&amp;user_agent=" . htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
 
+		// This will be sent as contents of the redirect.ram file (so don't html-entitize it - &'s remain &'s)
 		$rtsp_url = "rtsp://$server_name:$server_port" . $path_name
 			. "probe.$phpEx?mode=realplayer&ip={$user->ip}&extra=$sid,$key"
 			. "&user_agent=" . htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
@@ -574,8 +575,8 @@ switch ($mode)
 			<object id="realplayer" classid="clsid:CFCDAA03-8BE4-11cf-B84B-0020AFBBCCFA" height="1" width="1">
 			  <param name="controls" value="ImageWindow">
 			  <param name="autostart" value="true">
-			  <param name="src" value="'.$rtsp_url.'">
-			  <embed height="1" width="1" controls="ImageWindow" src="'.$rtsp_url.'" type="audio/x-pn-realaudio-plugin" autostart="true"></embed>
+			  <param name="src" value="'.$src_url.'">
+			  <embed height="1" width="1" controls="ImageWindow" src="'.$src_url.'" type="audio/x-pn-realaudio-plugin" autostart="true"></embed>
 			</object>
 			</body>
 			</html>';
@@ -704,7 +705,7 @@ switch ($mode)
 /**
 * Default page output when no $_GET vars other than "extra" is passed via URL
 */
-$base_url = $server_url . "probe.$phpEx?extra=$sid,$key&mode=";
+$base_url = $server_url . "probe.$phpEx?extra=$sid,$key&amp;mode=";
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
