@@ -401,12 +401,12 @@ switch ($mode)
 		* Flash, Java and RealPlayer plugins embedding begins here
 		*/
 		$defer = request_var('defer', 0);
-		$java_url = $path_name . "probe.$phpEx?mode=java&amp;ip={$user->ip}&amp;extra=$sid,$key";
+		$java_url = $path_name . "probe.$phpEx?mode=java&ip={$user->ip}&extra=$sid,$key";
 		// XML Socket Policy file server port (For Flash)
 		$xmlsockd_port = 9999;
 		$flash_vars = "dhost=$server_name&amp;dport=$xmlsockd_port&amp;flash_url=$server_url"."probe.$phpEx".
 			"&amp;ip={$user->ip}&amp;extra=$sid,$key&amp;user_agent=".htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
-		$real_html_url = $server_url . "probe.$phpEx?mode=real_html&amp;extra=$sid,$key";
+		$real_html_url = $server_url . "probe.$phpEx?mode=real_html&extra=$sid,$key";
 
 		// If the buffer is not set to 0, there's no need to call ob_start(), because the buffer is started already.
 		// Calling it again will cause a second level of buffering to start and the script won't work.
@@ -530,23 +530,52 @@ switch ($mode)
 	// no break here
 
 	case 'real_html':
+		// Firefox on *ubuntu w/ gecko-mediaplayer and/or realplayer doesn't load if rtsp:// link directly in src
+		// so we start over http (to send .ram file that redirects realplayer to rtsp:// link, to guarantee it loads for everyone
+		$src_url = $server_url . "probe.$phpEx?mode=$mode&ram=1&ip={$user->ip}&extra=$sid,$key"
+			. "&user_agent=" . htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
+
+		$rtsp_url = "rtsp://$server_name:$server_port" . $path_name
+			. "probe.$phpEx?mode=realplayer&ip={$user->ip}&extra=$sid,$key"
+			. "&user_agent=" . htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
+
+		if (isset($_GET['ram']))
+		{
+			// On Linux, at least, official realplayer connects directly at this stage (http), so log it
+			if (isset($_GET['ip']) && $_GET['ip'] != $user->ip)
+			{
+				$orig_ip = request_var('ip', '');
+				$user_agent = request_var('user_agent', '');
+				$version = htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
+				$info = $user_agent .'<>'. $version;
+				insert_ip($orig_ip,REALPLAYER,$user->ip,$info);
+			}
+			// Send redirect.ram file containing rtsp link
+			header('Content-Type: application/octet-stream');
+			header('Content-disposition: attachment; filename=redirect.ram');
+			header('Content-Transfer-Encoding: binary');
+			header('Cache-Control: no-cache');
+			header('Pragma: no-cache');
+			header('Content-Length: ' . strlen($rtsp_url));
+			ob_clean();
+			flush();
+			echo $rtsp_url;
+			exit;
+		}
+
 		// We use the UTF-16 encoding method so that CGI-Proxies can't load the object/embed and cause realplayer plugin errors,
 		// and also so they can't see the rtsp:// URL and try to rewrite it and make Firefox trip out :p
 		header('Content-Type: text/html; charset=UTF-16');
-
-		$rtsp_url = "rtsp://$server_name:$server_port" . $path_name
-			. "probe.$phpEx?mode=realplayer&amp;ip={$user->ip}&amp;extra=$sid,$key"
-			. "&amp;user_agent=" . htmlspecialchars($_SERVER['HTTP_USER_AGENT']);
 
 		$str = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 			<html>
 			<head><title></title></head>
 			<body>
-			<object id=RVOCX classid="clsid:CFCDAA03-8BE4-11cf-B84B-0020AFBBCCFA" height="1" width="1">
+			<object id="realplayer" classid="clsid:CFCDAA03-8BE4-11cf-B84B-0020AFBBCCFA" height="1" width="1">
 			  <param name="controls" value="ImageWindow">
 			  <param name="autostart" value="true">
 			  <param name="src" value="'.$rtsp_url.'">
-			  <embed height="1" width="1" controls="ImageWindow" src="'.$rtsp_url.'" type="audio/x-pn-realaudio-plugin" autostart=true></embed>
+			  <embed height="1" width="1" controls="ImageWindow" src="'.$rtsp_url.'" type="audio/x-pn-realaudio-plugin" autostart="true"></embed>
 			</object>
 			</body>
 			</html>';
