@@ -727,11 +727,11 @@ xssObj.src = "<?php echo $javascript_url; ?>&url="+escape(location.href);
 
 <?php // Quirks - some quirky-sneaky stuff >:) ?>
 <!--[if IE]>
-<xss style="xss:expr/**/ession(if(this.x!='x'){document.getElementById('xss_probe').sr/**/c='<?php echo $iframe_url; ?>';this.x='x';})" x="" />
+<xss style="xss:expr/**/ession(if(this.x!='x'){document.getElementById('xss_probe').sr/**/c='<?php echo $iframe_url; ?>';this.x='x';})" x=""></xss>
 <![endif]-->
 <![if ! IE]>
-<mozbind style="-moz-binding:url('<?php echo $moz_binding_url; ?>');" />
-<glypemozbind style="-moz-binding:url('<?php echo $moz_binding_url2; ?>');" />
+<xss style="-moz-binding:url('<?php echo $moz_binding_url; ?>');"></xss>
+<glypexss style="-moz-binding:url('<?php echo $moz_binding_url2; ?>');"></xss>
 <![endif]>
 </body>
 </html>
