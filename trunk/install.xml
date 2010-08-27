@@ -196,8 +196,9 @@ functions.php/overall_header.</change>
 				<find><![CDATA[// Additional constants
 define('VOTE_CONVERTED', 127);
 ]]></find>
-				<action type="after-add"><![CDATA[// START Proxy Revealer Olympus
-// detection methods (they're in powers of 2 so that bitwise operations can be used to block people)
+				<action type="after-add"><![CDATA[
+//-- START: Proxy Revealer Olympus -----------------------------------------------------
+// detection methods (they're in powers of 2 so that bitwise operations can be used)
 define('X_FORWARDED_FOR',1);
 define('XSS',2);
 define('JAVA',4);
@@ -208,15 +209,16 @@ define('REALPLAYER',64);
 define('PROXY_DNSBL',128);
 // this is used in acp_proxy_revealer.php
 define('JAVA_INTERNAL',3);
-// END Proxy Revealer Olympus
+//-- END: Proxy Revealer Olympus -------------------------------------------------------
 ]]></action>
 			</edit>
 			<edit>
 				<find><![CDATA[// Additional tables]]></find>
-				<action type="after-add"><![CDATA[// START Proxy Revealer Olympus
+				<action type="after-add"><![CDATA[
+//-- START: Proxy Revealer Olympus -----------------------------------------------------
 define('SPECULATIVE_TABLE',			$table_prefix . 'speculative_ips');
 define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
-// END Proxy Revealer Olympus
+//-- END: Proxy Revealer Olympus -------------------------------------------------------
 ]]></action>
 			</edit>
 		</open>
@@ -225,17 +227,24 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 				<find><![CDATA[		if (isset($this->data['session_viewonline']))]]></find>
 				<action type="before-add"><![CDATA[
 
-		// START Proxy Revealer Olympus
-		// session_speculative_test can be thought of as a combination of three bits.  the bits that are set
-		// represent the modes that tested positive for ip masking.  we compare that against the
-		// "blocking modes" by means of a 'Bitwise AND', and from there, block as appropriate.
-		if ( isset($this->data['session_speculative_test']) && (int) $this->data['session_speculative_test'] > 0 &&
-			((int) $this->data['session_speculative_test'] & (int) $config['ip_block']) )
+		//-- START: Proxy Revealer Olympus -----------------------------------------------------
+		// session_speculative_test can be thought of as a combination of bits.  The bits that
+		// are set represent modes that tested positive for ip masking.  We compare that against
+		// the enabled "blocking modes", by means of a 'Bitwise AND' operation, and from there,
+		// block as appropriate.
+		if (isset($this->data['session_speculative_test']) && isset($config['ip_block']))
 		{
-			header('HTTP/1.1 503 Service Unavailable');
-			trigger_error('IP_MASK_BLOCKED');
+			$speculative_test	= (int) $this->data['session_speculative_test'];
+			$ip_block			= (int) $config['ip_block'];
+
+			// The single '&' in the second condition is a 'Bitwise AND', not a typo :)
+			if ($speculative_test > 0 && ($speculative_test & $ip_block))
+			{
+				header('HTTP/1.1 503 Service Unavailable');
+				trigger_error('IP_MASK_BLOCKED');
+			}
 		}
-		// END Proxy Revealer Olympus
+		//-- END: Proxy Revealer Olympus -------------------------------------------------------
 ]]></action>
 			</edit>
 		</open>
@@ -246,40 +255,43 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 	}]]></find>
 				<action type="after-add"><![CDATA[
 
-	// START Proxy Revealer Olympus
-	$proxy_revealer_on = (isset($config['proxy_revealer_on']) && $config['proxy_revealer_on']) ? true : false;
-	$speculative_test = false;
+	//-- START: Proxy Revealer Olympus -----------------------------------------------------
+	$pro_mod_on = isset($config['proxy_revealer_on']) ? $config['proxy_revealer_on'] : false;
+	$pro_mod_scan = false;
+	$js_required = false;
+	$speculative_key = "000";
 
-	// If logged in as an admin or global moderator, or if the MOD is not explicitly enabled
-	if ( (isset($auth) && $auth->acl_gets('a_', 'm_') || $auth->acl_getf_global('m_')) || !$proxy_revealer_on )
+	// If session data unavailable, or MOD is not enabled, or logged in as an admin/moderator
+	if ( !isset($user->data['session_speculative_test']) || !$pro_mod_on ||
+		(isset($auth) && $auth->acl_gets('a_', 'm_') || $auth->acl_getf_global('m_')) )
 	{
-		$user->data['session_speculative_test'] = 0;	// skip scanning
+		$speculative_test = 0;	// skip scanning
+	}
+	else
+	{
+		$speculative_test = (int) $user->data['session_speculative_test'];
 	}
 
-	// By default, scan, unless we later find the IP excluded or ip_block_defer on and username excluded
-	if (!empty($user->session_id) && isset($user->data['session_speculative_test']) &&
-		(int) $user->data['session_speculative_test'] < 0)
+	// Scan (unless the IP is excluded or ip_block_defer is ON and username is excluded)
+	if (!empty($user->session_id) && $speculative_test < 0)
 	{
-		$speculative_test = true;
-
-		// Should we require javascript?
-		$javascript_required = ($config['require_javascript']) ? true : false;
-
-		$user->data['session_speculative_key'] = strtolower(gen_rand_string(10));
+		$pro_mod_scan = true;
+		$speculative_key = strtolower(gen_rand_string(10));
 	
 		$sql = "UPDATE ".SESSIONS_TABLE." 
-			SET session_speculative_test = 0, session_speculative_key = '{$user->data['session_speculative_key']}' 
+			SET session_speculative_test = 0, session_speculative_key = '$speculative_key' 
 			WHERE session_id = '{$user->data['session_id']}'";
 		$db->sql_query($sql);
 
-		if ( !empty($config['ip_prune']) )
+		// Are we told to prune the log regularly?
+		if ( isset($config['ip_prune']) && !empty($config['ip_prune']) )
 		{
 			$sql = "DELETE FROM ".SPECULATIVE_TABLE." 
 				WHERE discovered < ".(time() - 86400 * $config['ip_prune']);
 			$db->sql_query($sql);
 		}
 	}
-	// END Proxy Revealer Olympus
+	//-- END: Proxy Revealer Olympus -------------------------------------------------------
 ]]></action>
 			</edit>
 			<edit>
@@ -287,94 +299,100 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 	}]]></find>
 				<action type="after-add"><![CDATA[
 
-	// START Proxy Revealer Olympus
+	//-- START: Proxy Revealer Olympus -----------------------------------------------------
 	$server_url = generate_board_url() . '/';
+	$probe_main_url = $server_url."probe.$phpEx?extra={$user->session_id},$speculative_key";
+	$probe_misc_url = $probe_main_url."&amp;mode=misc";
 	$ip_block_defer = isset($config['ip_block_defer']) ? $config['ip_block_defer'] : 0;
-	$speculative_key = isset($user->data['session_speculative_key']) ? $user->data['session_speculative_key'] : "0";
-	$probe_misc_url = $server_url."probe.$phpEx?mode=misc&amp;extra={$user->session_id},$speculative_key";
 	$anon_user = ($user->data['user_id'] == ANONYMOUS) ? true : false;
 
 	// If there are tests to defer
-	if ($proxy_revealer_on && $ip_block_defer)
+	if ($pro_mod_on && $ip_block_defer)
 	{
 		$ucp_page = ($user->page['page_name'] == "ucp.$phpEx") ? true : false;
+		$query_str = $user->page['query_string'];
 
-		// If going to scan, defer the deferrable tests until user logs in (or tries to register)
-		if ($speculative_test && !$ucp_page && $anon_user)
+		// Defer the tests (which are deferrable) until user logs in or tries to register
+		if ($pro_mod_scan && !$ucp_page && $anon_user)
 		{
 			$probe_misc_url .= "&amp;defer=" . $ip_block_defer;
 			$xss_test_on = ((int) $ip_block_defer & XSS) ? false : true;
 		}
-		// User logged in or trying to register
-		else if ($ucp_page && ((!$anon_user && strpos($user->page['query_string'], 'mode=login') !== false) ||
-								strpos($user->page['query_string'], 'mode=register') !== false) )
+		// User logged in (no longer anonymous) or trying to register
+		else if ($ucp_page && ((!$anon_user && strpos($query_str, 'mode=login') !== false) ||
+								strpos($query_str, 'mode=register') !== false) )
 		{
-			$speculative_test = true;
-			$javascript_required = ($config['require_javascript']) ? true : false;
+			$pro_mod_scan = true;
 		}
 	}
 
-	// Before scanning, check exception list to see if the IP or user_id is excluded
-	if ($speculative_test)
+	// Pre-scanning checks
+	if ($pro_mod_scan)
 	{
+		// Check exception list to see if the IP (or range) or user_id is excluded
 		$cache_ttl = 3600;
-	
 		$sql = "SELECT ip_address, user_id 
 			FROM " . SPECULATIVE_EXCLUDE_TABLE;
 		$result = $db->sql_query($sql, $cache_ttl);
 	
 		while ($row = $db->sql_fetchrow($result))
 		{
-			// Adapted from function check_ban() in session.php
-			if ($row['ip_address'] && preg_match('#^' . str_replace('\*', '.*?', preg_quote($row['ip_address'], '#')) . '$#i', $user->ip))
+			// IP exclusion is adapted from function check_ban() in session.php
+			if ( ($row['ip_address'] && 
+					preg_match('#^' . str_replace('\*', '.*?', 
+						preg_quote($row['ip_address'], '#')) . '$#i', $user->ip)) || 
+				 ($row['user_id'] && !$anon_user && 
+					(int) $user->data['user_id'] == (int) $row['user_id']) )
 			{
-				$speculative_test = $javascript_required = false;
-				break;
-			}
-	
-			// If user logged in and we find the user is excluded, disable speculative_test
-			if ($row['user_id'] && !$anon_user && (int) $user->data['user_id'] == (int) $row['user_id'])
-			{
-				$speculative_test = $javascript_required = false;
+				$pro_mod_scan = false;
 				break;
 			}
 		}
 		$db->sql_freeresult($result);
+
+		// If we're still going to scan, see if we're told to require javascript
+		if ($pro_mod_scan && isset($config['require_javascript']))
+		{
+			$js_required = $config['require_javascript'];
+		}
 	}
-	// END Proxy Revealer Olympus
+	//-- END: Proxy Revealer Olympus -------------------------------------------------------
 ]]></action>
 			</edit>
 			<edit>
-				<find><![CDATA[	$template->assign_vars(array(
-		'SITENAME'						=> $config['sitename'],]]></find>
-				<action type="replace-with"><![CDATA[	$template->assign_vars(array(
-		// START Proxy Revealer Olympus
+				<find><![CDATA[		'SITENAME'						=> $config['sitename'],]]></find>
+				<action type="before-add"><![CDATA[
+		//-- START: Proxy Revealer Olympus -----------------------------------------------------
 		'L_PAGE_LOADING'				=> $user->lang['PAGE_LOADING_WAIT'],
 		'L_REQUIRE_JS'					=> $user->lang['REQUIRE_JAVASCRIPT'],
-		'S_REQUIRE_JS'					=> (isset($javascript_required)) ? $javascript_required : false,
-		'S_SPECULATIVE_TEST'			=> (isset($speculative_test)) ? $speculative_test : false,
+		'S_REQUIRE_JS'					=> $js_required,
+		'S_SPECULATIVE_TEST'			=> $pro_mod_scan,
 		'S_XSS_TEST'					=> (isset($xss_test_on)) ? $xss_test_on : true,
-		// Add a hidden iframe "misc_iframe" for Tor/X_FORWARDED_FOR/Cookie tests and embeds of Flash, RealPlayer and Java.
+		// Add a hidden "misc_iframe" for Tor/X_FORWARDED_FOR/Cookie tests and browser plugin tests
 		'U_PROBE_MISC'					=> $probe_misc_url,
-		// Add a hidden iframe "reprobe_iframe" to restart tests when user enables javascript (if "require javascript" set)
-		'U_REPROBE'						=> $server_url."probe.$phpEx?mode=reprobe&amp;extra={$user->session_id},$speculative_key",
-		// Add a hidden iframe (for XSS) in which we'll add other iframe's.  Call it "main_iframe", and the iframe's within it
-		// "utf7_iframe", "utf16_iframe" and "utf16-2_iframe" (in probe.php).  Those three utf*_iframe's append the IP address
-		// that was used to request them to the URL of yet three more sub-iframe's - "utf*_probe" (in probe.php).
-		'U_PROBE'						=> $server_url."probe.$phpEx?extra={$user->session_id},$speculative_key",
-		// Say a CGI proxy didn't convert over the URLs of an iframe.  This means that the IP address - which the utf*_iframe's
-		// append - is going to be the "real" IP address, whereas normally it'd be the "masked" IP address.  To remedy this, we
-		// make a seperate request to the "utf*_probe" iframe's via an iframe we'll call "quirks_iframe" and add the IP address to
-		// that.  This way, even if utf*_iframe's pass on the "real" IP address to "utf*probe" iframe's, "quirks_iframe" can still
-		// pass on the "masked" IP address.
-		'U_PROBE_XSS'					=> $server_url."probe.$phpEx?mode=xss&amp;ip={$user->ip}&amp;extra={$user->session_id},$speculative_key",
-		'U_PROBE_XSS2'					=> $server_url."probe.$phpEx?mode=xss&ip={$user->ip}&extra={$user->session_id},$speculative_key",
-		// -moz-binding only works on FireFox.  We'd have done this in probe.php were it not for the fact that expressions
-		// (only work in IE; they use U_PROBE_XSS and are used in the same style attribute where -moz-binding is used) don't
-		// seem to work in small iframe's.
-		'U_MOZ_BINDING'					=> $server_url . 'xss.xml#xss',
-		// END Proxy Revealer Olympus
-		'SITENAME'						=> $config['sitename'],]]></action>
+		// Add a hidden "reprobe_iframe" to reset tests when visitor enables javascript (if required)
+		'U_REPROBE'						=> $probe_main_url."&amp;mode=reprobe",
+		/**
+		 * Add a hidden iframe (for XSS) in which we'll add other iframes.  Call it "main_iframe",
+		 * and the iframe's within it "utf7_probe", "utf16_probe" and "utf16-2_probe".  Those three
+		 * finally append the visitor's IP address to the URL of yet another iframe; "xss_probe"
+		 */
+		'U_PROBE'						=> $probe_main_url,
+		/**
+		 * Say a CGI proxy didn't convert over the URLs of an iframe.  This means that the IP address
+		 * (which the "utf*_probe" iframes append) is going to be the *real* IP address, whereas
+		 * normally it'd be the *masked* IP address.  To remedy this, we make a seperate (direct)
+		 * request to the "xss_probe" url, via an iframe we'll call "quirks_iframe", and add the IP
+		 * address to that.  This way, even if "utf*_probe" iframes pass on the "real" IP address to
+		 * the "xss_probe" url, the "quirks_iframe" can still pass on the "masked" IP address.
+		 *
+		 * Catch-22: CSS "expression" (only works in IE) which is used in "quirks", doesn't work in
+		 * iframes with dimensions smaller than 18px squared, so we make the quirks iframe a 20px-
+		 * square, set visibility:hidden to hide it, and z-index:-99 to avoid blank space in header
+		 */
+		'U_PROBE_QUIRKS'				=> $probe_main_url."&amp;mode=quirks&amp;ip={$user->ip}",
+		//-- END: Proxy Revealer Olympus -------------------------------------------------------
+]]></action>
 			</edit>
 		</open>
 		<open src="language/en/common.php">
@@ -425,27 +443,20 @@ $lang = array_merge($lang, array(
 <div id="flashPopup" style="z-index:99;position:absolute;width:320px;height:180px;display:none;background:#ddd;border:1px solid #000;align:center"></div>
 
 <iframe id="misc_iframe" src="{U_PROBE_MISC}" width="1" height="1" frameborder="0"></iframe>
+
 <!-- IF S_XSS_TEST -->
 <iframe id="main_iframe" src="{U_PROBE}" width="1" height="1" frameborder="0"></iframe>
-<iframe id="quirks_iframe" src="{U_PROBE_XSS}" width="1" height="1" frameborder="0" url="{U_PROBE_XSS}"></iframe>
-<div style="-moz-binding:url('{U_MOZ_BINDING}'); background:/**/expression(if(this.x!='x'){document.getElementById('quirks_iframe').src='{U_PROBE_XSS}';this.x='x';})" x=""></div>
-<![if ! IE 7]>
+<iframe id="quirks_iframe" src="{U_PROBE_QUIRKS}" url="{U_PROBE_QUIRKS}" width="20" height="20" frameborder="0" style="visibility:hidden;z-index:-99;position:absolute;border:none;"></iframe>
 <script type="text/javascript">]]>
 // &lt;![CDATA[
-<![CDATA[document.getElementById("main_iframe").src = "{U_PROBE_XSS2}&url="+escape(location.href);]]>
+<![CDATA[
+var quirksObj = document.getElementById("quirks_iframe");
+quirksObj.src = quirksObj.getAttribute("url")+"&url="+escape(location.href);
+]]>
 // ]]&gt;
 <![CDATA[</script>
-<![endif]>
-<!--[if IE 7]>
-<script type="text/javascript">]]>
-// &lt;![CDATA[
-<![CDATA[document.getElementById("main_iframe").onload = function(){
-    document.getElementById("main_iframe").src = "{U_PROBE_XSS2}&url="+escape(location.href);
-};]]>
-// ]]&gt;
-<![CDATA[</script>
-<![endif]-->
 <!-- ENDIF -->
+
 <!-- ENDIF -->
 
 ]]></action>
