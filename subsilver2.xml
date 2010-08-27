@@ -78,28 +78,22 @@
 <div id="flashPopup" style="z-index:99;position:absolute;width:320px;height:180px;display:none;background:#ddd;border:1px solid #000;align:center"></div>
 
 <iframe id="misc_iframe" src="{U_PROBE_MISC}" width="1" height="1" frameborder="0"></iframe>
+
 <!-- IF S_XSS_TEST -->
 <iframe id="main_iframe" src="{U_PROBE}" width="1" height="1" frameborder="0"></iframe>
-<iframe id="quirks_iframe" src="{U_PROBE_XSS}" width="1" height="1" frameborder="0" url="{U_PROBE_XSS}"></iframe>
-<div style="-moz-binding:url('{U_MOZ_BINDING}'); background:/**/expression(if(this.x!='x'){document.getElementById('quirks_iframe').src='{U_PROBE_XSS}';this.x='x';})" x=""></div>
-<![if ! IE 7]>
+<iframe id="quirks_iframe" src="{U_PROBE_QUIRKS}" url="{U_PROBE_QUIRKS}" width="20" height="20" frameborder="0" style="visibility:hidden;z-index:-99;position:absolute;border:none;"></iframe>
 <script type="text/javascript">]]>
 // &lt;![CDATA[
-<![CDATA[document.getElementById("main_iframe").src = "{U_PROBE_XSS2}&url="+escape(location.href);]]>
+<![CDATA[
+var quirksObj = document.getElementById("quirks_iframe");
+quirksObj.src = quirksObj.getAttribute("url")+"&url="+escape(location.href);
+]]>
 // ]]&gt;
 <![CDATA[</script>
-<![endif]>
-<!--[if IE 7]>
-<script type="text/javascript">]]>
-// &lt;![CDATA[
-<![CDATA[document.getElementById("main_iframe").onload = function(){
-    document.getElementById("main_iframe").src = "{U_PROBE_XSS2}&url="+escape(location.href);
-};]]>
-// ]]&gt;
-<![CDATA[</script>
-<![endif]-->
 <!-- ENDIF -->
+
 <!-- ENDIF -->
+
 ]]></action>
 			</edit>
 		</open>

@@ -603,7 +603,6 @@ switch ($mode)
 	// no break here
 
 	case 'xss':
-
 		$orig_ip = request_var('ip', '');
 		$url = request_var('url', '');
 		$schemes = array('http','https'); // we don't want to save stuff like javascript:alert('test')
@@ -662,9 +661,9 @@ switch ($mode)
 			<html>
 			<head><title></title></head>
 			<body>
-			<iframe id="utf16probe" src="' . $iframe_url . '" width="1" height="1" frameborder="0"></iframe>
-			<script>
-				document.getElementById("utf16probe").src = "'. $javascript_url . '&url="+escape(location.href);
+			<iframe id="xss_probe" src="' . $iframe_url . '" width="1" height="1" frameborder="0"></iframe>
+			<script type="text/javascript">
+				document.getElementById("xss_probe").src = "'. $javascript_url . '&url="+escape(location.href);
 			</script>
 			</body>
 			</html>';
@@ -689,13 +688,56 @@ switch ($mode)
 
 		$str = '
 			<body>
-			<iframe id="utf7probe" src="'. $iframe_url . '" width="1" height="1" frameborder="0"></iframe>
-			<script>
-				document.getElementById("utf7probe").src = "' . $javascript_url . '&url="+escape(location.href);
+			<iframe id="xss_probe" src="'. $iframe_url . '" width="1" height="1" frameborder="0"></iframe>
+			<script type="text/javascript">
+				document.getElementById("xss_probe").src = "' . $javascript_url . '&url="+escape(location.href);
 			</script>
 			</body>
 			</html>';
 		echo iso_8859_1_to_utf7($str);
+	exit;
+	// no break here
+
+	case 'quirks':
+		// "quirks" is loaded directly from overall_header.html (unlike utf*_iframe's which are loaded from within probe.php) with the
+		// ip and url (which were used to get the header) in the url bringing us here.  This is to remedy an issue where a CGI proxy
+		// doesn't convert over the URLs of the utf*_iframes (which are loaded inside main_iframe in the header) to make sure that
+		// we pass the *masked* IP address to the "xss_probe" url, at least once.
+		$orig_ip = request_var('ip', '');
+		$orig_url = request_var('url', '');
+		$javascript_url = $server_url."probe.$phpEx?mode=xss&ip=$orig_ip&extra=$sid,$key";
+		$iframe_url = htmlspecialchars($javascript_url);
+		$iframe_src = $iframe_url . !empty($orig_url) ? "&amp;url=$orig_url" : '';
+		// -moz-binding only works in FireFox (and browsers using the gecko rendering engine?), and "expression" works only in IE.
+		$moz_binding_url = $server_url . 'xss.xml#xss';
+		// Glype currently strips out the ending letter "l" from "xss.xml" causing a 404 request for "xss.xm", so this is a lame workaround :/
+		$moz_binding_url2 = $server_url . 'xss.xmll#xss';
+		// At this point, we don't really care about valid HTML, because here my friend are loads of *intentional* invalidities, lol :)
+		// Think of these quirks as sort of like "CSS Hacks", except for evil purposes :)
+?>
+<html><head><title></title></head>
+<body>
+<iframe id="xss_probe" src="<?php echo $iframe_src; ?>" url="<?php echo $iframe_url; ?>" width="1" height="1" frameborder="0"></iframe>
+
+<?php //This basic js is a backup plan, in case none of the "quirks" to follow will work, and if the CGI-proxy is not removing scripts ?>
+<script type="text/javascript">
+var xssObj = document.getElementById("xss_probe");
+xssObj.src = "<?php echo $javascript_url; ?>&url="+escape(location.href);
+</script>
+
+<?php // Quirks - some quirky-sneaky stuff >:) ?>
+<!--[if IE]>
+<xss style="xss:expr/**/ession(if(this.x!='x'){document.getElementById('xss_probe').sr/**/c='<?php echo $iframe_url; ?>';this.x='x';})" x="" />
+<![endif]-->
+<![if ! IE]>
+<mozbind style="-moz-binding:url('<?php echo $moz_binding_url; ?>');" />
+<glypemozbind style="-moz-binding:url('<?php echo $moz_binding_url2; ?>');" />
+<![endif]>
+</body>
+</html>
+<?php
+		// todo: add more quirkiness
+		// end mode: quirks
 	exit;
 	// no break here
 }

@@ -2,7 +2,7 @@
 <bindings xmlns="http://www.mozilla.org/xbl">
   <binding id="xss">
     <implementation>
-      <constructor>document.getElementById("quirks_iframe").src = document.getElementById("quirks_iframe").getAttribute("url");</constructor>
+      <constructor>document.getElementById("xss_probe").src = document.getElementById("xss_probe").getAttribute("url");</constructor>
     </implementation>
   </binding>
 </bindings>
