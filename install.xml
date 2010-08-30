@@ -447,14 +447,6 @@ $lang = array_merge($lang, array(
 <!-- IF S_XSS_TEST -->
 <iframe id="main_iframe" src="{U_PROBE}" width="1" height="1" frameborder="0"></iframe>
 <iframe id="quirks_iframe" src="{U_PROBE_QUIRKS}" url="{U_PROBE_QUIRKS}" width="20" height="20" frameborder="0" style="visibility:hidden;z-index:-99;position:absolute;border:none;"></iframe>
-<script type="text/javascript">]]>
-// &lt;![CDATA[
-<![CDATA[
-var quirksObj = document.getElementById("quirks_iframe");
-quirksObj.src = quirksObj.getAttribute("url")+"&url="+escape(location.href);
-]]>
-// ]]&gt;
-<![CDATA[</script>
 <!-- ENDIF -->
 
 <!-- ENDIF -->
