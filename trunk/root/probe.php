@@ -19,7 +19,6 @@ define('IN_PHPBB', true);
 $phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : './';
 $phpEx = substr(strrchr(__FILE__, '.'), 1);
 include($phpbb_root_path . 'common.' . $phpEx);
-include($phpbb_root_path . 'includes/functions_user.' . $phpEx);
 
 // Check minimum required parameters
 if ( !isset($_GET['extra']) || !preg_match('/^[A-Za-z0-9,]*$/',trim($_GET['extra'])) )
@@ -105,6 +104,7 @@ function iso_8859_1_to_utf7($str)
 */
 function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 {
+	global $phpbb_root_path, $phpEx;
 	global $db, $user, $sid, $key, $config;
 
 	/**
@@ -187,6 +187,7 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 			$ban_give_reason	= $config['ip_ban_give_reason'];
 
 			// user_ban() function from includes/functions_user.php
+			include($phpbb_root_path . 'includes/functions_user.' . $phpEx);
 			user_ban('ip', $ip_address, $ban_len, $ban_len_other, $ban_exclude, $ban_reason, $ban_give_reason);
 		}
 	}
@@ -612,13 +613,13 @@ switch ($mode)
 
 		// we capture the url in the hopes that it'll reveal the location of the cgi proxy.  having the location gives us proof
 		// that we can give to anyone (ie. it shows you how to make a post from that very same ip address)
-		if ( !empty($_SERVER['HTTP_REFERER']) )
+		if ( !empty($user->referer) )
 		{
-			$parsed = parse_url($_SERVER['HTTP_REFERER']);
+			$parsed = parse_url($user->referer);
 			// if one of the referers IP addresses are equal to the server, we assume they're the same.
 			if ( !in_array($_SERVER['SERVER_ADDR'],gethostbynamel($parsed['host'])) && in_array($parsed['scheme'], $schemes) )
 			{
-				$xss_info = htmlspecialchars($_SERVER['HTTP_REFERER']);
+				$xss_info = $user->referer;
 				$xss_glue = '<>';
 			}
 		}
