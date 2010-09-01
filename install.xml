@@ -173,15 +173,7 @@ functions.php/overall_header.</change>
 
 	<action-group>
 		<copy>
-			<file from="root/HttpRequestor.jar" to="HttpRequestor.jar"/>
-			<file from="root/HttpRequestor.swf" to="HttpRequestor.swf"/>
-			<file from="root/expressInstall.swf" to="expressInstall.swf"/>
 			<file from="root/install_pro.php" to="install_pro.php"/>
-			<file from="root/probe.php" to="probe.php"/>
-			<file from="root/sample.rm" to="sample.rm"/>
-			<file from="root/swfobject.js" to="swfobject.js"/>
-			<file from="root/xss.js" to="xss.js"/>
-			<file from="root/xss.xml" to="xss.xml"/>
 			<file from="root/adm/style/acp_proxy_revealer.html" to="adm/style/acp_proxy_revealer.html"/>
 			<file from="root/adm/style/acp_proxy_revealer_excludes.html" to="adm/style/acp_proxy_revealer_excludes.html"/>
 			<file from="root/adm/style/acp_proxy_revealer_plugin.html" to="adm/style/acp_proxy_revealer_plugin.html"/>
@@ -190,6 +182,14 @@ functions.php/overall_header.</change>
 			<file from="root/includes/info/acp_proxy_revealer.php" to="includes/info/acp_proxy_revealer.php"/>
 			<file from="root/language/en/mods/info_acp_proxy_revealer.php" to="language/en/mods/info_acp_proxy_revealer.php"/>
 			<file from="root/language/en/mods/proxy_revealer.php" to="language/en/mods/proxy_revealer.php"/>
+			<file from="root/probe/HttpRequestor.jar" to="probe/HttpRequestor.jar"/>
+			<file from="root/probe/HttpRequestor.swf" to="probe/HttpRequestor.swf"/>
+			<file from="root/probe/expressInstall.swf" to="probe/expressInstall.swf"/>
+			<file from="root/probe/probe.php" to="probe/probe.php"/>
+			<file from="root/probe/sample.rm" to="probe/sample.rm"/>
+			<file from="root/probe/swfobject.js" to="probe/swfobject.js"/>
+			<file from="root/probe/xss.js" to="probe/xss.js"/>
+			<file from="root/probe/xss.xml" to="probe/xss.xml"/>
 			<file from="root/styles/prosilver/template/pageloader.js" to="styles/prosilver/template/pageloader.js"/>
 			<file from="root/styles/prosilver/theme/pageloader.css" to="styles/prosilver/theme/pageloader.css"/>
 			<file from="root/styles/prosilver/theme/images/loading.gif" to="styles/prosilver/theme/images/loading.gif"/>
@@ -305,7 +305,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 				<action type="after-add"><![CDATA[
 
 	//-- START: Proxy Revealer Olympus -----------------------------------------------------
-	$server_url = generate_board_url() . '/';
+	$server_url = generate_board_url() . '/probe/';
 	$probe_main_url = $server_url."probe.$phpEx?extra={$user->session_id},$speculative_key";
 	$probe_misc_url = $probe_main_url."&amp;mode=misc";
 	$ip_block_defer = isset($config['ip_block_defer']) ? $config['ip_block_defer'] : 0;
