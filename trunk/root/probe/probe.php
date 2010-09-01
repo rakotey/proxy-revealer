@@ -5,7 +5,7 @@
 * @author jasmineaura < jasmine.aura@yahoo.com >
 *
 * @package phpBB3
-* @version $Id$
+* @version $Id: probe.php 85 2010-09-01 20:44:44Z jasmine.aura@yahoo.com $
 * @copyright (c) 2006 TerraFrost (c) 2008 jasmineaura
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License 
 *
@@ -54,10 +54,22 @@ else
 	$path_name = $user->page['root_script_path'];
 }
 
-// Add / to the end of $path_name if needed
+// Set path name (add / to the end of $path_name, if needed, before appending our path)
 $path_name .= (substr($path_name, -1, 1) != '/') ? '/' : '';
+$path_name .= 'probe/';
+
 // Set Server URL
-$server_url = generate_board_url() . '/';
+$server_url = $server_protocol . $server_name;
+if ($server_port && (($server_protocol == 'https://' && $server_port <> 443) || ($server_protocol == 'http://' && $server_port <> 80)))
+{
+	// HTTP HOST can carry a port number (we fetch $user->host, but for old versions this may be true)
+	if (strpos($server_name, ':') === false)
+	{
+		$url .= ':' . $server_port;
+	}
+}
+$server_url .= $path_name;
+
 
 /**
 * Convert ISO 8859-1 (Latin-1) to UTF16
