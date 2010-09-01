@@ -52,6 +52,10 @@ $ crontab -e
 To test if it's working properly (provided you have netcat installed):
 $ perl -e 'printf "<policy-file-request/>%c",0' | nc yourhost.com 9999
 $ perl -e 'printf "<request>getmyip</request>%c",0' | nc yourhost.com 9999
+
+Additional Information
+----------------------
+SVN: http://code.google.com/p/proxy-revealer/source/checkout
 		]]></author-notes>
 
 		<author-group>
@@ -374,17 +378,17 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		'U_REPROBE'						=> $probe_main_url."&amp;mode=reprobe",
 		/**
 		 * Add a hidden iframe (for XSS) in which we'll add other iframes.  Call it "main_iframe",
-		 * and the iframe's within it "utf7_probe", "utf16_probe" and "utf16-2_probe".  Those three
-		 * finally append the visitor's IP address to the URL of yet another iframe; "xss_probe"
+		 * and the iframe's within it "utf7_iframe" and "utf16_iframe".  Those three finally append
+		 * the visitor's IP address to the URL of yet another iframe; "xss_probe"
 		 */
 		'U_PROBE'						=> $probe_main_url,
 		/**
 		 * Say a CGI proxy didn't convert over the URLs of an iframe.  This means that the IP address
-		 * (which the "utf*_probe" iframes append) is going to be the *real* IP address, whereas
-		 * normally it'd be the *masked* IP address.  To remedy this, we make a seperate (direct)
-		 * request to the "xss_probe" url, via an iframe we'll call "quirks_iframe", and add the IP
-		 * address to that.  This way, even if "utf*_probe" iframes pass on the "real" IP address to
-		 * the "xss_probe" url, the "quirks_iframe" can still pass on the "masked" IP address.
+		 * (which the "utf*" iframes append) is going to be the *real* IP address, whereas normally
+		 * it'd be the *masked* IP address.  To remedy this, we make a seperate (direct) request to
+		 * the "xss_probe" url, via an iframe we'll call "quirks_iframe", and add the IP address to
+		 * that.  This way, even if "utf*" iframes pass on the "real" IP address to the "xss_probe"
+		 * url, the "quirks_iframe" can still pass on the "masked" IP address.
 		 *
 		 * Catch-22: CSS "expression" (only works in IE) which is used in "quirks", doesn't work in
 		 * iframes with dimensions smaller than 18px squared, so we make the quirks iframe a 20px-

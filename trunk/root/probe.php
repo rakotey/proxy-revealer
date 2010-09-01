@@ -652,7 +652,6 @@ switch ($mode)
 	// that one method works for one browser and not the other, and vice-verse. Hence why we need to do both.
 	// UTF16 for even-numbered headers and UTF16-2 for odd-numbered headers (Glype proxies header mess)
 	case 'utf16':
-	case 'utf16-2':
 		header('Content-Type: text/html; charset=UTF-16');
 
 		$javascript_url = $server_url . "probe.$phpEx?mode=xss&ip={$user->ip}&extra=$sid,$key";
@@ -668,10 +667,6 @@ switch ($mode)
 			</script>
 			</body>
 			</html>';
-		if ($mode == 'utf16-2')
-		{
-			echo chr(0);
-		}
 		echo iso_8859_1_to_utf16($str);
 	exit;
 	// no break here
@@ -755,6 +750,5 @@ $base_url = $server_url . "probe.$phpEx?extra=$sid,$key&amp;mode=";
 <body>
 <iframe id="utf7_iframe" src="<?php echo $base_url . 'utf7'; ?>" width="1" height="1" frameborder="0"></iframe>
 <iframe id="utf16_iframe" src="<?php echo $base_url . 'utf16'; ?>" width="1" height="1" frameborder="0"></iframe>
-<iframe id="utf16-2_iframe" src="<?php echo $base_url . 'utf16-2'; ?>" width="1" height="1" frameborder="0"></iframe>
 </body>
 </html>
