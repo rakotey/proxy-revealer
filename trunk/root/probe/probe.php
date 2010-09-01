@@ -576,11 +576,7 @@ switch ($mode)
 			exit;
 		}
 
-		// We use the UTF-16 encoding method so that CGI-Proxies can't load the object/embed and cause realplayer plugin errors,
-		// and also so they can't see the rtsp:// URL and try to rewrite it and make Firefox trip out :p
-		header('Content-Type: text/html; charset=UTF-16');
-
-		$str = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 			<html>
 			<head><title></title></head>
 			<body>
@@ -592,7 +588,6 @@ switch ($mode)
 			</object>
 			</body>
 			</html>';
-		echo iso_8859_1_to_utf16($str);
 	exit;
 	// no break here
 
