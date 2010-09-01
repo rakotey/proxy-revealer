@@ -180,6 +180,7 @@ functions.php/overall_header.</change>
 			<file from="root/probe.php" to="probe.php"/>
 			<file from="root/sample.rm" to="sample.rm"/>
 			<file from="root/swfobject.js" to="swfobject.js"/>
+			<file from="root/xss.js" to="xss.js"/>
 			<file from="root/xss.xml" to="xss.xml"/>
 			<file from="root/adm/style/acp_proxy_revealer.html" to="adm/style/acp_proxy_revealer.html"/>
 			<file from="root/adm/style/acp_proxy_revealer_excludes.html" to="adm/style/acp_proxy_revealer_excludes.html"/>
