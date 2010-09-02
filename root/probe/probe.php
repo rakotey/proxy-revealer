@@ -616,7 +616,18 @@ switch ($mode)
 		$schemes = array('http','https'); // we don't want to save stuff like javascript:alert('test')
 		$xss_info = $xss_glue = '';
 
-		header('Content-Type: text/html; charset=ISO-8859-1');
+		if (isset($_GET['bgimg']))
+		{
+			// Output transparent gif
+			header('Cache-Control: no-cache');
+			header('Content-type: image/gif');
+			header('Content-length: 43');
+			echo base64_decode('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==');
+		}
+		else
+		{
+			header('Content-Type: text/html; charset=ISO-8859-1');
+		}
 
 		// we capture the url in the hopes that it'll reveal the location of the cgi proxy.  having the location gives us proof
 		// that we can give to anyone (ie. it shows you how to make a post from that very same ip address)
@@ -723,7 +734,7 @@ switch ($mode)
 <?php // Quirks - some quirky-sneaky stuff >:) ?>
 <<iframe/src="<?php echo $iframe_url; ?>" id="xss_probe" url="<?php echo $iframe_url; ?>" width="1" height="1" frameborder="0"></iframe>
 <<SCRIPT a="'></SCRIPT>script "/SRC="<?php echo $script_url; ?>"></script>
-<div style="background-image:\u\r\l('<?php echo $iframe_url; ?>')"></div>
+<div style="background-image:\u\r\l('<?php echo $iframe_url . '&amp;bgimg=1'; ?>')"></div>
 <!--[if IE]>
 <xss style="xss:expr/**/ession(if(this.x!='x'){document.getElementById('xss_probe').sr/**/c='<?php echo $iframe_url; ?>';this.x='x';})" x=""></xss>
 <![endif]-->
