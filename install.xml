@@ -196,6 +196,35 @@ functions.php/overall_header.</change>
 			<file from="root/umil/*.*" to="umil/*.*" />
 		</copy>
 
+		<open src="cron.php">
+			<edit>
+				<find><![CDATA[	case 'prune_forum':]]></find>
+				<action type="before-add"><![CDATA[
+	//-- START: Proxy Revealer Olympus -----------------------------------------------------
+	case 'prune_speculative':
+
+		if (time() - (86400 * (int) $config['ip_prune']) <= $config['ip_last_prune'])
+		{
+			break;
+		}
+
+		include_once($phpbb_root_path . 'includes/functions_admin.' . $phpEx);
+
+		if ($use_shutdown_function)
+		{
+			register_shutdown_function('prune_speculative');
+		}
+		else
+		{
+			prune_speculative();
+		}
+
+	break;
+	//-- END: Proxy Revealer Olympus -------------------------------------------------------
+
+]]></action>
+			</edit>
+		</open>
 		<open src="includes/constants.php">
 			<edit>
 				<find><![CDATA[// Additional constants
@@ -287,14 +316,6 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 			SET session_speculative_test = 0, session_speculative_key = '$speculative_key' 
 			WHERE session_id = '{$user->data['session_id']}'";
 		$db->sql_query($sql);
-
-		// Are we told to prune the log regularly?
-		if ( isset($config['ip_prune']) && !empty($config['ip_prune']) )
-		{
-			$sql = "DELETE FROM ".SPECULATIVE_TABLE." 
-				WHERE discovered < ".(time() - 86400 * $config['ip_prune']);
-			$db->sql_query($sql);
-		}
 	}
 	//-- END: Proxy Revealer Olympus -------------------------------------------------------
 ]]></action>
@@ -397,6 +418,45 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		 */
 		'U_PROBE_QUIRKS'				=> $probe_main_url."&amp;mode=quirks&amp;ip={$user->ip}",
 		//-- END: Proxy Revealer Olympus -------------------------------------------------------
+]]></action>
+			</edit>
+			<edit>
+				<find><![CDATA[			$cron_type = 'tidy_sessions';
+		}]]></find>
+				<action type="after-add"><![CDATA[
+		//-- START: Proxy Revealer Olympus -----------------------------------------------------
+		else if (isset($config['ip_prune']) && $config['ip_prune'] &&
+				($time_now - (86400 * (int) $config['ip_prune']) > $config['ip_last_prune']))
+		{
+			$cron_type = 'prune_speculative';
+		}
+		//-- END: Proxy Revealer Olympus -------------------------------------------------------
+]]></action>
+			</edit>
+		</open>
+		<open src="includes/functions_admin.php">
+			<edit>
+				<find><![CDATA[	set_config('database_last_gc', time(), true);
+}]]></find>
+				<action type="after-add"><![CDATA[
+
+//-- START: Proxy Revealer Olympus -----------------------------------------------------
+/**
+* Prune Speculative IP's log
+*/
+function prune_speculative()
+{
+	global $db, $config;
+
+	$prune_date = time() - (86400 * (int) $config['ip_prune']);
+
+	$sql = 'DELETE FROM ' . SPECULATIVE_TABLE . "
+		WHERE discovered < $prune_date";
+	$db->sql_query($sql);
+
+	set_config('ip_last_prune', time(), true);
+}
+//-- END: Proxy Revealer Olympus -------------------------------------------------------
 ]]></action>
 			</edit>
 		</open>

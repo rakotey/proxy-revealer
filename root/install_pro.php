@@ -51,6 +51,9 @@ $language_file = 'mods/info_acp_proxy_revealer';
 $versions = array(
 	// Version 0.3.4
 	'0.3.4'	=> array(
+		'config_add' => array(
+			array('ip_last_prune', 0, true),
+		),
 	),
 
 	// Version 0.3.3
