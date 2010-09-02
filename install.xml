@@ -289,9 +289,9 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 				<action type="after-add"><![CDATA[
 
 	//-- START: Proxy Revealer Olympus -----------------------------------------------------
-	$pro_mod_on = isset($config['proxy_revealer_on']) ? $config['proxy_revealer_on'] : false;
+	$pro_mod_on = isset($config['pro_mod_on']) ? $config['pro_mod_on'] : false;
 	$pro_mod_scan = false;
-	$js_required = false;
+	$require_js = false;
 	$speculative_key = "000";
 
 	// If session data unavailable, or MOD is not enabled, or logged in as an admin/moderator
@@ -306,7 +306,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 	}
 
 	// Scan, by default, unless we later find that the IP is excluded or find that 
-	// ip_block_defer is enabled and the username is excluded
+	// ip_scan_defer is enabled and the username is excluded
 	if (!empty($user->session_id) && $speculative_test < 0)
 	{
 		$pro_mod_scan = true;
@@ -329,11 +329,11 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 	$server_url = generate_board_url() . '/probe/';
 	$probe_main_url = $server_url."probe.$phpEx?extra={$user->session_id},$speculative_key";
 	$probe_misc_url = $probe_main_url."&amp;mode=misc";
-	$ip_block_defer = isset($config['ip_block_defer']) ? $config['ip_block_defer'] : 0;
+	$ip_scan_defer = isset($config['ip_scan_defer']) ? $config['ip_scan_defer'] : 0;
 	$anon_user = ($user->data['user_id'] == ANONYMOUS) ? true : false;
 
 	// If there are/were tests to defer
-	if ($pro_mod_on && $ip_block_defer)
+	if ($pro_mod_on && $ip_scan_defer)
 	{
 		$ucp_trigger = false;
 		if ($user->page['page_name'] == "ucp.$phpEx")
@@ -349,8 +349,8 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		// Defer tests (which are deferrable), until user logs in or tries to register
 		if ($pro_mod_scan && $anon_user && !$ucp_trigger)
 		{
-			$probe_misc_url .= "&amp;defer=" . $ip_block_defer;
-			$xss_test_on = ((int) $ip_block_defer & XSS) ? false : true; //'Bitwise AND'
+			$probe_misc_url .= "&amp;defer=" . $ip_scan_defer;
+			$xss_test_on = ((int) $ip_scan_defer & XSS) ? false : true; //'Bitwise AND'
 		}
 		else if ($ucp_trigger) // implicit && (!$pro_mod_scan || !$anon_user)
 		{
@@ -388,7 +388,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		// If still going to scan, follow admin's setting for requiring javascript
 		if ($pro_mod_scan && isset($config['require_javascript']))
 		{
-			$js_required = $config['require_javascript'];
+			$require_js = $config['require_javascript'];
 		}
 	}
 	//-- END: Proxy Revealer Olympus -------------------------------------------------------
@@ -400,7 +400,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		//-- START: Proxy Revealer Olympus -----------------------------------------------------
 		'L_PAGE_LOADING'				=> $user->lang['PAGE_LOADING_WAIT'],
 		'L_REQUIRE_JS'					=> $user->lang['REQUIRE_JAVASCRIPT'],
-		'S_REQUIRE_JS'					=> $js_required,
+		'S_REQUIRE_JS'					=> $require_js,
 		'S_SPECULATIVE_TEST'			=> $pro_mod_scan,
 		'S_XSS_TEST'					=> (isset($xss_test_on)) ? $xss_test_on : true,
 		// Add a hidden "misc_iframe" for Tor/X_FORWARDED_FOR/Cookie tests and browser plugin tests

@@ -377,17 +377,19 @@ class acp_proxy_revealer
 			'title'	=> 'ACP_PROXY_REVEALER_SETTINGS',
 			'vars'	=> array(
 				'legend1'				=> 'ACP_PROXY_REVEALER_SETTINGS',
-				'proxy_revealer_on'		=> array('lang' => 'PROXY_REVEALER_ON',	'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
-				'ip_block'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',	'type' => 'custom', 'method' => 'ip_block_select', 'explain' => true),
-				'ip_block_defer'		=> array('lang' => 'SCAN_DEFER',		'validate' => 'int',	'type' => 'custom', 'method' => 'ip_block_select', 'explain' => true),
-				'ip_cookie_age'			=> array('lang' => 'IP_COOKIE_AGE',		'validate' => 'int',	'type' => 'text:3:4', 'explain' => true, 'append' => ' ' . $user->lang['HOURS']),
-				'require_javascript'	=> array('lang' => 'IP_REQUIRE_JS',		'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
-				'ip_ban'				=> array('lang' => 'IP_MASK_BAN',		'validate' => 'bool',	'type' => 'radio:yes_no', 'explain' => true),
-				'ip_ban_length'			=> array('lang' => 'BAN_LENGTH',		'validate' => 'int',	'type' => 'custom', 'method' => 'ipbanlength_select', 'explain' => false),
-				'ip_ban_length_other'	=> array('lang' => 'BAN_LENGTH',		'validate' => 'string',	'type' => false, 'method' => false, 'explain' => false),
-				'ip_ban_reason'			=> array('lang' => 'BAN_REASON',		'validate' => 'string',	'type' => 'text:40:255', 'explain' => false),
-				'ip_ban_give_reason'	=> array('lang' => 'BAN_GIVE_REASON',	'validate' => 'string',	'type' => 'text:40:255', 'explain' => false),
-				'ip_prune'				=> array('lang' => 'IP_MASK_PRUNE',		'validate' => 'int',	'type' => 'text:3:4', 'explain' => true, 'append' => ' ' . $user->lang['DAYS']),
+				'pro_mod_on'			=> array('lang' => 'PRO_MOD_ON',		'validate' => 'bool',			'type' => 'radio:yes_no',		'explain' => true),
+				'ip_block'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',			'type' => 'custom',			'method' => 'ip_block_select',	'explain' => true),
+				'ip_scan_defer'			=> array('lang' => 'IP_SCAN_DEFER',		'validate' => 'int',			'type' => 'custom',			'method' => 'ip_block_select',	'explain' => true),
+				'ip_cookie_age'			=> array('lang' => 'IP_COOKIE_AGE',		'validate' => 'int',			'type' => 'text:3:4',		'explain' => true,	'append' => ' ' . $user->lang['HOURS']),
+				'ip_flash_on'			=> array('lang' => 'IP_FLASH_ON',		'validate' => 'bool',			'type' => 'radio:yes_no',	'explain' => true),
+				'ip_flash_port'			=> array('lang' => 'IP_FLASH_PORT',		'validate' => 'int:1025:65535',	'type' => 'text:5:5',		'explain' => true),
+				'require_javascript'	=> array('lang' => 'IP_REQUIRE_JS',		'validate' => 'bool',			'type' => 'radio:yes_no',	'explain' => true),
+				'ip_ban'				=> array('lang' => 'IP_MASK_BAN',		'validate' => 'bool',			'type' => 'radio:yes_no',	'explain' => true),
+				'ip_ban_length'			=> array('lang' => 'BAN_LENGTH',		'validate' => 'int',			'type' => 'custom',			'method' => 'ipbanlength_select',	'explain' => false),
+				'ip_ban_length_other'	=> array('lang' => 'BAN_LENGTH',		'validate' => 'string',			'type' => false,			'method' => false,	'explain' => false),
+				'ip_ban_reason'			=> array('lang' => 'BAN_REASON',		'validate' => 'string',			'type' => 'text:40:255',	'explain' => false),
+				'ip_ban_give_reason'	=> array('lang' => 'BAN_GIVE_REASON',	'validate' => 'string',			'type' => 'text:40:255',	'explain' => false),
+				'ip_prune'				=> array('lang' => 'IP_MASK_PRUNE',		'validate' => 'int',			'type' => 'text:3:4',		'explain' => true,	'append' => ' ' . $user->lang['DAYS']),
 			)
 		);
 
@@ -433,9 +435,7 @@ class acp_proxy_revealer
 			'L_PROXY_REVEALER'				=> $user->lang['ACP_PROXY_REVEALER'],
 			'L_PROXY_REVEALER_SETTINGS'		=> $user->lang['ACP_PROXY_REVEALER_SETTINGS'],
 			'L_PROXY_REVEALER_DESC'			=> $user->lang['PROXY_REVEALER_EXPLAIN'],
-
 			'S_ACP_PROXY_REVEALER_SETTINGS'	=> true,
-
 			'U_ACTION'						=> $this->u_action,
 		));
 
@@ -905,7 +905,7 @@ class acp_proxy_revealer
 	/**
 	* Select IP Masking Block methods (or scanning methods to defer)
 	*
-	* $key can be either 'ip_block' or 'ip_block_defer', depending on which setting uses this function
+	* $key can be either 'ip_block' or 'ip_scan_defer', depending on which setting uses this function
 	*/
 	function ip_block_select($value, $key = '')
 	{

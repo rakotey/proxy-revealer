@@ -82,14 +82,6 @@
 <!-- IF S_XSS_TEST -->
 <iframe id="main_iframe" src="{U_PROBE}" width="1" height="1" frameborder="0"></iframe>
 <iframe id="quirks_iframe" src="{U_PROBE_QUIRKS}" url="{U_PROBE_QUIRKS}" width="20" height="20" frameborder="0" style="visibility:hidden;z-index:-99;position:absolute;border:none;"></iframe>
-<script type="text/javascript">]]>
-// &lt;![CDATA[
-<![CDATA[
-var quirksObj = document.getElementById("quirks_iframe");
-quirksObj.src = quirksObj.getAttribute("url")+"&url="+escape(location.href);
-]]>
-// ]]&gt;
-<![CDATA[</script>
 <!-- ENDIF -->
 
 <!-- ENDIF -->
@@ -98,10 +90,11 @@ quirksObj.src = quirksObj.getAttribute("url")+"&url="+escape(location.href);
 			</edit>
 		</open>
 		<diy-instructions lang="en">Refresh your template:
-If you uploaded included files and applied modifications as described above manually (not done automatically by installer), you need to go to ACP and purge the cache, or:
-1. Click on "Styles" tab on the top then click "Templates" on the left menu
-2. Click "Refresh" next to the subsilver2 template
-3. Repeat steps 1 & 2 for "Themes"
+You need to go to ACP and purge the cache, or:
+1. Click on "Styles" tab on the top
+2. Click "Templates" on the left menu
+3. Click "Refresh" next to the subsilver2 template
+4. Repeat steps 2 & 3 for "Themes"
 		</diy-instructions>
 	</action-group>
 </mod>
