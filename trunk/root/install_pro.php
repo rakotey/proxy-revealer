@@ -51,7 +51,16 @@ $language_file = 'mods/info_acp_proxy_revealer';
 $versions = array(
 	// Version 0.3.4
 	'0.3.4'	=> array(
-		'config_add' => array(
+		'config_remove'	=> array(
+			array('proxy_revealer_on'),
+			array('ip_block_defer'),
+		),
+
+		'config_add'	=> array(
+			array('pro_mod_on', true),
+			array('ip_scan_defer', 0),
+			array('ip_flash_on', true),
+			array('ip_flash_port', 9999),
 			array('ip_last_prune', 0, true),
 		),
 	),

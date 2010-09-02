@@ -340,7 +340,7 @@ function ip_cookie_check()
 	}
 	else
 	{
-		$hours = (isset($config['ip_cookie_age'])) ? $config['ip_cookie_age'] : 6;
+		$hours = (isset($config['ip_cookie_age'])) ? $config['ip_cookie_age'] : 2;
 		$cookie_expire = time() + ($hours * 3600);
 		$user->set_cookie('ipt', $user->ip, $cookie_expire);
 	}
@@ -416,7 +416,7 @@ switch ($mode)
 		$defer = request_var('defer', 0);
 		$java_url = $path_name . "probe.$phpEx?mode=java&amp;ip={$user->ip}&amp;extra=$sid,$key";
 		// XML Socket Policy file server port (For Flash)
-		$xmlsockd_port = 9999;
+		$xmlsockd_port = (isset($config['ip_flash_port'])) ? $config['ip_flash_port'] : 9999;
 		$flash_vars = "dhost=$server_name&amp;dport=$xmlsockd_port&amp;flash_url=$server_url"."probe.$phpEx".
 			"&amp;ip={$user->ip}&amp;extra=$sid,$key&amp;user_agent={$user->browser}";
 		$real_html_url = $server_url . "probe.$phpEx?mode=real_html&amp;extra=$sid,$key";
@@ -433,7 +433,7 @@ switch ($mode)
 			<html>
 			<head><title></title>';
 
-		if (!((int) $defer & FLASH))
+		if (!((int) $defer & FLASH) && $config['ip_flash_on'])
 		{
 			echo '
 			<script type="text/javascript" src="swfobject.js"></script>
@@ -444,7 +444,7 @@ switch ($mode)
 
 		echo "\n</head>\n<body>\n";
 
-		if (!((int) $defer & FLASH))
+		if (!((int) $defer & FLASH) && $config['ip_flash_on'])
 		{
 			echo '
 			<div id="flashDIV">

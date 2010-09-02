@@ -72,11 +72,17 @@ $lang = array_merge($lang, array(
 $lang = array_merge($lang, array(
 	'PROXY_REVEALER_EXPLAIN'	=> 'Attempts to determine someone’s “real” IP address - whenever possible, using a myriad of techniques, and “blocks” such people. Blocking is done within the confines of the “Session IP Validation” setting (“Security Settings” -> “Server Configuation”). Please DO NOT block with X-Forwarded-For or Cookie unless you know what you’re doing! They’ll still log possible masked/real IPs which you can manually ban later if you like.',
 
-	'PROXY_REVEALER_ON'			=> 'Proxy Revealer Enabled',
-	'PROXY_REVEALER_ON_EXPLAIN'	=> 'Setting this to “no” will completely disable this MOD.',
+	'PRO_MOD_ON'			=> 'Proxy Revealer Enabled',
+	'PRO_MOD_ON_EXPLAIN'	=> 'Setting this to “no” will completely disable this MOD.',
 
 	'DAYS'					=> 'Days',
 	'HOURS'					=> 'Hours',
+	'IP_COOKIE_AGE'			=> 'IP-tracking Cookie Age',
+	'IP_COOKIE_AGE_EXPLAIN'	=> 'How long before cookie expires. Keep this low to avoid false positives, as some users’ IPs may change often. If you block with this method (not advised,) it’s wise to set “Session IP Validation” to A.B.C or even A.B only.',
+	'IP_FLASH_ON'			=> 'Flash Method Enabled',
+	'IP_FLASH_ON_EXPLAIN'	=> 'This enables the Flash detection method. If you’ll be unable to run the xmlsockd daemon script, you might as well disable it (to prevent unecessary loading of the Flash plugin).',
+	'IP_FLASH_PORT'			=> 'Flash xmlsockd Port',
+	'IP_FLASH_PORT_EXPLAIN'	=> 'This is needed to tell the Flash plugin what port to connect on, to <a href="http://www.adobe.com/devnet/flashplayer/articles/flash_player9_security_update.html#socket_policy">authorize a xmlsocket connection</a> back to the server. Default script port is 9999.',
 	'IP_MASK_BAN'			=> 'IP Masking Ban',
 	'IP_MASK_BAN_EXPLAIN'	=> 'Permanently bans the proxy IPs used by people who were blocked by the above detection methods.',
 	'IP_MASK_BLOCK'			=> 'IP Masking Block',
@@ -85,10 +91,8 @@ $lang = array_merge($lang, array(
 	'IP_MASK_PRUNE_EXPLAIN'	=> 'Determines when masked IPs will be automatically deleted.  Leave blank (or 0) to disable.',
 	'IP_REQUIRE_JS'			=> 'Require Javascript enabled',
 	'IP_REQUIRE_JS_EXPLAIN'	=> 'This ensures that Web-Proxy URLs get logged by XSS, Flash auto-loads in IE6/7 & Opera9+, old/no flash is detected, RealPlayer plugin detection/test occurs, and Firefox users with “NoScript” are forced to “Allow this site” (enables Java/Flash).',
-	'IP_COOKIE_AGE'			=> 'IP-tracking Cookie Age',
-	'IP_COOKIE_AGE_EXPLAIN'	=> 'How long before cookie expires. Keep this low to avoid false positives, as some users’ IPs may change often. If you block with this method (not advised,) it’s wise to set “Session IP Validation” to A.B.C or even A.B only.',
-	'SCAN_DEFER'			=> 'Defer Scan Methods',
-	'SCAN_DEFER_EXPLAIN'	=> 'This will defer scanning methods till login (or registration) and allows for excluding certain users (ex. to allow a user to use Tor, check “Tor DNSEL” here and add them in “Exceptions”).',
+	'IP_SCAN_DEFER'			=> 'Defer Scan Methods',
+	'IP_SCAN_DEFER_EXPLAIN'	=> 'This will defer scanning methods till login (or registration) which allows for excluding certain users (ex. to allow a user to use Tor, check “Tor DNSEL” here and add them in “Exceptions”).',
 
 ));
 
