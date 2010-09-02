@@ -264,15 +264,14 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		//-- START: Proxy Revealer Olympus -----------------------------------------------------
 		// session_speculative_test can be thought of as a combination of bits.  The bits that
 		// are set represent modes that tested positive for ip masking.  We compare that against
-		// the enabled "blocking modes", by means of a 'Bitwise AND' operation, and from there,
+		// the enabled "blocking modes" by means of a 'Bitwise AND' operation, and from there,
 		// block as appropriate.
 		if (isset($this->data['session_speculative_test']) && isset($config['ip_block']))
 		{
 			$speculative_test	= (int) $this->data['session_speculative_test'];
 			$ip_block			= (int) $config['ip_block'];
 
-			// The single '&' in the second condition is a 'Bitwise AND', not a typo :)
-			if ($speculative_test > 0 && ($speculative_test & $ip_block))
+			if ($speculative_test > 0 && ($speculative_test & $ip_block)) //'Bitwise AND'
 			{
 				header('HTTP/1.1 503 Service Unavailable');
 				trigger_error('IP_MASK_BLOCKED');
@@ -306,13 +305,14 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		$speculative_test = (int) $user->data['session_speculative_test'];
 	}
 
-	// Scan (unless the IP is excluded or ip_block_defer is ON and username is excluded)
+	// Scan, by default, unless we later find that the IP is excluded or find that 
+	// ip_block_defer is enabled and the username is excluded
 	if (!empty($user->session_id) && $speculative_test < 0)
 	{
 		$pro_mod_scan = true;
 		$speculative_key = strtolower(gen_rand_string(10));
 	
-		$sql = "UPDATE ".SESSIONS_TABLE." 
+		$sql = 'UPDATE ' . SESSIONS_TABLE . "
 			SET session_speculative_test = 0, session_speculative_key = '$speculative_key' 
 			WHERE session_id = '{$user->data['session_id']}'";
 		$db->sql_query($sql);
@@ -332,43 +332,52 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 	$ip_block_defer = isset($config['ip_block_defer']) ? $config['ip_block_defer'] : 0;
 	$anon_user = ($user->data['user_id'] == ANONYMOUS) ? true : false;
 
-	// If there are tests to defer
+	// If there are/were tests to defer
 	if ($pro_mod_on && $ip_block_defer)
 	{
-		$ucp_page = ($user->page['page_name'] == "ucp.$phpEx") ? true : false;
-		$query_str = $user->page['query_string'];
+		$ucp_trigger = false;
+		if ($user->page['page_name'] == "ucp.$phpEx")
+		{
+			$mode = request_var('mode', '');
+			if ((!$anon_user && $mode == 'login') || $mode == 'register')
+			{
+				// User logged in or trying to register
+				$ucp_trigger = true;
+			}
+		}
 
-		// Defer the tests (which are deferrable) until user logs in or tries to register
-		if ($pro_mod_scan && !$ucp_page && $anon_user)
+		// Defer tests (which are deferrable), until user logs in or tries to register
+		if ($pro_mod_scan && $anon_user && !$ucp_trigger)
 		{
 			$probe_misc_url .= "&amp;defer=" . $ip_block_defer;
-			$xss_test_on = ((int) $ip_block_defer & XSS) ? false : true;
+			$xss_test_on = ((int) $ip_block_defer & XSS) ? false : true; //'Bitwise AND'
 		}
-		// User logged in (no longer anonymous) or trying to register
-		else if ($ucp_page && ((!$anon_user && strpos($query_str, 'mode=login') !== false) ||
-								strpos($query_str, 'mode=register') !== false) )
+		else if ($ucp_trigger) // implicit && (!$pro_mod_scan || !$anon_user)
 		{
 			$pro_mod_scan = true;
 		}
 	}
 
-	// Pre-scanning checks
+	// Pre-scanning checks: IP/user_id Excludes, javascript requirement
 	if ($pro_mod_scan)
 	{
-		// Check exception list to see if the IP (or range) or user_id is excluded
-		$cache_ttl = 3600;
-		$sql = "SELECT ip_address, user_id 
+		// If user logged in then there are deferred tests, so check if user_id is excluded.
+		// Also, (re-)check if the IP is excluded - for those that are only excluded by IP.
+		// Otherwise, only check if the IP address is excluded.
+		$exclusion_fields = (!$anon_user) ? 'ip_address, user_id' : 'ip_address';
+
+		$sql = "SELECT $exclusion_fields
 			FROM " . SPECULATIVE_EXCLUDE_TABLE;
+		$cache_ttl = 3600;
 		$result = $db->sql_query($sql, $cache_ttl);
-	
+
+		// Adapted from function check_ban() in session.php
 		while ($row = $db->sql_fetchrow($result))
 		{
-			// IP exclusion is adapted from function check_ban() in session.php
-			if ( ($row['ip_address'] && 
-					preg_match('#^' . str_replace('\*', '.*?', 
-						preg_quote($row['ip_address'], '#')) . '$#i', $user->ip)) || 
-				 ($row['user_id'] && !$anon_user && 
-					(int) $user->data['user_id'] == (int) $row['user_id']) )
+			// If we get any match, cancel the scan and break out
+			if ((!empty($row['ip_address']) &&
+				 preg_match('#^' . str_replace('\*', '.*?', preg_quote($row['ip_address'], '#')) . '$#i', $user->ip)) ||
+				(!empty($row['user_id']) && (int) $user->data['user_id'] == (int) $row['user_id']))
 			{
 				$pro_mod_scan = false;
 				break;
@@ -376,7 +385,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		}
 		$db->sql_freeresult($result);
 
-		// If we're still going to scan, see if we're told to require javascript
+		// If still going to scan, follow admin's setting for requiring javascript
 		if ($pro_mod_scan && isset($config['require_javascript']))
 		{
 			$js_required = $config['require_javascript'];
@@ -465,12 +474,13 @@ function prune_speculative()
 				<find><![CDATA[?>]]></find>
 				<action type="before-add"><![CDATA[
 
-// Proxy Revealer Olympus
+//-- START: Proxy Revealer Olympus -----------------------------------------------------
 $lang = array_merge($lang, array(
 	'IP_MASK_BLOCKED'		=> 'Your IP address has been blocked for this session as it appears to be masked (or abusive).',
 	'PAGE_LOADING_WAIT'		=> 'Page Loading...<br />Please wait.',
 	'REQUIRE_JAVASCRIPT'	=> 'Sorry, this site will not function correctly without javascript! The scripts are safe and will not harm your computer in anyway...<br /><strong>Please enable javascript in your browser then refresh/reload the page.</strong>',
 ));
+//-- END: Proxy Revealer Olympus -------------------------------------------------------
 
 ]]></action>
 			</edit>
@@ -523,10 +533,10 @@ $lang = array_merge($lang, array(
 		<php-installer>install_pro.php</php-installer>
 
 		<diy-instructions lang="en">
-Don't forget to delete the installer file after you're done!
-The installer purges the cache for you automatically after successful install. Otherwise, you may need to purge the cache yourself.
+Don't forget to delete the installer file (install_pro.php) from your forum root after you're done!
+The installer purges the cache for you automatically after a successful install. Otherwise, you may need to purge the cache yourself.
 You can now administer "Proxy Revealer Olympus" MOD from the .MODS tab.
-PLEASE DO NOT check "X_FORWARDED_FOR" and/or "Cookie" for "IP Masking Block" in Settings unless you really know what you're doing!!!
+PLEASE DO NOT check "X_FORWARDED_FOR" and/or "Cookie" under "IP Masking Block" in Settings unless you really know what you're doing!!!
 		</diy-instructions>
 
 	</action-group>
