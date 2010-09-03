@@ -63,6 +63,10 @@ $versions = array(
 			array('ip_flash_port', 9999),
 			array('ip_last_prune', 0, true),
 		),
+
+		'config_update'	=> array(
+			array('ip_block', 1006),
+		),
 	),
 
 	// Version 0.3.3

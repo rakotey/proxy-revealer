@@ -184,8 +184,11 @@ functions.php/overall_header.</change>
 			<file from="root/language/en/mods/proxy_revealer.php" to="language/en/mods/proxy_revealer.php"/>
 			<file from="root/probe/HttpRequestor.jar" to="probe/HttpRequestor.jar"/>
 			<file from="root/probe/HttpRequestor.swf" to="probe/HttpRequestor.swf"/>
+			<file from="root/probe/PluginDetect.js" to="probe/PluginDetect.js"/>
+			<file from="root/probe/dummy.mov" to="probe/dummy.mov"/>
 			<file from="root/probe/expressInstall.swf" to="probe/expressInstall.swf"/>
 			<file from="root/probe/probe.php" to="probe/probe.php"/>
+			<file from="root/probe/sample.mov" to="probe/sample.mov"/>
 			<file from="root/probe/sample.rm" to="probe/sample.rm"/>
 			<file from="root/probe/swfobject.js" to="probe/swfobject.js"/>
 			<file from="root/probe/xss.js" to="probe/xss.js"/>
@@ -241,8 +244,10 @@ define('COOKIE',16);
 define('TOR_DNSEL',32);
 define('REALPLAYER',64);
 define('PROXY_DNSBL',128);
-// this is used in acp_proxy_revealer.php
-define('JAVA_INTERNAL',3);
+define('QUICKTIME',256);
+define('WMPLAYER',512);
+// This is used in ACP (Internal IPs Log)
+define('JAVA_INTERNAL', 3);
 //-- END: Proxy Revealer Olympus -------------------------------------------------------
 ]]></action>
 			</edit>

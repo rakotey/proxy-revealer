@@ -41,9 +41,8 @@ $lang = array_merge($lang, array(
 
 	'SPECULATIVE_IP_INTERNAL'	=> 'The IP addresses on this page are, in most cases, going to be ones that only appear on LANs (10.*.*.*, 192.168.*.*, etc).  Under rare circumstances, external IP addresses may show up (eg. someone is using a http proxy and is plugged directly into their cable modem).  You can also view (purely) “%sExternal IP Addresses%s”.',
 
-	'SPECULATIVE_IP_FLASH'		=> 'Extended Flash Plugin Information',
-	'SPECULATIVE_IP_JAVA'		=> 'Extended Java Plugin Information',
-	'SPECULATIVE_IP_REALPLAYER'	=> 'Extended RealPlayer Plugin Information',
+	'PLUGIN_DESC'				=> 'Extended %s Plugin Information',
+	'PLUGIN_VERSION'			=> '%s Version',
 
 	'SPOOFED_IP'				=> 'Masked IP Address',
 	'METHOD_USED'				=> 'Method Used',
@@ -60,11 +59,8 @@ $lang = array_merge($lang, array(
 	'SORT'						=> 'Sort',
 	'DATE'						=> 'Date',
 	'USER_AGENT'				=> 'User-Agent',
-	'FLASH_VERSION'				=> 'Flash Version',
-	'JAVA_VERSION'				=> 'Java Version',
-	'REALPLAYER_VERSION'		=> 'RealPlayer Version',
 	'IP_WHOIS_FOR'				=> 'IP whois for %s',
-	'PROXY_DNSBL_URL'			=> 'DNSBL IP Query Link',
+	'PROXY_DNSBL_URL'			=> 'DNSBL IP Query URL',
 	'XSS_URL'					=> 'Web Proxy URL',
 ));
 
@@ -120,9 +116,11 @@ $lang = array_merge($lang, array(
 	'COOKIE'			=> 'Cookie',
 	'FLASH'				=> 'Flash',
 	'JAVA'				=> 'Java',
+	'PROXY_DNSBL'		=> 'Proxy-DNSBL',
+	'QUICKTIME'			=> 'QuickTime',
 	'REALPLAYER'		=> 'RealPlayer',
 	'TOR_DNSEL'			=> 'Tor-DNSEL',
-	'PROXY_DNSBL'		=> 'Proxy-DNSBL',
+	'WMPLAYER'			=> 'WMPlayer',
 	'X_FORWARDED_FOR'	=> 'X-Forwarded-For',
 	'XSS'				=> 'XSS',
 ));

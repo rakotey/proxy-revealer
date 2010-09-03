@@ -49,6 +49,8 @@ class acp_proxy_revealer
 					case 'flash':
 					case 'java':
 					case 'realplayer':
+					case 'quicktime':
+					case 'wmplayer':
 						$this->popup_plugin_info($action);
 					break;
 
@@ -165,6 +167,20 @@ class acp_proxy_revealer
 						. $this->u_action . "&amp;action=realplayer&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
 						. '" title="' . $user->lang['SPECULATIVE_IP_REALPLAYER'] . '" '
 						. 'onclick="popup(this.href, 700, 300, \'_realplayer\'); return false;">' . $user->lang['REALPLAYER'] . '</a>';
+				break;
+
+				case QUICKTIME:
+					$method = '<a href="'
+						. $this->u_action . "&amp;action=quicktime&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
+						. '" title="' . $user->lang['SPECULATIVE_IP_QUICKTIME'] . '" '
+						. 'onclick="popup(this.href, 700, 300, \'_quicktime\'); return false;">' . $user->lang['QUICKTIME'] . '</a>';
+				break;
+
+				case WMPLAYER:
+					$method = '<a href="'
+						. $this->u_action . "&amp;action=wmplayer&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
+						. '" title="' . $user->lang['SPECULATIVE_IP_WMPLAYER'] . '" '
+						. 'onclick="popup(this.href, 700, 300, \'_wmplayer\'); return false;">' . $user->lang['WMPLAYER'] . '</a>';
 				break;
 
 				case TOR_DNSEL:
@@ -314,7 +330,7 @@ class acp_proxy_revealer
 		$real_ip = request_var('real', '');
 		$method = request_var('method', 0);
 
-		if ($method != JAVA && $method != JAVA_INTERNAL && $method != FLASH && $method != REALPLAYER)
+		if ($method != JAVA && $method != JAVA_INTERNAL && $method != FLASH && $method != REALPLAYER && $method != QUICKTIME && $method != WMPLAYER)
 		{
 			trigger_error('NO_MODE', E_USER_ERROR);
 		}
@@ -346,9 +362,9 @@ class acp_proxy_revealer
 
 		$template->assign_vars(array(
 			'L_PROXY_REVEALER'	=> $user->lang['ACP_PROXY_REVEALER'],
-			'L_PLUGIN_DESC'		=> $user->lang['SPECULATIVE_IP_' . strtoupper($action)],
+			'L_PLUGIN_DESC'		=> sprintf($user->lang['PLUGIN_DESC'], $user->lang[strtoupper($action)]),
 			'L_USER_AGENT' 		=> $user->lang['USER_AGENT'],
-			'L_PLUGIN_VERSION'	=> $user->lang[strtoupper($action) . '_VERSION'],
+			'L_PLUGIN_VERSION'	=> sprintf($user->lang['PLUGIN_VERSION'], $user->lang[strtoupper($action)]),
 
 			'PLUGIN_VERSION'	=> $plugin_version,
 			'USER_AGENT'		=> $info[0],
@@ -918,28 +934,34 @@ class acp_proxy_revealer
 		$dnsbl_on	= ( $value & PROXY_DNSBL ) ? 'checked="checked"' : "";
 		$flash_on	= ( $value & FLASH ) ? 'checked="checked"' : "";
 		$java_on	= ( $value & JAVA ) ? 'checked="checked"' : "";
+		$qtime_on	= ( $value & QUICKTIME ) ? 'checked="checked"' : "";
 		$realp_on	= ( $value & REALPLAYER ) ? 'checked="checked"' : "";
 		$tor_el_on	= ( $value & TOR_DNSEL ) ? 'checked="checked"' : "";
+		$wmp_on		= ( $value & WMPLAYER ) ? 'checked="checked"' : "";
 		$xss_on		= ( $value & XSS ) ? 'checked="checked"' : "";
 		$x_fwd_on	= ( $value & X_FORWARDED_FOR ) ? 'checked="checked"' : "";
 
 		// The actual methods' checkboxes :-)
-		$cookie = '<label><input id="'.$key.'_'.'cookie" type="checkbox" class="radio" value="'.COOKIE.'" '.$cookie_on.' onclick="calc'.$key.'();" /> '
-			. $user->lang['COOKIE'] . '</label>';
-		$dnsbl = '<label><input id="'.$key.'_'.'dnsbl" type="checkbox" class="radio" value="'.PROXY_DNSBL.'" '.$dnsbl_on.' onclick="calc'.$key.'();" /> '
-			. $user->lang['PROXY_DNSBL'] . '</label>';
-		$flash = '<label><input id="'.$key.'_'.'flash" type="checkbox" class="radio" value="'.FLASH.'" '.$flash_on.' onclick="calc'.$key.'();" /> '
-			. $user->lang['FLASH'] . '</label>';
-		$java = '<label><input id="'.$key.'_'.'java" type="checkbox" class="radio" value="'.JAVA.'" '.$java_on.' onclick="calc'.$key.'();" /> '
-			. $user->lang['JAVA'] . '</label>';
-		$realp = '<label><input id="'.$key.'_'.'realp" type="checkbox" class="radio" value="'.REALPLAYER.'" '.$realp_on.' onclick="calc'.$key.'();" /> '
-			. $user->lang['REALPLAYER'] . '</label>';
-		$tor_el = '<label><input id="'.$key.'_'.'tor_el" type="checkbox" class="radio" value="'.TOR_DNSEL.'" '.$tor_el_on.' onclick="calc'.$key.'();" /> '
-			. $user->lang['TOR_DNSEL'] . '</label>';
-		$xss = '<label><input id="'.$key.'_'.'xss" type="checkbox" class="radio" value="'.XSS.'" '.$xss_on.' onclick="calc'.$key.'();" /> '
-			. $user->lang['XSS'] . '</label>';
-		$x_fwd = '<label><input id="'.$key.'_'.'x_fwd" type="checkbox" class="radio" value="'.X_FORWARDED_FOR.'" '.$x_fwd_on.' onclick="calc'.$key.'();" /> '
-			. $user->lang['X_FORWARDED_FOR'] . '</label>';
+		$cookie = '<label><input id="'.$key.'_'.'cookie" type="checkbox" class="radio" value="'.COOKIE
+				.'" '.$cookie_on.' onclick="calc'.$key.'();" /> ' . $user->lang['COOKIE'] . '</label>';
+		$dnsbl = '<label><input id="'.$key.'_'.'dnsbl" type="checkbox" class="radio" value="'.PROXY_DNSBL
+				.'" '.$dnsbl_on.' onclick="calc'.$key.'();" /> ' . $user->lang['PROXY_DNSBL'] . '</label>';
+		$flash = '<label><input id="'.$key.'_'.'flash" type="checkbox" class="radio" value="'.FLASH
+				.'" '.$flash_on.' onclick="calc'.$key.'();" /> ' . $user->lang['FLASH'] . '</label>';
+		$java = '<label><input id="'.$key.'_'.'java" type="checkbox" class="radio" value="'.JAVA
+				.'" '.$java_on.' onclick="calc'.$key.'();" /> ' . $user->lang['JAVA'] . '</label>';
+		$qtime = '<label><input id="'.$key.'_'.'qtime" type="checkbox" class="radio" value="'.QUICKTIME
+				.'" '.$qtime_on.' onclick="calc'.$key.'();" /> ' . $user->lang['QUICKTIME'] . '</label>';
+		$realp = '<label><input id="'.$key.'_'.'realp" type="checkbox" class="radio" value="'.REALPLAYER
+				.'" '.$realp_on.' onclick="calc'.$key.'();" /> ' . $user->lang['REALPLAYER'] . '</label>';
+		$tor_el = '<label><input id="'.$key.'_'.'tor_el" type="checkbox" class="radio" value="'.TOR_DNSEL
+				.'" '.$tor_el_on.' onclick="calc'.$key.'();" /> ' . $user->lang['TOR_DNSEL'] . '</label>';
+		$wmp = '<label><input id="'.$key.'_'.'wmp" type="checkbox" class="radio" value="'.WMPLAYER
+				.'" '.$wmp_on.' onclick="calc'.$key.'();" /> ' . $user->lang['WMPLAYER'] . '</label>';
+		$xss = '<label><input id="'.$key.'_'.'xss" type="checkbox" class="radio" value="'.XSS
+				.'" '.$xss_on.' onclick="calc'.$key.'();" /> ' . $user->lang['XSS'] . '</label>';
+		$x_fwd = '<label><input id="'.$key.'_'.'x_fwd" type="checkbox" class="radio" value="'.X_FORWARDED_FOR
+				.'" '.$x_fwd_on.' onclick="calc'.$key.'();" /> ' . $user->lang['X_FORWARDED_FOR'] . '</label>';
 
 		$js_calc = '
 			<script type="text/javascript">
@@ -950,8 +972,10 @@ class acp_proxy_revealer
 				dnsbl = document.getElementById("'.$key.'_'.'dnsbl");
 				flash = document.getElementById("'.$key.'_'.'flash");
 				java = document.getElementById("'.$key.'_'.'java");
+				qtime = document.getElementById("'.$key.'_'.'qtime");
 				realp = document.getElementById("'.$key.'_'.'realp");
 				tor_el = document.getElementById("'.$key.'_'.'tor_el");
+				wmp = document.getElementById("'.$key.'_'.'wmp");
 				xss = document.getElementById("'.$key.'_'.'xss");
 				x_fwd = document.getElementById("'.$key.'_'.'x_fwd");
 				ip_block.value = 0;
@@ -959,8 +983,10 @@ class acp_proxy_revealer
 				if(dnsbl.checked){ip_block.value = parseInt(ip_block.value) + parseInt(dnsbl.value);}
 				if(flash.checked){ip_block.value = parseInt(ip_block.value) + parseInt(flash.value);}
 				if(java.checked){ip_block.value = parseInt(ip_block.value) + parseInt(java.value);}
+				if(qtime.checked){ip_block.value = parseInt(ip_block.value) + parseInt(qtime.value);}
 				if(realp.checked){ip_block.value = parseInt(ip_block.value) + parseInt(realp.value);}
 				if(tor_el.checked){ip_block.value = parseInt(ip_block.value) + parseInt(tor_el.value);}
+				if(wmp.checked){ip_block.value = parseInt(ip_block.value) + parseInt(wmp.value);}
 				if(xss.checked){ip_block.value = parseInt(ip_block.value) + parseInt(xss.value);}
 				if(x_fwd.checked){ip_block.value = parseInt(ip_block.value) + parseInt(x_fwd.value);}
 			}
