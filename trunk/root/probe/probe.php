@@ -410,16 +410,33 @@ switch ($mode)
 
 	case 'misc':
 
+		$defer = request_var('defer', 0);
+
 		/**
 		* Flash, Java and RealPlayer plugins embedding begins here
 		*/
-		$defer = request_var('defer', 0);
+
+		// Java applet's "path" parameter value
 		$java_url = $path_name . "probe.$phpEx?mode=java&amp;ip={$user->ip}&amp;extra=$sid,$key";
-		// XML Socket Policy file server port (For Flash)
-		$xmlsockd_port = (isset($config['ip_flash_port'])) ? $config['ip_flash_port'] : 9999;
-		$flash_vars = "dhost=$server_name&amp;dport=$xmlsockd_port&amp;flash_url=$server_url"."probe.$phpEx".
-			"&amp;ip={$user->ip}&amp;extra=$sid,$key&amp;user_agent={$user->browser}";
+
+		// Flash plugin's XMLSocket Policy file server port, and the object tag's "FlashVars" parameter value
+		$xmlsockd_port = $config['ip_flash_port'];
+		$flash_vars = "dhost=$server_name&amp;dport=$xmlsockd_port&amp;flash_url=$server_url"
+			."probe.$phpEx"."&amp;ip={$user->ip}&amp;extra=$sid,$key&amp;user_agent={$user->browser}";
+
+		// Quicktime object/embed "qtsrc" parameter value
+		$qtsrc = $server_url . "probe.$phpEx?mode=quicktime&amp;ip={$user->ip}&amp;extra=$sid,$key";
+
+		// Realplayer: we load a page in an iframe, which handles both the object/embed and "ram" (playlist) file download
 		$real_html_url = $server_url . "probe.$phpEx?mode=real_html&amp;extra=$sid,$key";
+
+		// Windows Media Player & Compatibles (mplayer/vlc/flip4mac etc.)
+		// "mms://" is a "protocol rollover", as recommended by Microsoft: http://msdn.microsoft.com/en-us/library/dd757582.aspx
+		// "rtsp://" works too, and actually about a second faster, but doesn't work by default on Linux w/ gecko-mediaplayer (only mms:// works)
+		// Intentionally not using server:port format when server runs on default web server port 80, because when using server:80,
+		// there's a severe delay before the http direct connect on port 80 happens, followed by a http proxied connect (for WMP9, at least).
+		$wmp_src = "mms://" . $server_name . (($server_port != "80") ? ":$server_port" : "")
+			."$path_name"."probe.$phpEx?mode=wmplayer&amp;ip={$user->ip}&amp;extra=$sid,$key";
 
 		// If the buffer is not set to 0, there's no need to call ob_start(), because the buffer is started already.
 		// Calling it again will cause a second level of buffering to start and the script won't work.
@@ -433,6 +450,11 @@ switch ($mode)
 			<html>
 			<head><title></title>';
 
+		if (!((int) $defer & QUICKTIME) || !((int) $defer & WMPLAYER))
+		{
+			echo "\n".'<script type="text/javascript" src="PluginDetect.js"></script>';
+		}
+
 		if (!((int) $defer & FLASH) && $config['ip_flash_on'])
 		{
 			echo '
@@ -443,6 +465,18 @@ switch ($mode)
 		}
 
 		echo "\n</head>\n<body>\n";
+
+		if (!((int) $defer & JAVA))
+		{
+			echo '
+			<applet width="0" height="0" archive="HttpRequestor.jar" code="HttpRequestor.class">
+			  <param name="proto" value="' . $server_protocol . '">
+			  <param name="domain" value="' . $server_name . '">
+			  <param name="port" value="' . $server_port . '">
+			  <param name="path" value="' . $java_url . '">
+			  <param name="user_agent" value="' . $user->browser . '">
+			</applet>';
+		}
 
 		if (!((int) $defer & FLASH) && $config['ip_flash_on'])
 		{
@@ -471,28 +505,72 @@ switch ($mode)
 			</script>';
 		}
 
-		if (!((int) $defer & JAVA))
+		if (!((int) $defer & QUICKTIME))
 		{
+			// If found, we load it using javascript, to avoid browsers (that don't have the plugin installed) prompting user to install it.
+			$qt_obj = '\n\
+			<OBJECT classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B" width="1" height="1">\n\
+				<param name="type" value="video/quicktime">\n\
+				<param name="src" value="dummy.mov">\n\
+				<param name="qtsrc" value="'. $qtsrc .'">\n\
+				<param name="autoplay" value="true">\n\
+				<param name="controller" value="false">\n\
+				<param name="qtsrcdontusebrowser" value="true">\n\
+				<EMBED type="video/quicktime" src="dummy.mov" qtsrc="'. $qtsrc .'" autoplay="true"\n\
+				controller="false" qtsrcdontusebrowser="true" width="1" height="1"></EMBED>\n\
+			</OBJECT>';
+
+			// hasMimeType() only works for non-Internet Explorer browsers. It will return null for Internet Explorer
+			// http://www.pinlady.net/PluginDetect/QuickTimeDetect.htm
 			echo '
-			<applet width="0" height="0" archive="HttpRequestor.jar" code="HttpRequestor.class">
-			  <param name="proto" value="' . $server_protocol . '">
-			  <param name="domain" value="' . $server_name . '">
-			  <param name="port" value="' . $server_port . '">
-			  <param name="path" value="' . $java_url . '">
-			  <param name="user_agent" value="' . $user->browser . '">
-			</applet>';
+			<script type="text/javascript">
+			var $$ = PluginDetect;
+			var hasQT = $$.isMinVersion("QuickTime", "0") >= 0 ||
+				$$.hasMimeType("video/quicktime") ? true : false;
+			if(hasQT){
+			  document.write(\''. $qt_obj . '\');
+			}
+			</script>';
 		}
 
 		if (!((int) $defer & REALPLAYER))
 		{
 			// Detect RealPlayer Plugin in Netscape/Mozilla browsers using Javascript, or the ActiveX Control in IE using VBScript.
-			// If found, we load it using javascript to avoid browsers that don't have the plugin intalled so they don't get prompted to install it :)
+			// If found, we load it using javascript, to avoid browsers (that don't have the plugin installed) prompting user to install it.
 			echo '
 			<script type="text/javascript">
 			function detectReal(){var p="RealPlayer";var found=false;var np=navigator.plugins;if(np&&np.length>0){var length=np.length;for(cnt=0;cnt<length;cnt++){if((np[cnt].name.indexOf(p)>=0)||(np[cnt].description.indexOf(p)>=0)){found=true;break;}}}if(!found&&VB){found=(detectAX("rmocx.RealPlayer G2 Control")||detectAX("RealPlayer.RealPlayer(tm) ActiveX Control (32-bit)")||detectAX("RealVideo.RealVideo(tm) ActiveX Control (32-bit)"));}return found;}var VB=false;var nua=navigator.userAgent;var d=document;if((nua.indexOf("MSIE")!=-1)&&(nua.indexOf("Win")!=-1)){d.writeln(\'<script language="VBscript">\');d.writeln("VB=False");d.writeln("If ScriptEngineMajorVersion>=2 then");d.writeln("  VB=True");d.writeln("End If");d.writeln("Function detectAX(axName)");d.writeln(" on error resume next");d.writeln(" detectAX=False");d.writeln(" If VB Then");d.writeln("  detectAX=IsObject(CreateObject(axName))");d.writeln(" End If");d.writeln("End Function");d.writeln("</scr" + "ipt>");}
 			var hasReal=detectReal();
 			if(hasReal){
 			  document.writeln(\'<iframe src="'. $real_html_url . '" width="1" height="1" frameborder="0"></iframe>\');
+			}
+			</script>';
+		}
+
+		if (!((int) $defer & WMPLAYER))
+		{
+			// If found, we load it using javascript, to avoid browsers (that don't have the plugin installed) prompting user to install it.
+			$wmp_obj = '\n\
+			<OBJECT width="1" height="1" classid="CLSID:22d6f312-b0f6-11d0-94ab-0080c74c7e95">\n\
+				<param name="Type" value="application/x-oleobject">\n\
+				<param name="FileName" value="'. $wmp_src .'">\n\
+				<param name="AutoStart" value="true">\n\
+				<param name="ShowControls" value="false">\n\
+				<param name="Showtracker" value="false">\n\
+				<param name="loop" value="false">\n\
+				<EMBED type="application/x-mplayer2" src="'. $wmp_src .'" autostart="true"\n\
+				showcontrols="false" showtracker="false" loop="false" width="1" height="1"></EMBED>\n\
+			</OBJECT>';
+
+			// hasMimeType() only works for non-Internet Explorer browsers. It will return null for Internet Explorer
+			// http://www.pinlady.net/PluginDetect/WinMediaDetect.htm
+			echo '
+			<script type="text/javascript">
+			var $$ = PluginDetect;
+			var hasWMP = $$.isMinVersion("WindowsMediaPlayer", "0") >= 0 ||
+				$$.hasMimeType("application/x-mplayer2") ? true : false;
+			if(hasWMP){
+			  document.write(\''. $wmp_obj . '\');
 			}
 			</script>';
 		}
@@ -591,8 +669,9 @@ switch ($mode)
 	exit;
 	// no break here
 
+	case 'quicktime':
 	case 'realplayer':
-		// Here, RealPlayer plugin is connecting directly to the server, thinking it's an RTSP server :-)
+	case 'wmplayer':
 		$orig_ip = request_var('ip', '');
 		$user_agent = request_var('user_agent', '');
 		$info = $user_agent .'<>'. $user->browser;
@@ -601,12 +680,33 @@ switch ($mode)
 		// if they're different, we've probably managed to break out of the proxy, so we log it.
 		if ( $orig_ip != $user->ip )
 		{
-			insert_ip($orig_ip,REALPLAYER,$user->ip,$info);
+			switch ($mode)
+			{
+				case 'quicktime':
+					$method = QUICKTIME;
+				break;
+				case 'realplayer':
+					$method = REALPLAYER;
+				break;
+				case 'wmplayer':
+					$method = WMPLAYER;
+				break;
+			}
+
+			insert_ip($orig_ip,$method,$user->ip,$info);
 		}
 
-		// Redirect back to http -  to a single-frame .rm (real video) file. This is to avoid plugin popping up an error that it couldn't play :-)
-		$video_url = $server_url . "sample.rm";
-		header("Location: $video_url");
+		// Redirect back to to an actual (tiny) .mov file. This is to avoid a 404 which makes some players trip out
+		// or flood the server with extraneous requests (ex. gnome-mplayer)
+		if ($mode == 'quicktime')
+		{
+			header("Location: {$server_url}sample.mov");
+		}
+		// Redirect back  to a single-frame .rm (real video) file. This is to avoid plugin popping up an error that it couldn't play
+		else if ($mode == 'realplayer')
+		{
+			header("Location: {$server_url}sample.rm");
+		}
 	exit;
 	// no break here
 
