@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 # XML Socket Daemon for Flash Addon to Proxy Revealer MOD for phpbb
-# Author: jasmineaura < jasmine.aura@yahoo.com > (Jasmine Hasan)
+# Author: jasmineaura <jasmine.aura@yahoo.com> (Jasmine Hasan)
 # Licensed under http://opensource.org/licenses/gpl-license.php GNU Public License
 # $Id: xmlsockd-basic.pl 23 2008-09-16 13:13:01Z jasmine.aura@yahoo.com $
 

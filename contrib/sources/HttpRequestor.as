@@ -1,4 +1,4 @@
-﻿// HttpRequestor.as (ActionScript 3.0 code)
+// HttpRequestor.as (ActionScript 3.0 code)
 // Flash addon for Proxy Revealer Olympus (phpBB3 MOD)
 // Author: Jasmine < jasmine.aura@yahoo.com >
 // Licensed under http://opensource.org/licenses/gpl-license.php GNU Public License

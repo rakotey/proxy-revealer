@@ -1,11 +1,14 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <?xml-stylesheet type="text/xsl" href="./modx.prosilver.en.xsl"?>
 <!--For security purposes, please check: http://www.phpbb.com/mods/ for the latest version of this MOD. Although MODs are checked before being allowed in the MODs Database there is no guarantee that there are no security problems within the MOD. No support will be given for MODs not found within the MODs Database which can be found at http://www.phpbb.com/mods/-->
 <mod xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.phpbb.com/mods/xml/modx-1.2.5.xsd">
 	<header>
 		<license>http://opensource.org/licenses/gpl-license.php GNU General Public License v2</license>
+
 		<title lang="en">Proxy Revealer Olympus</title>
+
 		<description lang="en">Tries to determine whether someone's IP address is masked (or known to be abusive), attempts to determine their "real" IP address - where possible, and "blocks" such people.</description>
+
 		<author-notes lang="en"><![CDATA[
 
 Overview
@@ -64,12 +67,18 @@ SVN: http://code.google.com/p/proxy-revealer/source/checkout
 				<email>jasmine.aura@yahoo.com</email>
 				<username>jasmineaura</username>
 				<homepage>http://code.google.com/p/proxy-revealer/</homepage>
+				<contributions-group>
+					<contributions status="current" position="Current Developer"></contributions>
+				</contributions-group>
 			</author>
 			<author>
 				<realname>Jim Wigginton</realname>
 				<email>terrafrost@phpbb.com</email>
 				<username>TerraFrost</username>
 				<homepage>http://www.frostjedi.com/terra/wordpress/</homepage>
+				<contributions-group>
+					<contributions status="past" position="Past Developer (phpBB2), Occasional Contributor"></contributions>
+				</contributions-group>
 			</author>
 		</author-group>
 
@@ -173,29 +182,29 @@ functions.php/overall_header.</change>
 
 	<action-group>
 		<copy>
-			<file from="root/install_pro.php" to="install_pro.php"/>
-			<file from="root/adm/style/acp_proxy_revealer.html" to="adm/style/acp_proxy_revealer.html"/>
-			<file from="root/adm/style/acp_proxy_revealer_excludes.html" to="adm/style/acp_proxy_revealer_excludes.html"/>
-			<file from="root/adm/style/acp_proxy_revealer_plugin.html" to="adm/style/acp_proxy_revealer_plugin.html"/>
-			<file from="root/adm/style/acp_proxy_revealer_settings.html" to="adm/style/acp_proxy_revealer_settings.html"/>
-			<file from="root/includes/acp/acp_proxy_revealer.php" to="includes/acp/acp_proxy_revealer.php"/>
-			<file from="root/includes/info/acp_proxy_revealer.php" to="includes/info/acp_proxy_revealer.php"/>
-			<file from="root/language/en/mods/info_acp_proxy_revealer.php" to="language/en/mods/info_acp_proxy_revealer.php"/>
-			<file from="root/language/en/mods/proxy_revealer.php" to="language/en/mods/proxy_revealer.php"/>
-			<file from="root/probe/HttpRequestor.jar" to="probe/HttpRequestor.jar"/>
-			<file from="root/probe/HttpRequestor.swf" to="probe/HttpRequestor.swf"/>
-			<file from="root/probe/PluginDetect.js" to="probe/PluginDetect.js"/>
-			<file from="root/probe/dummy.mov" to="probe/dummy.mov"/>
-			<file from="root/probe/expressInstall.swf" to="probe/expressInstall.swf"/>
-			<file from="root/probe/probe.php" to="probe/probe.php"/>
-			<file from="root/probe/sample.mov" to="probe/sample.mov"/>
-			<file from="root/probe/sample.rm" to="probe/sample.rm"/>
-			<file from="root/probe/swfobject.js" to="probe/swfobject.js"/>
-			<file from="root/probe/xss.js" to="probe/xss.js"/>
-			<file from="root/probe/xss.xml" to="probe/xss.xml"/>
-			<file from="root/styles/prosilver/template/pageloader.js" to="styles/prosilver/template/pageloader.js"/>
-			<file from="root/styles/prosilver/theme/pageloader.css" to="styles/prosilver/theme/pageloader.css"/>
-			<file from="root/styles/prosilver/theme/images/loading.gif" to="styles/prosilver/theme/images/loading.gif"/>
+			<file from="root/install_pro.php" to="install_pro.php" />
+			<file from="root/adm/style/acp_proxy_revealer.html" to="adm/style/acp_proxy_revealer.html" />
+			<file from="root/adm/style/acp_proxy_revealer_excludes.html" to="adm/style/acp_proxy_revealer_excludes.html" />
+			<file from="root/adm/style/acp_proxy_revealer_plugin.html" to="adm/style/acp_proxy_revealer_plugin.html" />
+			<file from="root/adm/style/acp_proxy_revealer_settings.html" to="adm/style/acp_proxy_revealer_settings.html" />
+			<file from="root/includes/acp/acp_proxy_revealer.php" to="includes/acp/acp_proxy_revealer.php" />
+			<file from="root/includes/acp/info/acp_proxy_revealer.php" to="includes/acp/info/acp_proxy_revealer.php" />
+			<file from="root/language/en/mods/info_acp_proxy_revealer.php" to="language/en/mods/info_acp_proxy_revealer.php" />
+			<file from="root/language/en/mods/proxy_revealer.php" to="language/en/mods/proxy_revealer.php" />
+			<file from="root/probe/HttpRequestor.jar" to="probe/HttpRequestor.jar" />
+			<file from="root/probe/HttpRequestor.swf" to="probe/HttpRequestor.swf" />
+			<file from="root/probe/PluginDetect.js" to="probe/PluginDetect.js" />
+			<file from="root/probe/dummy.mov" to="probe/dummy.mov" />
+			<file from="root/probe/expressInstall.swf" to="probe/expressInstall.swf" />
+			<file from="root/probe/probe.php" to="probe/probe.php" />
+			<file from="root/probe/sample.mov" to="probe/sample.mov" />
+			<file from="root/probe/sample.rm" to="probe/sample.rm" />
+			<file from="root/probe/swfobject.js" to="probe/swfobject.js" />
+			<file from="root/probe/xss.js" to="probe/xss.js" />
+			<file from="root/probe/xss.xml" to="probe/xss.xml" />
+			<file from="root/styles/prosilver/template/pageloader.js" to="styles/prosilver/template/pageloader.js" />
+			<file from="root/styles/prosilver/theme/pageloader.css" to="styles/prosilver/theme/pageloader.css" />
+			<file from="root/styles/prosilver/theme/images/loading.gif" to="styles/prosilver/theme/images/loading.gif" />
 			<file from="root/umil/*.*" to="umil/*.*" />
 		</copy>
 
@@ -228,6 +237,7 @@ functions.php/overall_header.</change>
 ]]></action>
 			</edit>
 		</open>
+
 		<open src="includes/constants.php">
 			<edit>
 				<find><![CDATA[// Additional constants
@@ -261,6 +271,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 ]]></action>
 			</edit>
 		</open>
+
 		<open src="includes/session.php">
 			<edit>
 				<find><![CDATA[		if (isset($this->data['session_viewonline']))]]></find>
@@ -286,6 +297,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 ]]></action>
 			</edit>
 		</open>
+
 		<open src="includes/functions.php">
 			<edit>
 				<find><![CDATA[			ob_start('ob_gzhandler');
@@ -448,6 +460,7 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 ]]></action>
 			</edit>
 		</open>
+
 		<open src="includes/functions_admin.php">
 			<edit>
 				<find><![CDATA[	set_config('database_last_gc', time(), true);
@@ -474,6 +487,7 @@ function prune_speculative()
 ]]></action>
 			</edit>
 		</open>
+
 		<open src="language/en/common.php">
 			<edit>
 				<find><![CDATA[?>]]></find>
@@ -490,6 +504,7 @@ $lang = array_merge($lang, array(
 ]]></action>
 			</edit>
 		</open>
+
 		<open src="styles/prosilver/template/overall_header.html">
 			<edit>
 				<find><![CDATA[<link href="{T_THEME_PATH}/print.css" rel="stylesheet" type="text/css" media="print" title="printonly" />]]></find>
@@ -543,6 +558,5 @@ The installer purges the cache for you automatically after a successful install.
 You can now administer "Proxy Revealer Olympus" MOD from the .MODS tab.
 PLEASE DO NOT check "X_FORWARDED_FOR" and/or "Cookie" under "IP Masking Block" in Settings unless you really know what you're doing!!!
 		</diy-instructions>
-
 	</action-group>
 </mod>
