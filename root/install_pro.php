@@ -79,7 +79,7 @@ $versions = array(
 	// Version 0.3.3
 	'0.3.3' => array(
 		'table_add' => array(
-			array('phpbb_speculative_ips', array(
+			array(SPECULATIVE_TABLE, array(
 				'COLUMNS' => array(
 					'ip_address'	=> array('VCHAR:40', ''),
 					'method'		=> array('USINT', 0),
@@ -91,14 +91,11 @@ $versions = array(
 				'PRIMARY_KEY'	=> 'ip_address',
 			)),
 
-			array('phpbb_speculative_excludes', array(
+			array(SPECULATIVE_EXCLUDE_TABLE, array(
 				'COLUMNS' => array(
-					'exclude_id'	=> array('UINT', 0, 'auto_increment'),
 					'user_id'		=> array('UINT', 0),
 					'ip_address'	=> array('VCHAR:40', ''),
 				),
-
-				'PRIMARY_KEY'	=> 'exclude_id',
 
 				'KEYS'	=> array(
 					'user_id'		=> array('INDEX', 'user_id'),
@@ -108,8 +105,8 @@ $versions = array(
 		),
 
 		'table_column_add' => array(
-			array('SESSIONS_TABLE', 'session_speculative_test', array('TINT:1', -1)),
-			array('SESSIONS_TABLE', 'session_speculative_key', array('CHAR:10', '')),
+			array(SESSIONS_TABLE, 'session_speculative_test', array('TINT:1', -1)),
+			array(SESSIONS_TABLE, 'session_speculative_key', array('CHAR:10', '')),
 		),
 
 		'config_add' => array(
