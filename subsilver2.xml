@@ -53,9 +53,9 @@
 
 	<action-group>
 		<copy>
-			<file from="root/styles/prosilver/template/pageloader.js" to="styles/subsilver2/template/pageloader.js" />
-			<file from="root/styles/prosilver/theme/pageloader.css" to="styles/subsilver2/theme/pageloader.css" />
-			<file from="root/styles/prosilver/theme/images/loading.gif" to="styles/subsilver2/theme/images/loading.gif" />
+			<file from="root/styles/subsilver2/template/pageloader.js" to="styles/subsilver2/template/pageloader.js" />
+			<file from="root/styles/subsilver2/theme/pageloader.css" to="styles/subsilver2/theme/pageloader.css" />
+			<file from="root/styles/subsilver2/theme/images/loading.gif" to="styles/subsilver2/theme/images/loading.gif" />
 		</copy>
 
 		<open src="styles/subsilver2/template/overall_header.html">
