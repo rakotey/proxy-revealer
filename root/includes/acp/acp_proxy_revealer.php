@@ -150,7 +150,7 @@ class acp_proxy_revealer
 				case FLASH:
 					$method = '<a href="'
 						. $this->u_action . "&amp;action=flash&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
-						. '" title="' . $user->lang['SPECULATIVE_IP_FLASH'] . '" '
+						. '" title="' . sprintf($user->lang['PLUGIN_DESC'], $user->lang['FLASH']) . '" '
 						. 'onclick="popup(this.href, 700, 300, \'_flash\'); return false;">' . $user->lang['FLASH'] . '</a>';
 				break;
 
@@ -158,28 +158,28 @@ class acp_proxy_revealer
 				case JAVA_INTERNAL:
 					$method = '<a href="'
 						. $this->u_action . "&amp;action=java&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
-						. '" title="' . $user->lang['SPECULATIVE_IP_JAVA'] . '" '
+						. '" title="' . sprintf($user->lang['PLUGIN_DESC'], $user->lang['JAVA']) . '" '
 						. 'onclick="popup(this.href, 700, 300, \'_java\'); return false;">' . $user->lang['JAVA'] . '</a>';
 				break;
 
 				case REALPLAYER:
 					$method = '<a href="'
 						. $this->u_action . "&amp;action=realplayer&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
-						. '" title="' . $user->lang['SPECULATIVE_IP_REALPLAYER'] . '" '
+						. '" title="' . sprintf($user->lang['PLUGIN_DESC'], $user->lang['REALPLAYER']) . '" '
 						. 'onclick="popup(this.href, 700, 300, \'_realplayer\'); return false;">' . $user->lang['REALPLAYER'] . '</a>';
 				break;
 
 				case QUICKTIME:
 					$method = '<a href="'
 						. $this->u_action . "&amp;action=quicktime&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
-						. '" title="' . $user->lang['SPECULATIVE_IP_QUICKTIME'] . '" '
+						. '" title="' . sprintf($user->lang['PLUGIN_DESC'], $user->lang['QUICKTIME']) . '" '
 						. 'onclick="popup(this.href, 700, 300, \'_quicktime\'); return false;">' . $user->lang['QUICKTIME'] . '</a>';
 				break;
 
 				case WMPLAYER:
 					$method = '<a href="'
 						. $this->u_action . "&amp;action=wmplayer&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
-						. '" title="' . $user->lang['SPECULATIVE_IP_WMPLAYER'] . '" '
+						. '" title="' . sprintf($user->lang['PLUGIN_DESC'], $user->lang['WMPLAYER']) . '" '
 						. 'onclick="popup(this.href, 700, 300, \'_wmplayer\'); return false;">' . $user->lang['WMPLAYER'] . '</a>';
 				break;
 
@@ -994,7 +994,9 @@ class acp_proxy_revealer
 			</script>
 			';
 
-		return $js_calc . '<div class="optgroup">' . $ip_block . $flash . $java . $realp . $xss . '<br />'
+		return $js_calc . '<div class="optgroup">' . $ip_block 
+			. $xss . $java . $flash . '<br />'
+			. $qtime . $realp . $wmp . '<br />'
 			. $dnsbl . $tor_el . '<br />' . $cookie . $x_fwd . '<br /></div>';
 	}
 
