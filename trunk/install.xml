@@ -289,7 +289,6 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 
 			if ($speculative_test > 0 && ($speculative_test & $ip_block)) //'Bitwise AND'
 			{
-				header('HTTP/1.1 503 Service Unavailable');
 				trigger_error('IP_MASK_BLOCKED');
 			}
 		}
