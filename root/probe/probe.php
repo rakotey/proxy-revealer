@@ -16,6 +16,7 @@
 * @ignore
 */
 define('IN_PHPBB', true);
+define('IN_PROBE', true);
 $phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : '../';
 $phpEx = substr(strrchr(__FILE__, '.'), 1);
 include($phpbb_root_path . 'common.' . $phpEx);
@@ -28,8 +29,7 @@ if ( !isset($_GET['extra']) || !preg_match('/^[A-Za-z0-9,]*$/',trim($_GET['extra
 }
 
 // Start session management
-$user->session_begin();
-$auth->acl($user->data);
+//$user->session_begin(false);
 
 // Basic parameter data
 $extra	= request_var('extra', '');
@@ -38,23 +38,26 @@ $mode = request_var('mode', '');
 // Get session id and associated key
 list($sid,$key) = explode(',',trim($extra));
 
-// Set Some commonly used variables (Adapted from generate_board_url() in functions.php)
-if ($config['force_server_vars'] || !($user->host))
+/**
+* Set commonly used server-related variables (Adapted from generate_board_url() in functions.php)
+*/
+$user_host = $user->extract_current_hostname();
+
+if ($config['force_server_vars'] || !($user_host))
 {
 	$server_protocol = ($config['server_protocol']) ? $config['server_protocol'] : (($config['cookie_secure']) ? 'https://' : 'http://');
 	$server_name = $config['server_name'];
 	$server_port = (int) $config['server_port'];
-	$path_name = $config['script_path'];
 }
 else
 {
 	$server_protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 'https://' : 'http://';
-	$server_name = $user->host;
+	$server_name = $user_host;
 	$server_port = (!empty($_SERVER['SERVER_PORT'])) ? (int) $_SERVER['SERVER_PORT'] : (int) getenv('SERVER_PORT');
-	$path_name = $user->page['root_script_path'];
 }
 
 // Set path name (add / to the end of $path_name, if needed, before appending our path)
+$path_name = $config['script_path'];
 $path_name .= (substr($path_name, -1, 1) != '/') ? '/' : '';
 $path_name .= 'probe/';
 
@@ -62,13 +65,41 @@ $path_name .= 'probe/';
 $server_url = $server_protocol . $server_name;
 if ($server_port && (($server_protocol == 'https://' && $server_port <> 443) || ($server_protocol == 'http://' && $server_port <> 80)))
 {
-	// HTTP HOST can carry a port number (we fetch $user->host, but for old versions this may be true)
+	// HTTP HOST can carry a port number (we fetch $user_host, but for old versions this may be true)
 	if (strpos($server_name, ':') === false)
 	{
 		$url .= ':' . $server_port;
 	}
 }
 $server_url .= $path_name;
+
+/**
+* Set commonly used user-related variables (Adapted from session_begin() in session.php)
+*/
+// Set User's IP (as the server - and phpbb - sees it)
+$user_ip = (!empty($_SERVER['REMOTE_ADDR'])) ? htmlspecialchars((string) $_SERVER['REMOTE_ADDR']) : '';
+$user_ip = preg_replace('#[ ]{2,}#', ' ', str_replace(array(',', ' '), ' ', $user_ip));
+
+// split the list of IPs
+$ips = explode(' ', $user_ip);
+
+// Default IP if REMOTE_ADDR is invalid
+$user_ip = '127.0.0.1';
+
+foreach ($ips as $ip)
+{
+	if (!empty($ip) && !preg_match(get_preg_expression('ipv4'), $ip) && !preg_match(get_preg_expression('ipv6'), $ip))
+	{
+		break;
+	}
+	$user_ip = $ip;	// Use the last in chain
+}
+
+// Set User's Browser / User-Agent string
+$user_browser = (!empty($_SERVER['HTTP_USER_AGENT'])) ? htmlspecialchars((string) $_SERVER['HTTP_USER_AGENT']) : '';
+
+// Set User's Referer
+$user_referer = (!empty($_SERVER['HTTP_REFERER'])) ? htmlspecialchars((string) $_SERVER['HTTP_REFERER']) : '';
 
 
 /**
@@ -117,7 +148,7 @@ function iso_8859_1_to_utf7($str)
 function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 {
 	global $phpbb_root_path, $phpEx;
-	global $db, $user, $sid, $key, $config;
+	global $db, $sid, $key, $config;
 
 	/**
 	* Validate IP address strings ... (Adapted from session_begin() in session.php)
@@ -331,18 +362,18 @@ function ip_cookie_check()
 	{
 		$cookie_ip = request_var($config['cookie_name'] . '_ipt', '', false, true);
 
-		// $user->ip represents our current address and $cookie_ip represents our possibly "real" address.
+		// $user_ip represents our current address and $cookie_ip represents our possibly "real" address.
 		// if they're different, we've probably managed to break out of the proxy, so we log it.
-		if ( $user->ip != $cookie_ip )
+		if ( $user_ip != $cookie_ip )
 		{
-			insert_ip($user->ip,COOKIE,$cookie_ip);
+			insert_ip($user_ip,COOKIE,$cookie_ip);
 		}
 	}
 	else
 	{
 		$hours = (isset($config['ip_cookie_age'])) ? $config['ip_cookie_age'] : 2;
 		$cookie_expire = time() + ($hours * 3600);
-		$user->set_cookie('ipt', $user->ip, $cookie_expire);
+		$user->set_cookie('ipt', $user_ip, $cookie_expire);
 	}
 }
 
@@ -394,16 +425,16 @@ switch ($mode)
 		$info = $user_agent .'<>'. $vendor .'<>'. $version;
 
 		// here, we're not trying to get the "real" IP address - we're trying to get the internal LAN IP address.
-		if ( !empty($lan_ip) && $lan_ip != $user->ip )
+		if ( !empty($lan_ip) && $lan_ip != $user_ip )
 		{
-			insert_ip($user->ip,JAVA_INTERNAL,$lan_ip,$info);
+			insert_ip($user_ip,JAVA_INTERNAL,$lan_ip,$info);
 		}
 
-		// $orig_ip represents our old "spoofed" address and $user->ip represents our current "real" address.
+		// $orig_ip represents our old "spoofed" address and $user_ip represents our current "real" address.
 		// if they're different, we've probably managed to break out of the proxy, so we log it.
-		if ( $orig_ip != $user->ip )
+		if ( $orig_ip != $user_ip )
 		{
-			insert_ip($orig_ip,JAVA,$user->ip,$info);
+			insert_ip($orig_ip,JAVA,$user_ip,$info);
 		}
 	exit;
 	// no break here
@@ -417,15 +448,15 @@ switch ($mode)
 		*/
 
 		// Java applet's "path" parameter value
-		$java_url = $path_name . "probe.$phpEx?mode=java&amp;ip={$user->ip}&amp;extra=$sid,$key";
+		$java_url = $path_name . "probe.$phpEx?mode=java&amp;ip={$user_ip}&amp;extra=$sid,$key";
 
 		// Flash plugin's XMLSocket Policy file server port, and the object tag's "FlashVars" parameter value
 		$xmlsockd_port = $config['ip_flash_port'];
 		$flash_vars = "dhost=$server_name&amp;dport=$xmlsockd_port&amp;flash_url=$server_url"
-			."probe.$phpEx"."&amp;ip={$user->ip}&amp;extra=$sid,$key&amp;user_agent={$user->browser}";
+			."probe.$phpEx"."&amp;ip={$user_ip}&amp;extra=$sid,$key&amp;user_agent={$user_browser}";
 
 		// Quicktime object/embed "qtsrc" parameter value
-		$qtsrc = $server_url . "probe.$phpEx?mode=quicktime&amp;ip={$user->ip}&amp;extra=$sid,$key";
+		$qtsrc = $server_url . "probe.$phpEx?mode=quicktime&amp;ip={$user_ip}&amp;extra=$sid,$key";
 
 		// Realplayer: we load a page in an iframe, which handles both the object/embed and "ram" (playlist) file download
 		$real_html_url = $server_url . "probe.$phpEx?mode=real_html&amp;extra=$sid,$key";
@@ -436,7 +467,7 @@ switch ($mode)
 		// Intentionally not using server:port format when server runs on default web server port 80, because when using server:80,
 		// there's a severe delay before the http direct connect on port 80 happens, followed by a http proxied connect (for WMP9, at least).
 		$wmp_src = "mms://" . $server_name . (($server_port != "80") ? ":$server_port" : "")
-			."$path_name"."probe.$phpEx?mode=wmplayer&amp;ip={$user->ip}&amp;extra=$sid,$key";
+			."$path_name"."probe.$phpEx?mode=wmplayer&amp;ip={$user_ip}&amp;extra=$sid,$key";
 
 		// If the buffer is not set to 0, there's no need to call ob_start(), because the buffer is started already.
 		// Calling it again will cause a second level of buffering to start and the script won't work.
@@ -474,7 +505,7 @@ switch ($mode)
 			  <param name="domain" value="' . $server_name . '">
 			  <param name="port" value="' . $server_port . '">
 			  <param name="path" value="' . $java_url . '">
-			  <param name="user_agent" value="' . $user->browser . '">
+			  <param name="user_agent" value="' . $user_browser . '">
 			</applet>';
 		}
 
@@ -587,7 +618,7 @@ switch ($mode)
 		*/
 		if (!((int) $defer & PROXY_DNSBL))
 		{
-			proxy_dnsbl_check($user->ip);
+			proxy_dnsbl_check($user_ip);
 		}
 
 		/**
@@ -595,7 +626,7 @@ switch ($mode)
 		*/
 		if (!((int) $defer & TOR_DNSEL))
 		{
-			tor_dnsel_check($user->ip);
+			tor_dnsel_check($user_ip);
 		}
 
 		/**
@@ -605,7 +636,7 @@ switch ($mode)
 		{
 			if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
 			{
-				x_forwarded_check($user->ip);
+				x_forwarded_check($user_ip);
 			}
 		}
 
@@ -623,23 +654,23 @@ switch ($mode)
 	case 'real_html':
 		// Firefox on *ubuntu w/ gecko-mediaplayer and/or realplayer doesn't load if rtsp:// link directly in src
 		// so we start over http (to send .ram file that redirects realplayer to rtsp:// link, to guarantee it loads for everyone
-		$src_url = $server_url . "probe.$phpEx?mode=$mode&amp;ram=1&amp;ip={$user->ip}&amp;extra=$sid,$key"
-			. "&amp;user_agent={$user->browser}";
+		$src_url = $server_url . "probe.$phpEx?mode=$mode&amp;ram=1&amp;ip={$user_ip}&amp;extra=$sid,$key"
+			. "&amp;user_agent={$user_browser}";
 
 		// This will be sent as contents of the redirect.ram file (so don't html-entitize it - &'s remain &'s)
 		$rtsp_url = "rtsp://$server_name:$server_port" . $path_name
-			. "probe.$phpEx?mode=realplayer&ip={$user->ip}&extra=$sid,$key"
-			. "&user_agent={$user->browser}";
+			. "probe.$phpEx?mode=realplayer&ip={$user_ip}&extra=$sid,$key"
+			. "&user_agent={$user_browser}";
 
 		if (isset($_GET['ram']))
 		{
 			// On Linux, at least, official realplayer connects directly at this stage (http), so log it
-			if (isset($_GET['ip']) && $_GET['ip'] != $user->ip)
+			if (isset($_GET['ip']) && $_GET['ip'] != $user_ip)
 			{
 				$orig_ip = request_var('ip', '');
 				$user_agent = request_var('user_agent', '');
-				$info = $user_agent .'<>'. $user->browser;
-				insert_ip($orig_ip,REALPLAYER,$user->ip,$info);
+				$info = $user_agent .'<>'. $user_browser;
+				insert_ip($orig_ip,REALPLAYER,$user_ip,$info);
 			}
 			// Send redirect.ram file containing rtsp link
 			header('Content-Type: application/octet-stream');
@@ -674,26 +705,14 @@ switch ($mode)
 	case 'wmplayer':
 		$orig_ip = request_var('ip', '');
 		$user_agent = request_var('user_agent', '');
-		$info = $user_agent .'<>'. $user->browser;
+		$info = $user_agent .'<>'. $user_browser;
 
-		// $orig_ip represents our old "spoofed" address and $user->ip represents our current "real" address.
+		// $orig_ip represents our old "spoofed" address and $user_ip represents our current "real" address.
 		// if they're different, we've probably managed to break out of the proxy, so we log it.
-		if ( $orig_ip != $user->ip )
+		if ( $orig_ip != $user_ip )
 		{
-			switch ($mode)
-			{
-				case 'quicktime':
-					$method = QUICKTIME;
-				break;
-				case 'realplayer':
-					$method = REALPLAYER;
-				break;
-				case 'wmplayer':
-					$method = WMPLAYER;
-				break;
-			}
-
-			insert_ip($orig_ip,$method,$user->ip,$info);
+			$method = constant(strtoupper($mode));
+			insert_ip($orig_ip,$method,$user_ip,$info);
 		}
 
 		// Redirect back to to an actual (tiny) .mov file. This is to avoid a 404 which makes some players trip out
@@ -731,13 +750,13 @@ switch ($mode)
 
 		// we capture the url in the hopes that it'll reveal the location of the cgi proxy.  having the location gives us proof
 		// that we can give to anyone (ie. it shows you how to make a post from that very same ip address)
-		if ( !empty($user->referer) )
+		if ( !empty($user_referer) )
 		{
-			$parsed = parse_url($user->referer);
+			$parsed = parse_url($user_referer);
 			// if one of the referers IP addresses are equal to the server, we assume they're the same.
 			if ( !in_array($_SERVER['SERVER_ADDR'],gethostbynamel($parsed['host'])) && in_array($parsed['scheme'], $schemes) )
 			{
-				$xss_info = $user->referer;
+				$xss_info = $user_referer;
 				$xss_glue = '<>';
 			}
 		}
@@ -753,11 +772,11 @@ switch ($mode)
 			}
 		}
 
-		// $orig_ip represents our old "spoofed" address and $user->ip represents our current "real" address.
+		// $orig_ip represents our old "spoofed" address and $user_ip represents our current "real" address.
 		// if they're different, we've probably managed to break out of the CGI proxy, so we log it.
-		if ( $orig_ip != $user->ip )
+		if ( $orig_ip != $user_ip )
 		{
-			insert_ip($orig_ip,XSS,$user->ip,$xss_info);
+			insert_ip($orig_ip,XSS,$user_ip,$xss_info);
 		}
 
 	exit;
@@ -772,7 +791,7 @@ switch ($mode)
 	case 'utf16':
 		header('Content-Type: text/html; charset=UTF-16');
 
-		$javascript_url = $server_url . "probe.$phpEx?mode=xss&ip={$user->ip}&extra=$sid,$key";
+		$javascript_url = $server_url . "probe.$phpEx?mode=xss&ip={$user_ip}&extra=$sid,$key";
 		$iframe_url = htmlspecialchars($javascript_url);
 
 		$str = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
@@ -793,7 +812,7 @@ switch ($mode)
 	case 'utf7':
 		header('Content-Type: text/html; charset=UTF-7');
 
-		$javascript_url = $server_url . "probe.$phpEx?mode=xss&ip={$user->ip}&extra=$sid,$key";
+		$javascript_url = $server_url . "probe.$phpEx?mode=xss&ip={$user_ip}&extra=$sid,$key";
 		$iframe_url = htmlspecialchars($javascript_url);
 
 		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
@@ -829,7 +848,11 @@ switch ($mode)
 		// At this point, we don't really care about valid HTML, because here my friend are loads of *intentional* invalidities, lol :)
 		// Think of these quirks as sort of like "CSS Hacks", except for evil purposes :)
 ?>
-<html><head><title></title></head>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title></title>
+</head>
 <body>
 <?php // Quirks - some quirky-sneaky stuff >:) ?>
 <<iframe/src="<?php echo $iframe_url; ?>" id="xss_probe" url="<?php echo $iframe_url; ?>" width="1" height="1" frameborder="0"></iframe>

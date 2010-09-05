@@ -74,6 +74,10 @@ $versions = array(
 		'config_update'	=> array(
 			array('ip_block', 1006),
 		),
+
+		'table_column_update' => array(
+			array(SESSIONS_TABLE, 'session_speculative_test', array('INT:5', -1)),
+		),
 	),
 
 	// Version 0.3.3
@@ -88,7 +92,9 @@ $versions = array(
 					'info'			=> array('TEXT', ''),
 				),
 
-				'PRIMARY_KEY'	=> 'ip_address',
+				'KEYS'	=> array(
+					'ip_address'	=> array('INDEX', 'ip_address'),
+				),
 			)),
 
 			array(SPECULATIVE_EXCLUDE_TABLE, array(
