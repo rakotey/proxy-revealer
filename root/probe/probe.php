@@ -16,30 +16,24 @@
 * @ignore
 */
 define('IN_PHPBB', true);
-define('IN_PROBE', true);
-$phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : '../';
+$phpbb_root_path = '../';
 $phpEx = substr(strrchr(__FILE__, '.'), 1);
 include($phpbb_root_path . 'common.' . $phpEx);
 
+/**
+* Basic parameter data
+*/
 // Check minimum required parameters
 if ( !isset($_GET['extra']) || !preg_match('/^[A-Za-z0-9,]*$/',trim($_GET['extra'])) )
 {
-	// since we're not user-facing, we don't care about debug messages
-	die();
+	die();	// since we're not user-facing, we don't care about debug messages
 }
-
-// Start session management
-//$user->session_begin(false);
-
-// Basic parameter data
 $extra	= request_var('extra', '');
 $mode = request_var('mode', '');
-
-// Get session id and associated key
 list($sid,$key) = explode(',',trim($extra));
 
 /**
-* Set commonly used server-related variables (Adapted from generate_board_url() in functions.php)
+* Commonly used server-related vars (Adapted from generate_board_url() in functions.php)
 */
 $user_host = $user->extract_current_hostname();
 
@@ -74,25 +68,46 @@ if ($server_port && (($server_protocol == 'https://' && $server_port <> 443) || 
 $server_url .= $path_name;
 
 /**
-* Set commonly used user-related variables (Adapted from session_begin() in session.php)
+* Commonly used user-related vars
 */
 // Set User's IP (as the server - and phpbb - sees it)
-$user_ip = (!empty($_SERVER['REMOTE_ADDR'])) ? htmlspecialchars((string) $_SERVER['REMOTE_ADDR']) : '';
-$user_ip = preg_replace('#[ ]{2,}#', ' ', str_replace(array(',', ' '), ' ', $user_ip));
-
-// split the list of IPs
-$ips = explode(' ', $user_ip);
-
-// Default IP if REMOTE_ADDR is invalid
-$user_ip = '127.0.0.1';
-
-foreach ($ips as $ip)
+if (isset($_SERVER['REMOTE_ADDR']) && !empty($_SERVER['REMOTE_ADDR']))
 {
-	if (!empty($ip) && !preg_match(get_preg_expression('ipv4'), $ip) && !preg_match(get_preg_expression('ipv6'), $ip))
+	$user_ip = (string) $_SERVER['REMOTE_ADDR'];
+}
+else
+{
+	die();
+	// TODO: if (defined('DEBUG_EXTRA') add_log('critical', 'LOG_REMOTE_ADDR_BLANK', $user_ip);
+}
+
+// Validate IP (Adapted from session_begin() in session.php, and optimized a little :)
+
+// REMOTE_ADDR could be a list of IPs? (either seperated by commas, spaces, or a combination of both)
+if (strpos($user_ip, ',') !== FALSE || strpos($user_ip, ' ') !== FALSE)
+{
+	// Make sure the delimiter is uniformly a space
+	$user_ip = preg_replace('# {2,}#', ' ', str_replace(',', ' ', $user_ip));
+
+	// Split the list of IPs
+	$ips = explode(' ', trim($user_ip));
+
+	foreach ($ips as $ip)
 	{
-		break;
+		// get_preg_expression() from includes/functions.php
+		if (!preg_match(get_preg_expression('ipv4'), $ip) && !preg_match(get_preg_expression('ipv6'), $ip))
+		{
+			break; // we got invalid data at some point in the loop, so just break
+		}
+		$user_ip = $ip;	// Use the last in chain
 	}
-	$user_ip = $ip;	// Use the last in chain
+}
+// NO "else if" here! We still want to re-validate to make sure the foreach loop actually got a valid IP...
+
+if (!preg_match(get_preg_expression('ipv4'), $user_ip) && !preg_match(get_preg_expression('ipv6'), $user_ip))
+{
+	die();
+	// TODO: if (defined('DEBUG_EXTRA') add_log('critical', 'LOG_REMOTE_ADDR_INVALID', $user_ip);
 }
 
 // Set User's Browser / User-Agent string
@@ -133,52 +148,43 @@ function iso_8859_1_to_utf7($str)
 /**
 * Log IPs and optionally block and/or ban the "fake" IP
 *
-* Inserts "real" and "fake" IPs in SPECULATIVE_TABLE, blocks and/or bans the "fake" IP session if configured to do so
-* in External IPs log, the first column shows the "fake IP address" and the third column shows the "real IP address".
-* the reason we do it in this way is because when you're looking at the IP address of a post, you're going to see the "fake IP address".
+* Inserts "real" and "fake" IPs in SPECULATIVE_TABLE, blocks and/or bans the "fake" IP session if configured to do so.
+* On External IPs (log) page, the first column shows the "fake IP address" and the third column shows the "real IP address".
+* The reason we do it in this way is because when you're looking at the IP address of a post, you're going to see the "fake IP address".
 *
 * We use $db->sql_escape() in all our SQL statements rather than str_replace("\'","''",$_REQUEST['var']) on each var as it comes in.
 * This is to avoid confusion and to avoid escaping the same text twice and ending up with too many backslshes in the final result.
 *
-* @param string $ip_address		The "fake" IP address.
-* @param int $mode			The test mode used (modes defined in constants.php).
-* @param string $info			The "real" IP address.
-* @param string $secondary_info	Additional info such as browser/plugin info or CGI-Proxy URL(s), optional.
+* @param	string	$ip_masked		The "fake" IP address.
+* @param	int		$mode		The test mode used (modes defined in constants.php).
+* @param	string	$ip_direct		The "real" IP address.
+* @param	string	$info			Additional info like User-Agent string or CGI-Proxy URL(s) - optional.
 */
-function insert_ip($ip_address,$mode,$info,$secondary_info = '')
+function insert_ip($ip_masked, $mode, $ip_direct, $info = '')
 {
 	global $phpbb_root_path, $phpEx;
 	global $db, $sid, $key, $config;
 
-	/**
-	* Validate IP address strings ... (Adapted from session_begin() in session.php)
-	*
-	* Check IPv4 first, the IPv6 is hopefully only going to be used very seldomly.
-	* get_preg_expression() from includes/functions.php helps us match valid IPv4/IPv6 addresses only :)
-	*/
-	if ((!preg_match(get_preg_expression('ipv4'), $ip_address) && !preg_match(get_preg_expression('ipv6'), $ip_address)) ||
-		(!preg_match(get_preg_expression('ipv4'), $info) && !preg_match(get_preg_expression('ipv6'), $info)))
+	// We don't check $ip_direct as it has just been validated (top of the script) in the case of plugins, or '0.0.0.0' for TOR_DNSEL/PROXY_DNSBL.
+	// We also don't validate $ip_masked in the case of X_FORWARDED_FOR as that is actually the IP requesting this page (already validated up top)
+	if ($mode != X_FORWARDED_FOR && !preg_match(get_preg_expression('ipv4'), $ip_masked) && !preg_match(get_preg_expression('ipv6'), $ip_masked))
 	{
-		// contains invalid data, return and don't log anything
-		return;
+		return;	// contains invalid data, return and don't log anything
 	}
 
-	/**
-	* Validate IP length according to admin ... ("Session IP Validation" in ACP->Security Settings)
-	*
-	* session_begin() looks at $config['ip_check'] to see which bits of an IP address to check and so shall we.
-	* First, check if both addresses are IPv6, else we assume both are IPv4 ($f_ip is the fake, $r_ip is the real)
-	*/
-	if (strpos($ip_address, ':') !== false && strpos($info, ':') !== false)
+	// Validate IP length according to admin ("Session IP Validation" in ACP->Server Configuration->Security Settings)
+	// session_begin() looks at $config['ip_check'] to see which bits of an IP address to check and so shall we.
+	// First, check if both addresses are IPv6, else we assume both are IPv4 ($f_ip is the fake, $r_ip is the real)
+	if (strpos($ip_masked, ':') !== false && strpos($ip_direct, ':') !== false)
 	{
 		// short_ipv6() from includes/functions.php
-		$f_ip = short_ipv6($ip_address, $config['ip_check']);
-		$r_ip = short_ipv6($info, $config['ip_check']);
+		$f_ip = short_ipv6($ip_masked, $config['ip_check']);
+		$r_ip = short_ipv6($ip_direct, $config['ip_check']);
 	}
 	else
 	{
-		$f_ip = implode('.', array_slice(explode('.', $ip_address), 0, $config['ip_check']));
-		$r_ip = implode('.', array_slice(explode('.', $info), 0, $config['ip_check']));
+		$f_ip = implode('.', array_slice(explode('.', $ip_masked), 0, $config['ip_check']));
+		$r_ip = implode('.', array_slice(explode('.', $ip_direct), 0, $config['ip_check']));
 	}
 
 	// If "Session IP Validation" is NOT set to None, and the validated length matches, we return and log nothing
@@ -231,26 +237,25 @@ function insert_ip($ip_address,$mode,$info,$secondary_info = '')
 
 			// user_ban() function from includes/functions_user.php
 			include($phpbb_root_path . 'includes/functions_user.' . $phpEx);
-			user_ban('ip', $ip_address, $ban_len, $ban_len_other, $ban_exclude, $ban_reason, $ban_give_reason);
+			user_ban('ip', $ip_masked, $ban_len, $ban_len_other, $ban_exclude, $ban_reason, $ban_give_reason);
 		}
 	}
 
+	// Fetch currently logged entries for the specified IPs/method. Prevent duplicate entries.
 	$sql = 'SELECT * FROM ' . SPECULATIVE_TABLE . " 
-		WHERE ip_address = '" . $db->sql_escape($ip_address) . "' 
+		WHERE ip_address = '" . $db->sql_escape($ip_masked) . "' 
 			AND method = " . $db->sql_escape($mode) . " 
-			AND real_ip = '" . $db->sql_escape($info) . "'";
+			AND real_ip = '" . $db->sql_escape($ip_direct) . "'";
 	$result = $db->sql_query($sql);
 
 	if ( !$row = $db->sql_fetchrow($result) )
 	{
-		$secondary_info = ( !empty($secondary_info) ) ? "$secondary_info" : 'NULL';
-
 		$sql_ary = array(
-				'ip_address'	=> $ip_address,
-				'method'		=> $mode,
-				'discovered'	=> time(),
-				'real_ip'		=> $info,
-				'info'			=> $secondary_info
+			'ip_address'	=> $ip_masked,
+			'method'		=> $mode,
+			'discovered'	=> time(),
+			'real_ip'		=> $ip_direct,
+			'info'			=> $info,
 		);
 
 		$sql = 'INSERT INTO ' . SPECULATIVE_TABLE . ' ' . $db->sql_build_array('INSERT', $sql_ary);
@@ -332,21 +337,31 @@ function tor_dnsel_check($check_ip)
 */ 
 function x_forwarded_check($check_ip)
 {
-	// Adapted from session_begin() in includes/session.php
-	$forwarded_for = (string) $_SERVER['HTTP_X_FORWARDED_FOR'];
-	$forwarded_for = preg_replace('#, +#', ', ', $forwarded_for);
-
-	// Split the list of IPs
-	$ips = explode(', ', $forwarded_for);
-
-	// Possible real address is the first IP in the $ips array ( $ips[0] ), the rest (if there are any) are most likely chained proxies
-	if (!empty($ips[0]))
+	if (empty($_SERVER['HTTP_X_FORWARDED_FOR']))
 	{
-		// We're only going to log the proxy IP from which the original request came, rather than loop through the list
+		return;
+	}
+	$forwarded_for = (string) $_SERVER['HTTP_X_FORWARDED_FOR'];
+
+	// HTTP_X_FORWARDED_FOR could be a list of IPs (either seperated by commas, spaces, or a combination of both)
+	if (strpos($user_ip, ',') !== FALSE || strpos($user_ip, ' ') !== FALSE)
+	{
+		// Make sure the delimiter is uniformly a space
+		$forwarded_for = preg_replace('# {2,}#', ' ', str_replace(',', ' ', $forwarded_for));
+		// Split the list of IPs
+		$ips = explode(' ', trim($forwarded_for));
+		// Possible real address is the first IP in the $ips array ( $ips[0] ), the rest (if there are any) are most likely chained proxies
+		$forwarded_for = $ips[0];
+	}
+
+	// Validate the IP - insert_ip() won't do it for us!
+	if (preg_match(get_preg_expression('ipv4'), $forwarded_for) || preg_match(get_preg_expression('ipv6'), $forwarded_for))
+	{
+		// We're only going to log the proxy IP from which the original request came ($check_ip) rather than loop through the list
 		// of (possibly) chained proxies and log them if they don't match $ips[0], just to prevent possible abuse!
-		if ($ips[0] != $check_ip)
+		if ($forwarded_for != $check_ip)
 		{
-			insert_ip($check_ip,X_FORWARDED_FOR,$ips[0]);
+			insert_ip($check_ip,X_FORWARDED_FOR,$forwarded_for);
 		}
 	}
 }
@@ -634,10 +649,7 @@ switch ($mode)
 		*/ 
 		if (!((int) $defer & X_FORWARDED_FOR))
 		{
-			if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
-			{
-				x_forwarded_check($user_ip);
-			}
+			x_forwarded_check($user_ip);
 		}
 
 		/**
