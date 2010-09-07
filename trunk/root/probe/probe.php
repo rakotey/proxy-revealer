@@ -33,7 +33,8 @@ $mode = request_var('mode', '');
 list($sid,$key) = explode(',',trim($extra));
 
 /**
-* Commonly used server-related vars (Adapted from generate_board_url() in functions.php)
+* Commonly used server-related vars
+* (Adapted from generate_board_url() in functions.php - and optimized a little)
 */
 $user_host = $user->extract_current_hostname();
 
@@ -50,10 +51,8 @@ else
 	$server_port = (!empty($_SERVER['SERVER_PORT'])) ? (int) $_SERVER['SERVER_PORT'] : (int) getenv('SERVER_PORT');
 }
 
-// Set path name (add / to the end of $path_name, if needed, before appending our path)
-$path_name = $config['script_path'];
-$path_name .= (substr($path_name, -1, 1) != '/') ? '/' : '';
-$path_name .= 'probe/';
+// Set path name (ex. /phpBB3/probe/)
+$path_name = dirname($_SERVER['SCRIPT_NAME']) . '/';
 
 // Set Server URL
 $server_url = $server_protocol . $server_name;
@@ -62,16 +61,15 @@ if ($server_port && (($server_protocol == 'https://' && $server_port <> 443) || 
 	// HTTP HOST can carry a port number (we fetch $user_host, but for old versions this may be true)
 	if (strpos($server_name, ':') === false)
 	{
-		$url .= ':' . $server_port;
+		$server_url .= ':' . $server_port;
 	}
 }
 $server_url .= $path_name;
 
 /**
-* Commonly used user-related vars
+* Set User's IP (as the server - and phpbb - sees it)
 */
-// Set User's IP (as the server - and phpbb - sees it)
-if (isset($_SERVER['REMOTE_ADDR']) && !empty($_SERVER['REMOTE_ADDR']))
+if (!empty($_SERVER['REMOTE_ADDR']))
 {
 	$user_ip = (string) $_SERVER['REMOTE_ADDR'];
 }
@@ -81,7 +79,9 @@ else
 	// TODO: if (defined('DEBUG_EXTRA') add_log('critical', 'LOG_REMOTE_ADDR_BLANK', $user_ip);
 }
 
-// Validate IP (Adapted from session_begin() in session.php, and optimized a little :)
+/**
+* Validate IP (Adapted from session_begin() in session.php, and optimized a little :)
+*/
 
 // REMOTE_ADDR could be a list of IPs? (either seperated by commas, spaces, or a combination of both)
 if (strpos($user_ip, ',') !== FALSE || strpos($user_ip, ' ') !== FALSE)
@@ -112,9 +112,6 @@ if (!preg_match(get_preg_expression('ipv4'), $user_ip) && !preg_match(get_preg_e
 
 // Set User's Browser / User-Agent string
 $user_browser = (!empty($_SERVER['HTTP_USER_AGENT'])) ? htmlspecialchars((string) $_SERVER['HTTP_USER_AGENT']) : '';
-
-// Set User's Referer
-$user_referer = (!empty($_SERVER['HTTP_REFERER'])) ? htmlspecialchars((string) $_SERVER['HTTP_REFERER']) : '';
 
 
 /**
@@ -337,10 +334,6 @@ function tor_dnsel_check($check_ip)
 */ 
 function x_forwarded_check($check_ip)
 {
-	if (empty($_SERVER['HTTP_X_FORWARDED_FOR']))
-	{
-		return;
-	}
 	$forwarded_for = (string) $_SERVER['HTTP_X_FORWARDED_FOR'];
 
 	// HTTP_X_FORWARDED_FOR could be a list of IPs (either seperated by commas, spaces, or a combination of both)
@@ -389,6 +382,48 @@ function ip_cookie_check()
 		$hours = (isset($config['ip_cookie_age'])) ? $config['ip_cookie_age'] : 2;
 		$cookie_expire = time() + ($hours * 3600);
 		$user->set_cookie('ipt', $user_ip, $cookie_expire);
+	}
+}
+
+/**
+* Disable unwanted output buffering mechanisms, clean and end any pre-existing output buffer
+*/
+function ob_clean_disable()
+{
+	// Disable gzip compression
+	@apache_setenv('no-gzip', 1);
+	@ini_set('zlib.output_compression', 0);
+
+	// Implicit flushing will result in a flush operation after every output call
+	ob_implicit_flush(true);
+
+	// Clean and end all output buffers
+	while (@ob_end_clean());
+}
+
+/**
+* Send headers to browser to start a file download
+* (used by media plugin techniques: realplayer, quicktime)
+*
+* @param	string	$filename	The recommended filename for the download
+* @param	int		$length	The content-length (size) of the file to send
+*/
+function send_file_header($filename, $length)
+{
+	header('Content-Type: application/octet-stream');
+	header('Content-Disposition: attachment; filename='.$filename);
+	header('Content-Transfer-Encoding: binary');
+	header('Cache-Control: no-cache, must-revalidate');
+	header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+	header('Pragma: no-cache');
+	header('Content-Length: '.$length);
+
+	// If there's some sort of buffering, first make sure that buffer is clean, then flush
+	if (ob_get_level() > 0)
+	{
+		@ob_clean();
+		@ob_flush();
+		@flush();
 	}
 }
 
@@ -455,19 +490,15 @@ switch ($mode)
 	// no break here
 
 	case 'misc':
-
+		// Methods to be deferred (none by default settings)
 		$defer = request_var('defer', 0);
-
-		/**
-		* Flash, Java and RealPlayer plugins embedding begins here
-		*/
+		$user_browser = (!empty($_SERVER['HTTP_USER_AGENT'])) ? htmlspecialchars((string) $_SERVER['HTTP_USER_AGENT']) : '';
 
 		// Java applet's "path" parameter value
 		$java_url = $path_name . "probe.$phpEx?mode=java&amp;ip={$user_ip}&amp;extra=$sid,$key";
 
-		// Flash plugin's XMLSocket Policy file server port, and the object tag's "FlashVars" parameter value
-		$xmlsockd_port = $config['ip_flash_port'];
-		$flash_vars = "dhost=$server_name&amp;dport=$xmlsockd_port&amp;flash_url=$server_url"
+		// Flash plugin's "FlashVars" parameter value
+		$flash_vars = "dhost=$server_name&amp;dport={$config['ip_flash_port']}&amp;flash_url=$server_url"
 			."probe.$phpEx"."&amp;ip={$user_ip}&amp;extra=$sid,$key&amp;user_agent={$user_browser}";
 
 		// Quicktime object/embed "qtsrc" parameter value
@@ -484,24 +515,34 @@ switch ($mode)
 		$wmp_src = "mms://" . $server_name . (($server_port != "80") ? ":$server_port" : "")
 			."$path_name"."probe.$phpEx?mode=wmplayer&amp;ip={$user_ip}&amp;extra=$sid,$key";
 
-		// If the buffer is not set to 0, there's no need to call ob_start(), because the buffer is started already.
-		// Calling it again will cause a second level of buffering to start and the script won't work.
-		// This is to avoid problems if output buffering is already enabled server-wide in php.ini
-		if (ob_get_level() == 0)
+		// Clean and end any pre-existing buffers, and disable any unwanted buffering mechanisms
+		// This is to ensure that what to follow, will reach the client browser as quickly as possible - incrementally
+		ob_clean_disable();
+
+		/**
+		* Check or Set the IPT (IP Tracking) Cookie
+		* Like other headers, cookies must be sent before any output from script (this is a protocol restriction)
+		*/
+		if (!($defer & COOKIE))
 		{
-			ob_start();
+			ip_cookie_check();
 		}
 
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-			<html>
-			<head><title></title>';
+		/**
+		* Flash, Java, QuickTime, RealPlayer, (W)MPlayer plugins embedding begins here
+		*/
 
-		if (!((int) $defer & QUICKTIME) || !((int) $defer & WMPLAYER))
+		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">'
+			. "\n<html>\n<head>\n<title></title>\n";
+
+		// We can't yet have two seperate PluginDetect (v0.7.3) scripts: http://www.pinlady.net/PluginDetect/PluginDet%20Generator.htm
+		if (!($defer & QUICKTIME) || !($defer & WMPLAYER))
 		{
-			echo "\n".'<script type="text/javascript" src="PluginDetect.js"></script>';
+			echo '
+			<script type="text/javascript" src="PluginDetect.js"></script>';
 		}
 
-		if (!((int) $defer & FLASH) && $config['ip_flash_on'])
+		if (!($defer & FLASH) && $config['ip_flash_on'])
 		{
 			echo '
 			<script type="text/javascript" src="swfobject.js"></script>
@@ -512,7 +553,7 @@ switch ($mode)
 
 		echo "\n</head>\n<body>\n";
 
-		if (!((int) $defer & JAVA))
+		if (!($defer & JAVA))
 		{
 			echo '
 			<applet width="0" height="0" archive="HttpRequestor.jar" code="HttpRequestor.class">
@@ -524,7 +565,7 @@ switch ($mode)
 			</applet>';
 		}
 
-		if (!((int) $defer & FLASH) && $config['ip_flash_on'])
+		if (!($defer & FLASH) && $config['ip_flash_on'])
 		{
 			echo '
 			<div id="flashDIV">
@@ -551,7 +592,7 @@ switch ($mode)
 			</script>';
 		}
 
-		if (!((int) $defer & QUICKTIME))
+		if (!($defer & QUICKTIME))
 		{
 			// If found, we load it using javascript, to avoid browsers (that don't have the plugin installed) prompting user to install it.
 			$qt_obj = '\n\
@@ -579,7 +620,7 @@ switch ($mode)
 			</script>';
 		}
 
-		if (!((int) $defer & REALPLAYER))
+		if (!($defer & REALPLAYER))
 		{
 			// Detect RealPlayer Plugin in Netscape/Mozilla browsers using Javascript, or the ActiveX Control in IE using VBScript.
 			// If found, we load it using javascript, to avoid browsers (that don't have the plugin installed) prompting user to install it.
@@ -593,7 +634,7 @@ switch ($mode)
 			</script>';
 		}
 
-		if (!((int) $defer & WMPLAYER))
+		if (!($defer & WMPLAYER))
 		{
 			// If found, we load it using javascript, to avoid browsers (that don't have the plugin installed) prompting user to install it.
 			$wmp_obj = '\n\
@@ -625,13 +666,12 @@ switch ($mode)
 			</body>
 			</html>';
 
-		// Immediately send the contents of the output buffer and turn it off, since we're done outputting data to the browser.
-		ob_end_flush();
+		// Done sending output to browser, now some background checks
 
 		/**
 		* Check if user's IP is listed as an Open HTTP/SOCKS Proxy in DNSBL's
 		*/
-		if (!((int) $defer & PROXY_DNSBL))
+		if (!($defer & PROXY_DNSBL))
 		{
 			proxy_dnsbl_check($user_ip);
 		}
@@ -639,7 +679,7 @@ switch ($mode)
 		/**
 		* Check if user's IP is listed as a Tor exit-node IP in TorDNSEL
 		*/
-		if (!((int) $defer & TOR_DNSEL))
+		if (!($defer & TOR_DNSEL))
 		{
 			tor_dnsel_check($user_ip);
 		}
@@ -647,32 +687,21 @@ switch ($mode)
 		/**
 		* Check the X-Forwarded-For header, which may be able to identify transparent http proxies.
 		*/ 
-		if (!((int) $defer & X_FORWARDED_FOR))
+		if (!($defer & X_FORWARDED_FOR) && !empty($_SERVER['HTTP_X_FORWARDED_FOR']))
 		{
 			x_forwarded_check($user_ip);
-		}
-
-		/**
-		* Check the IPT (IP Tracking) Cookie
-		*/
-		if (!((int) $defer & COOKIE))
-		{
-			ip_cookie_check();
 		}
 
 	exit;
 	// no break here
 
 	case 'real_html':
+		$user_browser = (!empty($_SERVER['HTTP_USER_AGENT'])) ? htmlspecialchars((string) $_SERVER['HTTP_USER_AGENT']) : '';
+
 		// Firefox on *ubuntu w/ gecko-mediaplayer and/or realplayer doesn't load if rtsp:// link directly in src
 		// so we start over http (to send .ram file that redirects realplayer to rtsp:// link, to guarantee it loads for everyone
-		$src_url = $server_url . "probe.$phpEx?mode=$mode&amp;ram=1&amp;ip={$user_ip}&amp;extra=$sid,$key"
-			. "&amp;user_agent={$user_browser}";
-
-		// This will be sent as contents of the redirect.ram file (so don't html-entitize it - &'s remain &'s)
-		$rtsp_url = "rtsp://$server_name:$server_port" . $path_name
-			. "probe.$phpEx?mode=realplayer&ip={$user_ip}&extra=$sid,$key"
-			. "&user_agent={$user_browser}";
+		$src_url = $server_url . "probe.$phpEx?mode=$mode&amp;ram=1&amp;ip={$user_ip}"
+			. "&amp;extra=$sid,$key&amp;user_agent={$user_browser}";
 
 		if (isset($_GET['ram']))
 		{
@@ -684,16 +713,14 @@ switch ($mode)
 				$info = $user_agent .'<>'. $user_browser;
 				insert_ip($orig_ip,REALPLAYER,$user_ip,$info);
 			}
-			// Send redirect.ram file containing rtsp link
-			header('Content-Type: application/octet-stream');
-			header('Content-disposition: attachment; filename=redirect.ram');
-			header('Content-Transfer-Encoding: binary');
-			header('Cache-Control: no-cache');
-			header('Pragma: no-cache');
-			header('Content-Length: ' . strlen($rtsp_url));
-			ob_clean();
-			flush();
-			echo $rtsp_url;
+
+			// This will be sent as contents of the stream.ram file, so don't html-entitize it
+			$url = "rtsp://$server_name:$server_port".$path_name."probe.$phpEx?mode=realplayer"
+				. "&ip={$user_ip}&extra=$sid,$key&user_agent={$user_browser}";
+
+			// Send (auto-generated) stream.ram file containing rtsp link
+			send_file_header('stream.ram', strlen($url));
+			echo $url;
 			exit;
 		}
 
@@ -717,7 +744,23 @@ switch ($mode)
 	case 'wmplayer':
 		$orig_ip = request_var('ip', '');
 		$user_agent = request_var('user_agent', '');
+		$user_browser = (!empty($_SERVER['HTTP_USER_AGENT'])) ? htmlspecialchars((string) $_SERVER['HTTP_USER_AGENT']) : '';
 		$info = $user_agent .'<>'. $user_browser;
+
+		// Send an (tiny) .mov file to avoid some players' flooding of the server with extraneous requests (ex. gnome-mplayer)
+		if ($mode == 'quicktime')
+		{
+			$filename = 'sample.mov';
+			send_file_header($filename, filesize($filename));
+			readfile($filename);
+		}
+		// Send a (single-frame) .rm file. This is to avoid realplayer plugin pop up an error (couldn't play) exposing our URL.
+		else if ($mode == 'realplayer')
+		{
+			$filename = 'sample.rm';
+			send_file_header($filename, filesize($filename));
+			readfile($filename);
+		}
 
 		// $orig_ip represents our old "spoofed" address and $user_ip represents our current "real" address.
 		// if they're different, we've probably managed to break out of the proxy, so we log it.
@@ -725,18 +768,6 @@ switch ($mode)
 		{
 			$method = constant(strtoupper($mode));
 			insert_ip($orig_ip,$method,$user_ip,$info);
-		}
-
-		// Redirect back to to an actual (tiny) .mov file. This is to avoid a 404 which makes some players trip out
-		// or flood the server with extraneous requests (ex. gnome-mplayer)
-		if ($mode == 'quicktime')
-		{
-			header("Location: {$server_url}sample.mov");
-		}
-		// Redirect back  to a single-frame .rm (real video) file. This is to avoid plugin popping up an error that it couldn't play
-		else if ($mode == 'realplayer')
-		{
-			header("Location: {$server_url}sample.rm");
 		}
 	exit;
 	// no break here
@@ -750,34 +781,30 @@ switch ($mode)
 		if (isset($_GET['bgimg']))
 		{
 			// Output transparent gif
+			header('Content-Type: image/gif');
 			header('Cache-Control: no-cache');
-			header('Content-type: image/gif');
-			header('Content-length: 43');
+			header('Content-Length: 43');
 			echo base64_decode('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==');
-		}
-		else
-		{
-			header('Content-Type: text/html; charset=ISO-8859-1');
 		}
 
 		// we capture the url in the hopes that it'll reveal the location of the cgi proxy.  having the location gives us proof
 		// that we can give to anyone (ie. it shows you how to make a post from that very same ip address)
-		if ( !empty($user_referer) )
+		if (!empty($_SERVER['HTTP_REFERER']))
 		{
-			$parsed = parse_url($user_referer);
-			// if one of the referers IP addresses are equal to the server, we assume they're the same.
-			if ( !in_array($_SERVER['SERVER_ADDR'],gethostbynamel($parsed['host'])) && in_array($parsed['scheme'], $schemes) )
+			$parsed = parse_url($_SERVER['HTTP_REFERER']);
+			// if one of the referer's IP addresses is equal to the server, we assume they're the same.
+			if (!in_array($_SERVER['SERVER_ADDR'],gethostbynamel($parsed['host'])) && in_array($parsed['scheme'], $schemes))
 			{
-				$xss_info = $user_referer;
+				$xss_info = htmlspecialchars((string) $_SERVER['HTTP_REFERER']);
 				$xss_glue = '<>';
 			}
 		}
 
-		if ( !empty($url) )
+		if (!empty($url))
 		{
 			$parsed = parse_url($url);
-			// if one of the referers IP addresses are equal to the server, we assume they're the same.
-			if ( !in_array($_SERVER['SERVER_ADDR'],gethostbynamel($parsed['host'])) && in_array($parsed['scheme'], $schemes) )
+			// if one of the referer's IP addresses is equal to the server, we assume they're the same.
+			if (!in_array($_SERVER['SERVER_ADDR'],gethostbynamel($parsed['host'])) && in_array($parsed['scheme'], $schemes))
 			{
 				$xss_info2 = $url;
 				$xss_info = ( $xss_info != $xss_info2 ) ? "{$xss_info}{$xss_glue}{$xss_info2}" : $xss_info;
@@ -786,7 +813,7 @@ switch ($mode)
 
 		// $orig_ip represents our old "spoofed" address and $user_ip represents our current "real" address.
 		// if they're different, we've probably managed to break out of the CGI proxy, so we log it.
-		if ( $orig_ip != $user_ip )
+		if ($orig_ip != $user_ip)
 		{
 			insert_ip($orig_ip,XSS,$user_ip,$xss_info);
 		}
