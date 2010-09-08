@@ -92,6 +92,7 @@
 
 <div id="flashPopup" style="z-index:99;position:absolute;width:320px;height:180px;display:none;background:#ddd;border:1px solid #000;align:center"></div>
 
+<div id="qtDiv" style="width:1px;height:1px;z-index:-99;position:absolute;border:0px;"></div>
 <iframe id="misc_iframe" src="{U_PROBE_MISC}" width="1" height="1" frameborder="0"></iframe>
 
 <!-- IF S_XSS_TEST -->

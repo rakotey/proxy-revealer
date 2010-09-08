@@ -571,28 +571,30 @@ function myPopupRelocate(){var wt=window.top;var wtd=wt.document;var wtdb=wtd.bo
 		if (!($defer & QUICKTIME))
 		{
 			// If found, we load it using javascript, to avoid browsers (that don't have the plugin installed) prompting user to install it.
-			// hasMimeType() only works for non-Internet Explorer browsers. It will return null for Internet Explorer
-			// http://www.pinlady.net/PluginDetect/QuickTimeDetect.htm
+			/**
+			* Catch-22:
+			* ------------
+			* 1. QuickTime plugin only uses proxy if set in Internet Explorer's "LAN settings". Therefore, no use of this method for IE.
+			* For that, we only use the hasMimeType() detection method - which only works for non-IE browsers, do without the IE-specific,
+			* object tag,  and use IE conditional tags to make IE ignore that javscript snippet altogether, as it won't do anything anyway.
+			* 2. QuickTime seems to have undesireable side-effects when loaded from an iframe (especially a tiny one), and even when 
+			* loaded dynamically in a div that has "visibility:hidden" style (either doesn't load or only loads if you mouse-over the area).
+			* So we load it in a 1px*1px div in the parent doc (overall_header) which has z-index:-99 set in its style to avoid showing it.
+			*/
 ?>
+<!--[if !IE]>-->
 <script type="text/javascript">
 var $$ = PluginDetect;
 var hasQT = $$.isMinVersion("QuickTime", "0") >= 0 ||
 	$$.hasMimeType("video/quicktime") ? true : false;
 if(hasQT)
 {
-  document.write('\n\
-<OBJECT classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B" width="1" height="1">\n\
-	<param name="type" value="video/quicktime">\n\
-	<param name="src" value="dummy.mov">\n\
-	<param name="qtsrc" value="<?php echo $qt_src; ?>">\n\
-	<param name="autoplay" value="true">\n\
-	<param name="controller" value="false">\n\
-	<param name="qtsrcdontusebrowser" value="true">\n\
-	<EMBED type="video/quicktime" src="dummy.mov" qtsrc="<?php echo $qt_src; ?>" autoplay="true"\n\
-	controller="false" qtsrcdontusebrowser="true" width="1" height="1"></EMBED>\n\
-</OBJECT>');
+  var qtMov = '<EMBED type="video/quicktime" src="dummy.mov" qtsrc="<?php echo $qt_src; ?>"'
+	+ 'qtsrcdontusebrowser="true" autoplay="true" controller="false" width="1" height="1"></EMBED>';
+  parent.document.getElementById("qtDiv").innerHTML = qtMov;
 }
 </script>
+<!--<![endif]-->
 <?php
 		}
 
