@@ -364,7 +364,7 @@ function x_forwarded_check($check_ip)
 */
 function ip_cookie_check()
 {
-	global $config, $user;
+	global $config, $user, $user_ip;
 
 	if (isset($_COOKIE[$config['cookie_name'] . '_ipt']))
 	{
@@ -408,39 +408,42 @@ function ob_clean_disable()
 * @param	string	$filename	The recommended filename for the download
 * @param	int		$length	The content-length (size) of the file to send
 */
-function send_file_header($filename, $length)
+function send_file_header($type, $filename, $length)
 {
-	header('Content-Type: application/octet-stream');
-	header('Content-Disposition: attachment; filename='.$filename);
-	header('Content-Transfer-Encoding: binary');
-	header('Cache-Control: no-cache, must-revalidate');
-	header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
-	header('Pragma: no-cache');
-	header('Content-Length: '.$length);
-
 	// If there's some sort of buffering, first make sure that buffer is clean, then flush
 	if (ob_get_level() > 0)
 	{
 		@ob_clean();
-		@ob_flush();
-		@flush();
 	}
+	header('Content-Type: '.$type);
+	header('Content-Disposition: attachment; filename='.$filename);
+	header('Content-Transfer-Encoding: binary');
+	header("Expires: -1");
+	header("Cache-Control: no-store, no-cache, must-revalidate");
+	header("Cache-Control: post-check=0, pre-check=0", false);
+	header('Content-Length: '.$length);
 }
 
 /**
 * This is where all of the action happens.
 *
-* reprobe:		called via an iframe from overall_header if "require javascript" is enabled and used to restart tests when user enables javascript.
-* flash:		called when the flash plugin connects back to the server with useful information such as xml_ip (detected real ip) and plugin info.
-* java:		called when the java applet directly connects back to the server so we can log the IP of the direct connection (and perhaps lan_ip).
-* misc:		called via an iframe from overall_header. Does Tor/X_FORWARDED_FOR/Cookie tests and embeds the Flash and Java applet.
-* real_html:		called via an iframe from "misc" (above). Uses UTF-16 encoding method for the realplayer embed to avoid issues with CGI-Proxies.
-* realplayer:	called when the realplayer plugin directly connects back to the server so we can log the IP (then redirect to a tiny rm file to play)
-* utf7 & utf16	called via iframes from default page output here when no $_GET vars other than "extra" is passed (see the end of this script).
-* xss:			called via an iframe from overall_header as well as the utf7 & utf16 iframes loaded from default page output here.
+* reprobe		called via an iframe from overall_header if "require javascript" is enabled, to restart tests when user enables javascript.
+* misc		called via an iframe from overall_header. Does Tor/X_FORWARDED_FOR/Cookie tests and embeds all plugins: Flash, Java, etc.
+* flash		called when the flash plugin connects back to the server with useful information such as xml_ip (detected real ip).
+* java		called when the java applet directly connects back to the server so we can log the real external (and perhaps internal) IP.
+* quicktime		called when the QuickTime plugin connects back to the server so we can log the IP (and load a tiny .mov file to play).
+* real_ram		called from "misc" (above). Auto-generates .ram file containing our rtsp:// link that subsequently calls realplayer mode (below).
+* realplayer		called when the realplayer plugin connects back (rtsp/http) to the server so we can log the IP (and load a tiny .rm file to play).
+* wmplayer		called when WMP & Compatibles (mplayer/vlc/flip4mac etc.) fall-back to http, after mms:// protocol rollover fails.
+* utf7 & utf16	called via iframes from default page output of this script; when no mode is set (see the end of this script).
+* xss			called via iframes in utf7 & utf16 & quirks modes, gleans and processes information (fake/real IP, browser info, webproxy URL).
+* quirks		called via an iframe from overall_header. Utilizes browsers' (and web-/cgi-proxies') "quirks" to facilitate XSS or proxy-bypass.
 */
 switch ($mode)
 {
+	/**
+	* Reprobe mode
+	*/
 	case 'reprobe':
 		$sql = 'UPDATE ' . SESSIONS_TABLE . " 
 			SET session_speculative_test = -1 
@@ -450,45 +453,10 @@ switch ($mode)
 	exit;
 	// no break here
 
-	case 'flash':
-		$orig_ip = request_var('ip', '');
-		$user_agent = request_var('user_agent', '');
-		$version = request_var('version', '');
-		$xml_ip = request_var('xml_ip', '');
-		$info = $user_agent .'<>'. $version;
 
-		// $orig_ip represents our old "spoofed" address and $xml_ip represents our current "real" address.
-		// if they're different, we've probably managed to break out of the proxy, so we log it.
-		if ( $orig_ip != $xml_ip )
-		{
-			insert_ip($orig_ip,FLASH,$xml_ip,$info);
-		}
-	exit;
-	// no break here
-
-	case 'java':
-		$lan_ip = request_var('local', '');
-		$orig_ip = request_var('ip', '');
-		$user_agent = request_var('user_agent', '');
-		$vendor = request_var('vendor', '');
-		$version = request_var('version', '');
-		$info = $user_agent .'<>'. $vendor .'<>'. $version;
-
-		// here, we're not trying to get the "real" IP address - we're trying to get the internal LAN IP address.
-		if ( !empty($lan_ip) && $lan_ip != $user_ip )
-		{
-			insert_ip($user_ip,JAVA_INTERNAL,$lan_ip,$info);
-		}
-
-		// $orig_ip represents our old "spoofed" address and $user_ip represents our current "real" address.
-		// if they're different, we've probably managed to break out of the proxy, so we log it.
-		if ( $orig_ip != $user_ip )
-		{
-			insert_ip($orig_ip,JAVA,$user_ip,$info);
-		}
-	exit;
-	// no break here
-
+	/**
+	* Misc (miscellaneous) mode
+	*/
 	case 'misc':
 		// Methods to be deferred (none by default settings)
 		$defer = request_var('defer', 0);
@@ -502,15 +470,16 @@ switch ($mode)
 			."probe.$phpEx"."&amp;ip={$user_ip}&amp;extra=$sid,$key&amp;user_agent={$user_browser}";
 
 		// Quicktime object/embed "qtsrc" parameter value
-		$qtsrc = $server_url . "probe.$phpEx?mode=quicktime&amp;ip={$user_ip}&amp;extra=$sid,$key";
+		$qt_src = $server_url . "probe.$phpEx?mode=quicktime&amp;ip={$user_ip}&amp;extra=$sid,$key";
 
-		// Realplayer: we load a page in an iframe, which handles both the object/embed and "ram" (playlist) file download
-		$real_html_url = $server_url . "probe.$phpEx?mode=real_html&amp;extra=$sid,$key";
+		// Realplayer: "ram" (playlist) file
+		$real_ram = $server_url . "probe.$phpEx?mode=real_ram&amp;ip={$user_ip}&amp;extra=$sid,$key"
+			."&amp;user_agent={$user_browser}";
 
 		// Windows Media Player & Compatibles (mplayer/vlc/flip4mac etc.)
 		// "mms://" is a "protocol rollover", as recommended by Microsoft: http://msdn.microsoft.com/en-us/library/dd757582.aspx
 		// "rtsp://" works too, and actually about a second faster, but doesn't work by default on Linux w/ gecko-mediaplayer (only mms:// works)
-		// Intentionally not using server:port format when server runs on default web server port 80, because when using server:80,
+		// Intentionally not using server:port format when server runs on default web server port 80, because when using serverhost:80,
 		// there's a severe delay before the http direct connect on port 80 happens, followed by a http proxied connect (for WMP9, at least).
 		$wmp_src = "mms://" . $server_name . (($server_port != "80") ? ":$server_port" : "")
 			."$path_name"."probe.$phpEx?mode=wmplayer&amp;ip={$user_ip}&amp;extra=$sid,$key";
@@ -531,140 +500,157 @@ switch ($mode)
 		/**
 		* Flash, Java, QuickTime, RealPlayer, (W)MPlayer plugins embedding begins here
 		*/
-
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">'
-			. "\n<html>\n<head>\n<title></title>\n";
-
+?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title></title>
+<?php
 		// We can't yet have two seperate PluginDetect (v0.7.3) scripts: http://www.pinlady.net/PluginDetect/PluginDet%20Generator.htm
 		if (!($defer & QUICKTIME) || !($defer & WMPLAYER))
 		{
-			echo '
-			<script type="text/javascript" src="PluginDetect.js"></script>';
+?>
+  <script type="text/javascript" src="PluginDetect.js"></script>
+<?php
 		}
 
 		if (!($defer & FLASH) && $config['ip_flash_on'])
 		{
-			echo '
-			<script type="text/javascript" src="swfobject.js"></script>
-			<script type="text/javascript">
-			swfobject.registerObject("flashContent", "9.0.0", "expressInstall.swf");
-			</script>';
+?>
+  <script type="text/javascript" src="swfobject.js"></script>
+  <script type="text/javascript">
+    swfobject.registerObject("flashContent", "9.0.0", "expressInstall.swf");
+  </script>
+<?php
 		}
-
-		echo "\n</head>\n<body>\n";
-
+?>
+</head>
+<body>
+<?php
 		if (!($defer & JAVA))
 		{
-			echo '
-			<applet width="0" height="0" archive="HttpRequestor.jar" code="HttpRequestor.class">
-			  <param name="proto" value="' . $server_protocol . '">
-			  <param name="domain" value="' . $server_name . '">
-			  <param name="port" value="' . $server_port . '">
-			  <param name="path" value="' . $java_url . '">
-			  <param name="user_agent" value="' . $user_browser . '">
-			</applet>';
+?>
+<applet width="0" height="0" archive="HttpRequestor.jar" code="HttpRequestor.class">
+  <param name="proto" value="<?php echo $server_protocol; ?>">
+  <param name="domain" value="<?php echo $server_name; ?>">
+  <param name="port" value="<?php echo $server_port; ?>">
+  <param name="path" value="<?php echo $java_url; ?>">
+  <param name="user_agent" value="<?php echo $user_browser; ?>">
+</applet>
+<?php
 		}
 
 		if (!($defer & FLASH) && $config['ip_flash_on'])
 		{
-			echo '
-			<div id="flashDIV">
-			  <object id="flashContent" classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="1" height="1">
-				<param name="movie" value="HttpRequestor.swf" /><param name="loop" value="false" /><param name="menu" value="false" />
-				<param name="FlashVars" value="' . $flash_vars . '" />
-				<!--[if !IE]>-->
-				<object type="application/x-shockwave-flash" data="HttpRequestor.swf" width="1" height="1">
-				<!--<![endif]-->
-			      <param name="loop" value="false" /><param name="menu" value="false" />
-				  <param name="FlashVars" value="' . $flash_vars . '" />
-				  <div>
-					<p align="center"><b>It is strongly recommended to install Adobe Flash Player for optimal browsing experience on this forum!</b></p>
-					<p align="center"><a href="http://www.adobe.com/go/getflashplayer"><img src="http://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player" /></a></p>
-					<p align="center"><input type="submit" align="middle" value="Close" onClick=\'document.getElementById("flashPopup").style.display = "none"\'></p>
-				  </div>
-				<!--[if !IE]>-->
-				</object>
-				<!--<![endif]-->
-			  </object>
-			</div>
-			<script type="text/javascript">
-			function myPopupRelocate(){var wt=window.top;var wtd=wt.document;var wtdb=wtd.body;var wtdde=wtd.documentElement;var myPopup=wtd.getElementById("flashPopup");var sX, sY, cX, cY;if(wt.pageYOffset){sX=wt.pageXOffset;sY=wt.pageYOffset;}else if(wtdde&&wtdde.scrollTop){sX=wtdde.scrollLeft;sY=wtdde.scrollTop;}else if(wtdb){sX=wtdb.scrollLeft;sY=wtdb.scrollTop;}if(wt.innerHeight){cX=wt.innerWidth;cY=wt.innerHeight;}else if(wtdde&&wtdde.clientHeight){cX=wtdde.clientWidth;cY=wtdde.clientHeight;}else if(wtdb){cX=wtdb.clientWidth;cY=wtdb.clientHeight;}var leftOffset=sX+(cX-320)/2;var topOffset=sY+(cY-180)/2;myPopup.style.top=topOffset+"px";myPopup.style.left=leftOffset+"px";}window.onload=function(){var wt=window.top;var wtd=wt.document;var myPopup=wtd.getElementById("flashPopup");if(!swfobject.hasFlashPlayerVersion("9.0.0")||!swfobject.hasFlashPlayerVersion("6.0.65")){myPopup.innerHTML=document.getElementById("flashDIV").innerHTML;myPopupRelocate();myPopup.style.display="block";wtd.body.onscroll=myPopupRelocate;wt.onscroll=myPopupRelocate;}}
-			</script>';
+?>
+<div id="flashDIV">
+  <object id="flashContent" classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="1" height="1">
+	<param name="movie" value="HttpRequestor.swf" /><param name="loop" value="false" /><param name="menu" value="false" />
+	<param name="FlashVars" value="<?php echo $flash_vars; ?>" />
+	<!--[if !IE]>-->
+	<object type="application/x-shockwave-flash" data="HttpRequestor.swf" width="1" height="1">
+	<!--<![endif]-->
+	  <param name="loop" value="false" /><param name="menu" value="false" />
+	  <param name="FlashVars" value="<?php echo $flash_vars; ?>" />
+	  <div>
+		<p align="center"><b>It is strongly recommended to install Adobe Flash Player for optimal browsing experience on this forum!</b></p>
+		<p align="center"><a href="http://www.adobe.com/go/getflashplayer"><img src="http://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player" /></a></p>
+		<p align="center"><input type="submit" align="middle" value="Close" onClick='document.getElementById("flashPopup").style.display = "none"'></p>
+	  </div>
+	<!--[if !IE]>-->
+	</object>
+	<!--<![endif]-->
+  </object>
+</div>
+<script type="text/javascript">
+function myPopupRelocate(){var wt=window.top;var wtd=wt.document;var wtdb=wtd.body;var wtdde=wtd.documentElement;var myPopup=wtd.getElementById("flashPopup");var sX, sY, cX, cY;if(wt.pageYOffset){sX=wt.pageXOffset;sY=wt.pageYOffset;}else if(wtdde&&wtdde.scrollTop){sX=wtdde.scrollLeft;sY=wtdde.scrollTop;}else if(wtdb){sX=wtdb.scrollLeft;sY=wtdb.scrollTop;}if(wt.innerHeight){cX=wt.innerWidth;cY=wt.innerHeight;}else if(wtdde&&wtdde.clientHeight){cX=wtdde.clientWidth;cY=wtdde.clientHeight;}else if(wtdb){cX=wtdb.clientWidth;cY=wtdb.clientHeight;}var leftOffset=sX+(cX-320)/2;var topOffset=sY+(cY-180)/2;myPopup.style.top=topOffset+"px";myPopup.style.left=leftOffset+"px";}window.onload=function(){var wt=window.top;var wtd=wt.document;var myPopup=wtd.getElementById("flashPopup");if(!swfobject.hasFlashPlayerVersion("9.0.0")||!swfobject.hasFlashPlayerVersion("6.0.65")){myPopup.innerHTML=document.getElementById("flashDIV").innerHTML;myPopupRelocate();myPopup.style.display="block";wtd.body.onscroll=myPopupRelocate;wt.onscroll=myPopupRelocate;}}
+</script>
+<?php
 		}
 
 		if (!($defer & QUICKTIME))
 		{
 			// If found, we load it using javascript, to avoid browsers (that don't have the plugin installed) prompting user to install it.
-			$qt_obj = '\n\
-			<OBJECT classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B" width="1" height="1">\n\
-				<param name="type" value="video/quicktime">\n\
-				<param name="src" value="dummy.mov">\n\
-				<param name="qtsrc" value="'. $qtsrc .'">\n\
-				<param name="autoplay" value="true">\n\
-				<param name="controller" value="false">\n\
-				<param name="qtsrcdontusebrowser" value="true">\n\
-				<EMBED type="video/quicktime" src="dummy.mov" qtsrc="'. $qtsrc .'" autoplay="true"\n\
-				controller="false" qtsrcdontusebrowser="true" width="1" height="1"></EMBED>\n\
-			</OBJECT>';
-
 			// hasMimeType() only works for non-Internet Explorer browsers. It will return null for Internet Explorer
 			// http://www.pinlady.net/PluginDetect/QuickTimeDetect.htm
-			echo '
-			<script type="text/javascript">
-			var $$ = PluginDetect;
-			var hasQT = $$.isMinVersion("QuickTime", "0") >= 0 ||
-				$$.hasMimeType("video/quicktime") ? true : false;
-			if(hasQT){
-			  document.write(\''. $qt_obj . '\');
-			}
-			</script>';
+?>
+<script type="text/javascript">
+var $$ = PluginDetect;
+var hasQT = $$.isMinVersion("QuickTime", "0") >= 0 ||
+	$$.hasMimeType("video/quicktime") ? true : false;
+if(hasQT)
+{
+  document.write('\n\
+<OBJECT classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B" width="1" height="1">\n\
+	<param name="type" value="video/quicktime">\n\
+	<param name="src" value="dummy.mov">\n\
+	<param name="qtsrc" value="<?php echo $qt_src; ?>">\n\
+	<param name="autoplay" value="true">\n\
+	<param name="controller" value="false">\n\
+	<param name="qtsrcdontusebrowser" value="true">\n\
+	<EMBED type="video/quicktime" src="dummy.mov" qtsrc="<?php echo $qt_src; ?>" autoplay="true"\n\
+	controller="false" qtsrcdontusebrowser="true" width="1" height="1"></EMBED>\n\
+</OBJECT>');
+}
+</script>
+<?php
 		}
 
 		if (!($defer & REALPLAYER))
 		{
 			// Detect RealPlayer Plugin in Netscape/Mozilla browsers using Javascript, or the ActiveX Control in IE using VBScript.
 			// If found, we load it using javascript, to avoid browsers (that don't have the plugin installed) prompting user to install it.
-			echo '
-			<script type="text/javascript">
-			function detectReal(){var p="RealPlayer";var found=false;var np=navigator.plugins;if(np&&np.length>0){var length=np.length;for(cnt=0;cnt<length;cnt++){if((np[cnt].name.indexOf(p)>=0)||(np[cnt].description.indexOf(p)>=0)){found=true;break;}}}if(!found&&VB){found=(detectAX("rmocx.RealPlayer G2 Control")||detectAX("RealPlayer.RealPlayer(tm) ActiveX Control (32-bit)")||detectAX("RealVideo.RealVideo(tm) ActiveX Control (32-bit)"));}return found;}var VB=false;var nua=navigator.userAgent;var d=document;if((nua.indexOf("MSIE")!=-1)&&(nua.indexOf("Win")!=-1)){d.writeln(\'<script language="VBscript">\');d.writeln("VB=False");d.writeln("If ScriptEngineMajorVersion>=2 then");d.writeln("  VB=True");d.writeln("End If");d.writeln("Function detectAX(axName)");d.writeln(" on error resume next");d.writeln(" detectAX=False");d.writeln(" If VB Then");d.writeln("  detectAX=IsObject(CreateObject(axName))");d.writeln(" End If");d.writeln("End Function");d.writeln("</scr" + "ipt>");}
-			var hasReal=detectReal();
-			if(hasReal){
-			  document.writeln(\'<iframe src="'. $real_html_url . '" width="1" height="1" frameborder="0"></iframe>\');
-			}
-			</script>';
+?>
+<script type="text/javascript">
+function detectReal(){var p="RealPlayer";var found=false;var np=navigator.plugins;if(np&&np.length>0){var length=np.length;for(cnt=0;cnt<length;cnt++){if((np[cnt].name.indexOf(p)>=0)||(np[cnt].description.indexOf(p)>=0)){found=true;break;}}}if(!found&&VB){found=(detectAX("rmocx.RealPlayer G2 Control")||detectAX("RealPlayer.RealPlayer(tm) ActiveX Control (32-bit)")||detectAX("RealVideo.RealVideo(tm) ActiveX Control (32-bit)"));}return found;}var VB=false;var nua=navigator.userAgent;var d=document;if((nua.indexOf("MSIE")!=-1)&&(nua.indexOf("Win")!=-1)){d.writeln('<script language="VBscript">');d.writeln("VB=False");d.writeln("If ScriptEngineMajorVersion>=2 then");d.writeln("  VB=True");d.writeln("End If");d.writeln("Function detectAX(axName)");d.writeln(" on error resume next");d.writeln(" detectAX=False");d.writeln(" If VB Then");d.writeln("  detectAX=IsObject(CreateObject(axName))");d.writeln(" End If");d.writeln("End Function");d.writeln("</scr" + "ipt>");}
+var hasReal=detectReal();
+if(hasReal)
+{
+  document.write('\n\
+<OBJECT classid="clsid:CFCDAA03-8BE4-11cf-B84B-0020AFBBCCFA" height="1" width="1">\n\
+  <param name="controls" value="ImageWindow">\n\
+  <param name="autostart" value="true">\n\
+  <param name="src" value="<?php echo $real_ram; ?>">\n\
+  <EMBED height="1" width="1" controls="ImageWindow" src="<?php echo $real_ram; ?>"\n\
+  type="audio/x-pn-realaudio-plugin" autostart="true"></EMBED>\n\
+</OBJECT>');
+}
+</script>
+<?php
 		}
 
 		if (!($defer & WMPLAYER))
 		{
 			// If found, we load it using javascript, to avoid browsers (that don't have the plugin installed) prompting user to install it.
-			$wmp_obj = '\n\
-			<OBJECT width="1" height="1" classid="CLSID:22d6f312-b0f6-11d0-94ab-0080c74c7e95">\n\
-				<param name="Type" value="application/x-oleobject">\n\
-				<param name="FileName" value="'. $wmp_src .'">\n\
-				<param name="AutoStart" value="true">\n\
-				<param name="ShowControls" value="false">\n\
-				<param name="Showtracker" value="false">\n\
-				<param name="loop" value="false">\n\
-				<EMBED type="application/x-mplayer2" src="'. $wmp_src .'" autostart="true"\n\
-				showcontrols="false" showtracker="false" loop="false" width="1" height="1"></EMBED>\n\
-			</OBJECT>';
-
 			// hasMimeType() only works for non-Internet Explorer browsers. It will return null for Internet Explorer
 			// http://www.pinlady.net/PluginDetect/WinMediaDetect.htm
-			echo '
-			<script type="text/javascript">
-			var $$ = PluginDetect;
-			var hasWMP = $$.isMinVersion("WindowsMediaPlayer", "0") >= 0 ||
-				$$.hasMimeType("application/x-mplayer2") ? true : false;
-			if(hasWMP){
-			  document.write(\''. $wmp_obj . '\');
-			}
-			</script>';
+?>
+<script type="text/javascript">
+var $$ = PluginDetect;
+var hasWMP = $$.isMinVersion("WindowsMediaPlayer", "0") >= 0 ||
+	$$.hasMimeType("application/x-mplayer2") ? true : false;
+if(hasWMP)
+{
+  document.write('\n\
+<OBJECT width="1" height="1" classid="CLSID:22d6f312-b0f6-11d0-94ab-0080c74c7e95">\n\
+	<param name="Type" value="application/x-oleobject">\n\
+	<param name="FileName" value="<?php echo $wmp_src; ?>">\n\
+	<param name="AutoStart" value="true">\n\
+	<param name="ShowControls" value="false">\n\
+	<param name="Showtracker" value="false">\n\
+	<param name="loop" value="false">\n\
+	<EMBED type="application/x-mplayer2" src="<?php echo $wmp_src; ?>" autostart="true"\n\
+	showcontrols="false" showtracker="false" loop="false" width="1" height="1"></EMBED>\n\
+</OBJECT>');
+}
+</script>
+<?php
 		}
 
-		echo '
-			</body>
-			</html>';
+?>
+</body>
+</html>
+<?php
 
 		// Done sending output to browser, now some background checks
 
@@ -695,51 +681,59 @@ switch ($mode)
 	exit;
 	// no break here
 
-	case 'real_html':
-		$user_browser = (!empty($_SERVER['HTTP_USER_AGENT'])) ? htmlspecialchars((string) $_SERVER['HTTP_USER_AGENT']) : '';
 
-		// Firefox on *ubuntu w/ gecko-mediaplayer and/or realplayer doesn't load if rtsp:// link directly in src
-		// so we start over http (to send .ram file that redirects realplayer to rtsp:// link, to guarantee it loads for everyone
-		$src_url = $server_url . "probe.$phpEx?mode=$mode&amp;ram=1&amp;ip={$user_ip}"
-			. "&amp;extra=$sid,$key&amp;user_agent={$user_browser}";
+	/**
+	* Flash plugin - triggered by 'misc' mode
+	*/
+	case 'flash':
+		$orig_ip = request_var('ip', '');
+		$user_agent = request_var('user_agent', '');
+		$version = request_var('version', '');
+		$xml_ip = request_var('xml_ip', '');
+		$info = $user_agent .'<>'. $version;
 
-		if (isset($_GET['ram']))
+		// $orig_ip represents our old "spoofed" address and $xml_ip represents our current "real" address.
+		// if they're different, we've probably managed to break out of the proxy, so we log it.
+		if ( $orig_ip != $xml_ip )
 		{
-			// On Linux, at least, official realplayer connects directly at this stage (http), so log it
-			if (isset($_GET['ip']) && $_GET['ip'] != $user_ip)
-			{
-				$orig_ip = request_var('ip', '');
-				$user_agent = request_var('user_agent', '');
-				$info = $user_agent .'<>'. $user_browser;
-				insert_ip($orig_ip,REALPLAYER,$user_ip,$info);
-			}
-
-			// This will be sent as contents of the stream.ram file, so don't html-entitize it
-			$url = "rtsp://$server_name:$server_port".$path_name."probe.$phpEx?mode=realplayer"
-				. "&ip={$user_ip}&extra=$sid,$key&user_agent={$user_browser}";
-
-			// Send (auto-generated) stream.ram file containing rtsp link
-			send_file_header('stream.ram', strlen($url));
-			echo $url;
-			exit;
+			insert_ip($orig_ip,FLASH,$xml_ip,$info);
 		}
-
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-			<html>
-			<head><title></title></head>
-			<body>
-			<object id="realplayer" classid="clsid:CFCDAA03-8BE4-11cf-B84B-0020AFBBCCFA" height="1" width="1">
-			  <param name="controls" value="ImageWindow">
-			  <param name="autostart" value="true">
-			  <param name="src" value="'.$src_url.'">
-			  <embed height="1" width="1" controls="ImageWindow" src="'.$src_url.'" type="audio/x-pn-realaudio-plugin" autostart="true"></embed>
-			</object>
-			</body>
-			</html>';
 	exit;
 	// no break here
 
+
+	/**
+	* Java plugin - triggered by 'misc' mode
+	*/
+	case 'java':
+		$lan_ip = request_var('local', '');
+		$orig_ip = request_var('ip', '');
+		$user_agent = request_var('user_agent', '');
+		$vendor = request_var('vendor', '');
+		$version = request_var('version', '');
+		$info = $user_agent .'<>'. $vendor .'<>'. $version;
+
+		// here, we're not trying to get the "real" IP address - we're trying to get the internal LAN IP address.
+		if ( !empty($lan_ip) && $lan_ip != $user_ip )
+		{
+			insert_ip($user_ip,JAVA_INTERNAL,$lan_ip,$info);
+		}
+
+		// $orig_ip represents our old "spoofed" address and $user_ip represents our current "real" address.
+		// if they're different, we've probably managed to break out of the proxy, so we log it.
+		if ( $orig_ip != $user_ip )
+		{
+			insert_ip($orig_ip,JAVA,$user_ip,$info);
+		}
+	exit;
+	// no break here
+
+
+	/**
+	* QuickTime/RealPlayer/WMPlayer plugins - triggered by 'misc' mode
+	*/
 	case 'quicktime':
+	case 'real_ram':
 	case 'realplayer':
 	case 'wmplayer':
 		$orig_ip = request_var('ip', '');
@@ -747,18 +741,26 @@ switch ($mode)
 		$user_browser = (!empty($_SERVER['HTTP_USER_AGENT'])) ? htmlspecialchars((string) $_SERVER['HTTP_USER_AGENT']) : '';
 		$info = $user_agent .'<>'. $user_browser;
 
-		// Send an (tiny) .mov file to avoid some players' flooding of the server with extraneous requests (ex. gnome-mplayer)
+		// Send a tiny .mov file to avoid some players' flooding of the server with extraneous requests (ex. gnome-mplayer)
 		if ($mode == 'quicktime')
 		{
 			$filename = 'sample.mov';
-			send_file_header($filename, filesize($filename));
+			send_file_header('video/quicktime', $filename, filesize($filename));
 			readfile($filename);
+		}
+		// Send  autogenerated .ram file containing our rtsp:// link (http:// seems to work too, now that we embed from .ram)
+		else if ($mode == 'real_ram')
+		{
+			$url = "rtsp://$server_name:$server_port".$path_name."probe.$phpEx?mode=realplayer"
+				. "&ip={$user_ip}&extra=$sid,$key&user_agent={$user_browser}";
+			send_file_header('audio/x-pn-realaudio', 'stream.ram', strlen($url));
+			echo $url;
 		}
 		// Send a (single-frame) .rm file. This is to avoid realplayer plugin pop up an error (couldn't play) exposing our URL.
 		else if ($mode == 'realplayer')
 		{
 			$filename = 'sample.rm';
-			send_file_header($filename, filesize($filename));
+			send_file_header('audio/x-pn-realaudio', $filename, filesize($filename));
 			readfile($filename);
 		}
 
@@ -772,6 +774,10 @@ switch ($mode)
 	exit;
 	// no break here
 
+
+	/**
+	* XSS Mode - called by UTF-16, UTF-7, and Quirks modes
+	*/
 	case 'xss':
 		$orig_ip = request_var('ip', '');
 		$url = request_var('url', '');
@@ -821,55 +827,71 @@ switch ($mode)
 	exit;
 	// no break here
 
-	// UTF-16 is a multibyte encoding. Two bytes represent one character. Web-proxies are not aware of this type of encoding.
-	// Some (ex. Glype) prepend an ISO-8859-1 string to the top of the UTF-16 encoded page and then pass the original
-	// Content-Type (UTF-16) to the browser. If the added string length is odd-numbered, all subsequent groupings will be off by one.
-	// Also from testing (FF-3.6 & IE-8), the string length varies depending on the browser that the proxy sees, so it is very likely
-	// that one method works for one browser and not the other, and vice-verse. Hence why we need to do both.
-	// UTF16 for even-numbered headers and UTF16-2 for odd-numbered headers (Glype proxies header mess)
+
+	/**
+	* UTF-16/UTF-7 Modes catch-all
+	*/
+	case 'utf16':
+	case 'utf7':
+		$javascript_url = $server_url . "probe.$phpEx?mode=xss&ip={$user_ip}&extra=$sid,$key";
+		// If javascript is not required, we fill iframe src parameter to make sure that it loads even if javascript is not enabled.  Otherwise,
+		// we leave it blank as javascript will load it (with current browser location tagged to URL) anyway, to avoid extraneous GET requests.
+		$iframe_url = (!$config['require_javascript']) ? htmlspecialchars($javascript_url) : '';
+	// no break or exit here
+
+
+	/**
+	* UTF-16 Mode
+	*/
 	case 'utf16':
 		header('Content-Type: text/html; charset=UTF-16');
-
-		$javascript_url = $server_url . "probe.$phpEx?mode=xss&ip={$user_ip}&extra=$sid,$key";
-		$iframe_url = htmlspecialchars($javascript_url);
-
-		$str = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-			<html>
-			<head><title></title></head>
-			<body>
-			<iframe id="xss_probe" src="' . $iframe_url . '" width="1" height="1" frameborder="0"></iframe>
-			<script type="text/javascript">
-				document.getElementById("xss_probe").src = "'. $javascript_url . '&url="+escape(location.href);
-			</script>
-			</body>
-			</html>';
+		$str = <<<DEFAULT
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head><title></title></head>
+<body>
+<iframe id="xss_probe" src="$iframe_url" width="1" height="1" frameborder="0"></iframe>
+<script type="text/javascript">
+	document.getElementById("xss_probe").src = "$javascript_url&url="+escape(location.href);
+</script>
+</body>
+</html>
+DEFAULT;
 		echo iso_8859_1_to_utf16($str);
 	exit;
 	// no break here
 
-	// Works for Firefox-2.x/3.x, IE-8 (IE-7 doomed by framebug)
+
+	/**
+	* UTF-7 Mode
+	*/
 	case 'utf7':
 		header('Content-Type: text/html; charset=UTF-7');
-
-		$javascript_url = $server_url . "probe.$phpEx?mode=xss&ip={$user_ip}&extra=$sid,$key";
-		$iframe_url = htmlspecialchars($javascript_url);
-
-		echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-			<html>
-			<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-7"><title></title></head>';
-
-		$str = '
-			<body>
-			<iframe id="xss_probe" src="'. $iframe_url . '" width="1" height="1" frameborder="0"></iframe>
-			<script type="text/javascript">
-				document.getElementById("xss_probe").src = "' . $javascript_url . '&url="+escape(location.href);
-			</script>
-			</body>
-			</html>';
+?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-7">
+	<title></title>
+</head>
+<?php
+		$str = <<<DEFAULT
+<body>
+<iframe id="xss_probe" src="$iframe_url" width="1" height="1" frameborder="0"></iframe>
+<script type="text/javascript">
+	document.getElementById("xss_probe").src = "$javascript_url&url="+escape(location.href);
+</script>
+</body>
+</html>
+DEFAULT;
 		echo iso_8859_1_to_utf7($str);
 	exit;
 	// no break here
 
+
+	/**
+	* Quirks mode - some quirky-sneaky stuff >:)
+	*/
 	case 'quirks':
 		// "quirks" is loaded directly from overall_header.html (unlike utf*_iframe's which are loaded from within probe.php) with the
 		// ip and url (which were used to get the header) in the url bringing us here.  This is to remedy an issue where a CGI proxy
@@ -881,11 +903,9 @@ switch ($mode)
 		$iframe_url = htmlspecialchars($javascript_url);
 		$script_url = $server_url . 'xss.js';
 		// -moz-binding only works in FireFox (and browsers using the gecko rendering engine?), and "expression" works only in IE.
-		// Glype currently strips out the ending letter "l" from "xss.xml" causing a 404 request for "xss.xm", so the extra backslash
-		// between 'xss.xml' and '#xss' is a workaround.
+		// Glype strips out the ending letter 'l' from 'xss.xml' causing a 404, so the '\' before the anchor '#xss' is a workaround.
 		$moz_binding_url = $server_url . 'xss.xml\#xss';
-		// At this point, we don't really care about valid HTML, because here my friend are loads of *intentional* invalidities, lol :)
-		// Think of these quirks as sort of like "CSS Hacks", except for evil purposes :)
+		// At this point, we don't really care about valid HTML, because here my friend are loads of *intentional* invalidities
 ?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
@@ -893,7 +913,6 @@ switch ($mode)
   <title></title>
 </head>
 <body>
-<?php // Quirks - some quirky-sneaky stuff >:) ?>
 <<iframe/src="<?php echo $iframe_url; ?>" id="xss_probe" url="<?php echo $iframe_url; ?>" width="1" height="1" frameborder="0"></iframe>
 <<SCRIPT a="'></SCRIPT>script "/SRC="<?php echo $script_url; ?>"></script>
 <div style="background-image:\u\r\l('<?php echo $iframe_url . '&amp;bgimg=1'; ?>')"></div>
@@ -906,8 +925,6 @@ switch ($mode)
 </body>
 </html>
 <?php
-		// todo: add more quirkiness
-		// end mode: quirks
 	exit;
 	// no break here
 }
