@@ -243,6 +243,12 @@ function insert_ip($ip_masked, $mode, $ip_direct, $info = '')
 		WHERE ip_address = '" . $db->sql_escape($ip_masked) . "' 
 			AND method = " . $db->sql_escape($mode) . " 
 			AND real_ip = '" . $db->sql_escape($ip_direct) . "'";
+
+	// Allows duplicate logs of Masked/Real-IP/Method combination if the User-Agent (Browser/Plugin info) differs.
+	if ($config['ip_log_agent_check'] && $mode != XSS && !empty($info))
+	{
+		$sql .= " AND info = '" . $db->sql_escape($info) . "'";
+	}
 	$result = $db->sql_query($sql);
 
 	if ( !$row = $db->sql_fetchrow($result) )
@@ -589,7 +595,7 @@ var hasQT = $$.isMinVersion("QuickTime", "0") >= 0 ||
 	$$.hasMimeType("video/quicktime") ? true : false;
 if(hasQT)
 {
-  var qtMov = '<EMBED type="video/quicktime" src="dummy.mov" qtsrc="<?php echo $qt_src; ?>"'
+  var qtMov = '<EMBED type="video/quicktime" src="<?php echo $server_url; ?>dummy.mov" qtsrc="<?php echo $qt_src; ?>"'
 	+ 'qtsrcdontusebrowser="true" autoplay="true" controller="false" width="1" height="1"></EMBED>';
   parent.document.getElementById("qtDiv").innerHTML = qtMov;
 }
