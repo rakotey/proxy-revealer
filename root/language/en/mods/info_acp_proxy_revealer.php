@@ -38,10 +38,10 @@ if (empty($lang) || !is_array($lang))
 // Proxy Revealer Olympus ACP Titles
 $lang = array_merge($lang, array(
 	'ACP_PROXY_REVEALER'				=> 'Proxy Revealer Olympus',
-	'ACP_PROXY_REVEALER_EXTERNAL'		=> 'External IPs',
-	'ACP_PROXY_REVEALER_INTERNAL'		=> 'Internal IPs',
-	'ACP_PROXY_REVEALER_SETTINGS'		=> 'Settings',
-	'ACP_PROXY_REVEALER_EXCLUDES'		=> 'Exceptions',
+	'ACP_PROXY_REVEALER_EXTERNAL'		=> 'External IPs Log',
+	'ACP_PROXY_REVEALER_INTERNAL'		=> 'Internal IPs Log',
+	'ACP_PROXY_REVEALER_SETTINGS'		=> 'MOD Settings',
+	'ACP_PROXY_REVEALER_EXCLUDES'		=> 'MOD Exceptions',
 	'LOG_PROXY_REVEALER_SETTINGS'		=> '<strong>Altered Proxy Revealer settings</strong>',
 	'LOG_PROXY_REVEALER_EXCLUDES_ADD'	=> '<strong>Excluded IP(s) from Proxy Revealer scanning</strong><br />» %1$s',
 	'LOG_PROXY_REVEALER_EXCLUDES_DEL'	=> '<strong>Removed IP(s) from Proxy Revealer exceptions list</strong><br />» %s',

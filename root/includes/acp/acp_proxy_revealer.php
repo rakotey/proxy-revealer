@@ -99,7 +99,7 @@ class acp_proxy_revealer
 		}
 		else
 		{
-			$show = $config['posts_per_page'];
+			$show = $config['ip_log_page_rows'];
 		}
 
 		// sort order
@@ -377,10 +377,13 @@ class acp_proxy_revealer
 	function display_settings()
 	{
 		global $config, $db, $user, $template;
+		global $phpbb_admin_path, $phpEx;
 
 		// We add 'acp/ban' language file because we reuse the ban-length options' names in our local function ipbanlength_select()
 		// and we also reuse 'BAN_LENGTH', 'BAN_REASON' and 'BAN_GIVE_REASON' in our $display_vars below
 		$user->add_lang('acp/ban');
+		// reuse 'GENERAL_SETTINGS', 'GENERAL_OPTIONS', 'ACP_SUBMIT_CHANGES', 'IP_VALID'
+		$user->add_lang('acp/board');
 
 		$this->tpl_name = 'acp_proxy_revealer_settings';
 
@@ -389,13 +392,16 @@ class acp_proxy_revealer
 
 		$submit = (isset($_POST['submit'])) ? true : false;
 
+		// ip_check from includes/acp/acp_board.php
 		$display_vars = array(
 			'title'	=> 'ACP_PROXY_REVEALER_SETTINGS',
 			'vars'	=> array(
-				'legend1'				=> 'ACP_PROXY_REVEALER_SETTINGS',
+				'legend1'				=> 'GENERAL_SETTINGS',
 				'pro_mod_on'			=> array('lang' => 'PRO_MOD_ON',		'validate' => 'bool',			'type' => 'radio:yes_no',		'explain' => true),
 				'ip_block'				=> array('lang' => 'IP_MASK_BLOCK',		'validate' => 'int',			'type' => 'custom',			'method' => 'ip_block_select',	'explain' => true),
 				'ip_scan_defer'			=> array('lang' => 'IP_SCAN_DEFER',		'validate' => 'int',			'type' => 'custom',			'method' => 'ip_block_select',	'explain' => true),
+				'ip_check'				=> array('lang' => 'IP_VALID',			'validate' => 'int',			'type' => 'custom',			'method' => 'select_ip_check', 'explain' => false),
+				'ip_log_agent_check'	=> array('lang' => 'LOG_AGENT_CHECK',	'validate' => 'int',			'type' => 'radio:yes_no',	'explain' => true),
 				'ip_cookie_age'			=> array('lang' => 'IP_COOKIE_AGE',		'validate' => 'int',			'type' => 'text:3:4',		'explain' => true,	'append' => ' ' . $user->lang['HOURS']),
 				'ip_flash_on'			=> array('lang' => 'IP_FLASH_ON',		'validate' => 'bool',			'type' => 'radio:yes_no',	'explain' => true),
 				'ip_flash_port'			=> array('lang' => 'IP_FLASH_PORT',		'validate' => 'int:1025:65535',	'type' => 'text:5:5',		'explain' => true),
@@ -405,59 +411,70 @@ class acp_proxy_revealer
 				'ip_ban_length_other'	=> array('lang' => 'BAN_LENGTH',		'validate' => 'string',			'type' => false,			'method' => false,	'explain' => false),
 				'ip_ban_reason'			=> array('lang' => 'BAN_REASON',		'validate' => 'string',			'type' => 'text:40:255',	'explain' => false),
 				'ip_ban_give_reason'	=> array('lang' => 'BAN_GIVE_REASON',	'validate' => 'string',			'type' => 'text:40:255',	'explain' => false),
-				'ip_prune'				=> array('lang' => 'IP_MASK_PRUNE',		'validate' => 'int',			'type' => 'text:3:4',		'explain' => true,	'append' => ' ' . $user->lang['DAYS']),
+				'ip_prune'				=> array('lang' => 'IP_MASK_PRUNE',		'validate' => 'int:0',			'type' => 'text:3:4',		'explain' => true,	'append' => ' ' . $user->lang['DAYS']),
+
+				'legend2'				=> 'GENERAL_OPTIONS',
+				'ip_log_page_rows'		=> array('lang' => 'LOG_PAGE_ROWS',		'validate' => 'int:1',			'type' => 'text:3:4',		'explain' => false),
+
+				'legend3'				=> 'ACP_SUBMIT_CHANGES',
 			)
 		);
 
 		$this->new_config = $config;
+		$cfg_array = (isset($_REQUEST['config'])) ? utf8_normalize_nfc(request_var('config', array('' => ''), true)) : $this->new_config;
+		$error = array();
 
-		if ($submit)
+		// We validate the complete config if whished
+		validate_config_vars($display_vars['vars'], $cfg_array, $error);
+
+		if ($submit && !check_form_key($form_key))
 		{
-			$cfg_array = (isset($_REQUEST['config'])) ? utf8_normalize_nfc(request_var('config', array('' => ''), true)) : $this->new_config;
-			$error = array();
+			$error[] = $user->lang['FORM_INVALID'];
+		}
+		// Do not write values if there is an error
+		if (sizeof($error))
+		{
+			$submit = false;
+		}
 
-			validate_config_vars($display_vars['vars'], $cfg_array, $error);
-
-			if (!check_form_key($form_key))
+		// We go through the display_vars to make sure no one is trying to set variables he/she is not allowed to...
+		foreach ($display_vars['vars'] as $config_name => $null)
+		{
+			if (!isset($cfg_array[$config_name]) || strpos($config_name, 'legend') !== false)
 			{
-				$error[] = $user->lang['FORM_INVALID'];
+				continue;
 			}
 
-			if (sizeof($error) == 0)
-			{
-				foreach ($display_vars['vars'] as $config_name => $null)
-				{
-					if (!isset($cfg_array[$config_name]) || strpos($config_name, 'legend') !== false)
-					{
-						continue;
-					}
+			$this->new_config[$config_name] = $cfg_array[$config_name];
 
-					$this->new_config[$config_name] = $cfg_array[$config_name];
-					set_config($config_name, $cfg_array[$config_name]);
-				}
-				add_log('admin', 'LOG_PROXY_REVEALER_SETTINGS');
-				trigger_error($user->lang['CONFIG_UPDATED'] . adm_back_link($this->u_action));
-			}
-			else
+			if ($submit)
 			{
-				$template->assign_vars(array(
-					'S_ERROR' => (sizeof($error)) ? true : false,
-					'ERROR_MSG' => implode('<br />', $error),
-				));
+				set_config($config_name, $cfg_array[$config_name]);
 			}
 		}
 
+		if ($submit)
+		{
+			add_log('admin', 'LOG_PROXY_REVEALER_SETTINGS');
+
+			trigger_error($user->lang['CONFIG_UPDATED'] . adm_back_link($this->u_action));
+		}
+
+		// Link to “Server Configuation” -> “Security Settings”
+		$security_url = append_sid("{$phpbb_admin_path}index.$phpEx", "i=board&amp;mode=security");
+
 		$template->assign_vars(array(
-			'L_PROXY_REVEALER'				=> $user->lang['ACP_PROXY_REVEALER'],
-			'L_PROXY_REVEALER_SETTINGS'		=> $user->lang['ACP_PROXY_REVEALER_SETTINGS'],
-			'L_PROXY_REVEALER_DESC'			=> $user->lang['PROXY_REVEALER_EXPLAIN'],
-			'S_ACP_PROXY_REVEALER_SETTINGS'	=> true,
-			'U_ACTION'						=> $this->u_action,
+			'L_PROXY_REVEALER'			=> $user->lang['ACP_PROXY_REVEALER'],
+			'L_PROXY_REVEALER_SETTINGS'	=> $user->lang['ACP_PROXY_REVEALER_SETTINGS'],
+			'L_PROXY_REVEALER_DESC'		=> sprintf($user->lang['PROXY_REVEALER_EXPLAIN'], '<a href="' . $security_url . '">', '</a>'),
+
+			'S_ERROR'			=> (sizeof($error)) ? true : false,
+			'ERROR_MSG'			=> implode('<br />', $error),
+
+			'U_ACTION'					=> $this->u_action,
 		));
 
-		//
 		// Output relevant page
-		//
 		foreach ($display_vars['vars'] as $config_key => $vars)
 		{
 			if (!is_array($vars) && strpos($config_key, 'legend') === false)
@@ -916,6 +933,17 @@ class acp_proxy_revealer
 			'U_ACTION'						=> $this->u_action,
 			'U_FIND_USERNAME'				=> append_sid("{$phpbb_root_path}memberlist.$phpEx", 'mode=searchuser&amp;form=add_users&amp;field=add_user'),
 		));
+	}
+
+	/**
+	* Select ip validation
+	* duplicated from includes/acp/acp_board.php
+	*/
+	function select_ip_check($value, $key = '')
+	{
+		$radio_ary = array(4 => 'ALL', 3 => 'CLASS_C', 2 => 'CLASS_B', 0 => 'NO_IP_VALIDATION');
+
+		return h_radio('config[ip_check]', $radio_ary, $value, $key);
 	}
 
 	/**

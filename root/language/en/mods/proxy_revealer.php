@@ -66,7 +66,7 @@ $lang = array_merge($lang, array(
 
 // Proxy Revealer Olympus Settings
 $lang = array_merge($lang, array(
-	'PROXY_REVEALER_EXPLAIN'	=> 'Attempts to determine someone’s “real” IP address - whenever possible, using a myriad of techniques, and “blocks” such people. Blocking is done within the confines of the “Session IP Validation” setting (“Security Settings” -> “Server Configuation”). Please DO NOT block with X-Forwarded-For or Cookie unless you know what you’re doing! They’ll still log possible masked/real IPs which you can manually ban later if you like.',
+	'PROXY_REVEALER_EXPLAIN'	=> 'Attempts to determine someone’s “real” IP address - whenever possible, using a myriad of techniques, and “blocks” such people. Blocking is done within the confines of the “Session IP Validation” setting (from “%sSecurity Settings%s”) - duplicated below. Please DO NOT block with X-Forwarded-For or Cookie unless you know what you’re doing! They’ll still log possible masked/real IPs which you can manually ban later if you like.',
 
 	'PRO_MOD_ON'			=> 'Proxy Revealer Enabled',
 	'PRO_MOD_ON_EXPLAIN'	=> 'Setting this to “no” will completely disable this MOD.',
@@ -89,6 +89,9 @@ $lang = array_merge($lang, array(
 	'IP_REQUIRE_JS_EXPLAIN'	=> 'This ensures that Web-Proxy URLs get logged by XSS, Flash auto-loads in IE6/7 & Opera9+, old/no flash is detected, RealPlayer plugin detection/test occurs, and Firefox users with “NoScript” are forced to “Allow this site” (enables Java/Flash).',
 	'IP_SCAN_DEFER'			=> 'Defer Scan Methods',
 	'IP_SCAN_DEFER_EXPLAIN'	=> 'This will defer scanning methods till login (or registration) which allows for excluding certain users (ex. to allow a user to use Tor, check “Tor DNSEL” here and add them in “Exceptions”).',
+	'LOG_PAGE_ROWS'			=> 'Log entries per page',
+	'LOG_AGENT_CHECK'			=> 'Log if agent differs',
+	'LOG_AGENT_CHECK_EXPLAIN'	=> 'Allows duplicate logs of Masked/Real-IP/Method combination if the User-Agent (Browser/Plugin info) differs. This is useful if you want to see if user is trying different browsers/computers with same proxy.',
 
 ));
 

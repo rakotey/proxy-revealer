@@ -69,6 +69,8 @@ $versions = array(
 			array('ip_flash_on', true),
 			array('ip_flash_port', 9999),
 			array('ip_last_prune', 0, true),
+			array('ip_log_page_rows', 20),
+			array('ip_log_agent_check', true),
 		),
 
 		'config_update'	=> array(
