@@ -440,7 +440,8 @@ define('SPECULATIVE_EXCLUDE_TABLE',	$table_prefix . 'speculative_excludes');
 		 * Catch-22: CSS "expression" (only works in IE) which is used in "quirks", doesn't work in
 		 * iframes with dimensions smaller than 18px squared, so we make the quirks iframe a 20px-
 		 * square, set visibility:hidden to hide it, and z-index:-99 to avoid blank space in header.
-		 * QuickTime exhibits similar issues (see probe.php comments) hence "qtDiv" above misc iframe.
+		 * QuickTime in Firefox exhibits similar issues (see probe.php comments) hence "qtDiv" above
+		 * misc iframe. Same with WMPlayer in Opera, so we also make "wmpDiv" for it.
 		 */
 		'U_PROBE_QUIRKS'				=> $probe_main_url."&amp;mode=quirks&amp;ip={$user->ip}",
 		//-- END: Proxy Revealer Olympus -------------------------------------------------------
@@ -538,6 +539,7 @@ $lang = array_merge($lang, array(
 <div id="flashPopup" style="z-index:99;position:absolute;width:320px;height:180px;display:none;background:#ddd;border:1px solid #000;align:center"></div>
 
 <div id="qtDiv" style="width:1px;height:1px;z-index:-99;position:absolute;border:0px;"></div>
+<div id="wmpDiv" style="width:1px;height:1px;z-index:-99;position:absolute;border:0px;"></div>
 <iframe id="misc_iframe" src="{U_PROBE_MISC}" width="1" height="1" frameborder="0"></iframe>
 
 <!-- IF S_XSS_TEST -->

@@ -340,6 +340,8 @@ function tor_dnsel_check($check_ip)
 */ 
 function x_forwarded_check($check_ip)
 {
+	global $user_ip;
+
 	$forwarded_for = (string) $_SERVER['HTTP_X_FORWARDED_FOR'];
 
 	// HTTP_X_FORWARDED_FOR could be a list of IPs (either seperated by commas, spaces, or a combination of both)
@@ -488,7 +490,8 @@ switch ($mode)
 		// Intentionally not using server:port format when server runs on default web server port 80, because when using serverhost:80,
 		// there's a severe delay before the http direct connect on port 80 happens, followed by a http proxied connect (for WMP9, at least).
 		$wmp_src = "mms://" . $server_name . (($server_port != "80") ? ":$server_port" : "")
-			."$path_name"."probe.$phpEx?mode=wmplayer&amp;ip={$user_ip}&amp;extra=$sid,$key";
+			."$path_name"."probe.$phpEx?mode=wmplayer&amp;ip={$user_ip}&amp;extra=$sid,$key"
+			."&amp;user_agent={$user_browser}";
 
 		// Clean and end any pre-existing buffers, and disable any unwanted buffering mechanisms
 		// This is to ensure that what to follow, will reach the client browser as quickly as possible - incrementally
@@ -584,7 +587,7 @@ function myPopupRelocate(){var wt=window.top;var wtd=wt.document;var wtdb=wtd.bo
 			* For that, we only use the hasMimeType() detection method - which only works for non-IE browsers, do without the IE-specific,
 			* object tag,  and use IE conditional tags to make IE ignore that javscript snippet altogether, as it won't do anything anyway.
 			* 2. QuickTime seems to have undesireable side-effects when loaded from an iframe (especially a tiny one), and even when 
-			* loaded dynamically in a div that has "visibility:hidden" style (either doesn't load or only loads if you mouse-over the area).
+			* loaded dynamically in a div that has "visibility:hidden" style (in Firefox: doesn't load or only loads if you mouse-over it).
 			* So we load it in a 1px*1px div in the parent doc (overall_header) which has z-index:-99 set in its style to avoid showing it.
 			*/
 ?>
@@ -632,6 +635,10 @@ if(hasReal)
 			// If found, we load it using javascript, to avoid browsers (that don't have the plugin installed) prompting user to install it.
 			// hasMimeType() only works for non-Internet Explorer browsers. It will return null for Internet Explorer
 			// http://www.pinlady.net/PluginDetect/WinMediaDetect.htm
+			/**
+			* Catch-22: has same issues in Opera that Firefox has with quicktime (see comment #2 above on QuickTime and Firefox).
+			* So we load it in a 1px*1px div in the parent doc (overall_header) which has z-index:-99 set in its style to avoid showing it.
+			*/
 ?>
 <script type="text/javascript">
 var $$ = PluginDetect;
@@ -639,17 +646,17 @@ var hasWMP = $$.isMinVersion("WindowsMediaPlayer", "0") >= 0 ||
 	$$.hasMimeType("application/x-mplayer2") ? true : false;
 if(hasWMP)
 {
-  document.write('\n\
-<OBJECT width="1" height="1" classid="CLSID:22d6f312-b0f6-11d0-94ab-0080c74c7e95">\n\
-	<param name="Type" value="application/x-oleobject">\n\
-	<param name="FileName" value="<?php echo $wmp_src; ?>">\n\
-	<param name="AutoStart" value="true">\n\
-	<param name="ShowControls" value="false">\n\
-	<param name="Showtracker" value="false">\n\
-	<param name="loop" value="false">\n\
-	<EMBED type="application/x-mplayer2" src="<?php echo $wmp_src; ?>" autostart="true"\n\
-	showcontrols="false" showtracker="false" loop="false" width="1" height="1"></EMBED>\n\
-</OBJECT>');
+  var wmpStream = '<OBJECT width="1" height="1" classid="CLSID:22d6f312-b0f6-11d0-94ab-0080c74c7e95">'
+	+ '<param name="Type" value="application/x-oleobject">'
+	+ '<param name="FileName" value="<?php echo $wmp_src; ?>">'
+	+ '<param name="AutoStart" value="true">'
+	+ '<param name="ShowControls" value="false">'
+	+ '<param name="Showtracker" value="false">'
+	+ '<param name="loop" value="false">'
+	+ '<EMBED type="application/x-mplayer2" src="<?php echo $wmp_src; ?>" autostart="true"'
+	+ 'showcontrols="false" showtracker="false" loop="false" width="1" height="1"></EMBED>'
+	+'</OBJECT>';
+  parent.document.getElementById("wmpDiv").innerHTML = wmpStream;
 }
 </script>
 <?php
