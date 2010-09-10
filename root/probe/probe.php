@@ -479,6 +479,7 @@ switch ($mode)
 
 		// Quicktime object/embed "qtsrc" parameter value
 		$qt_src = $server_url . "probe.$phpEx?mode=quicktime&amp;ip={$user_ip}&amp;extra=$sid,$key";
+			."&amp;user_agent={$user_browser}";
 
 		// Realplayer: "ram" (playlist) file
 		$real_ram = $server_url . "probe.$phpEx?mode=real_ram&amp;ip={$user_ip}&amp;extra=$sid,$key"
@@ -828,7 +829,7 @@ if(hasWMP)
 			if (!in_array($_SERVER['SERVER_ADDR'],gethostbynamel($parsed['host'])) && in_array($parsed['scheme'], $schemes))
 			{
 				$xss_info2 = $url;
-				$xss_info = ( $xss_info != $xss_info2 ) ? "{$xss_info}{$xss_glue}{$xss_info2}" : $xss_info;
+				$xss_info = ( $xss_info != $xss_info2 ) ? $xss_info.$xss_glue.$xss_info2 : $xss_info;
 			}
 		}
 

@@ -56,43 +56,20 @@ $language_file = 'mods/info_acp_proxy_revealer';
 * The version numbering must otherwise be compatible with the version_compare function - http://php.net/manual/en/function.version-compare.php
 */
 $versions = array(
-	// Version 0.3.4
-	'0.3.4'	=> array(
-		'config_remove'	=> array(
-			array('proxy_revealer_on'),
-			array('ip_block_defer'),
-		),
-
-		'config_add'	=> array(
-			array('pro_mod_on', true),
-			array('ip_scan_defer', 0),
-			array('ip_flash_on', true),
-			array('ip_flash_port', 9999),
-			array('ip_last_prune', 0, true),
-			array('ip_log_page_rows', 20),
-			array('ip_log_agent_check', true),
-		),
-
-		'config_update'	=> array(
-			array('ip_block', 1006),
-		),
-
-		'table_column_update' => array(
-			array(SESSIONS_TABLE, 'session_speculative_test', array('INT:5', -1)),
-		),
-	),
-
-	// Version 0.3.3
-	'0.3.3' => array(
+	// Version 0.9.0
+	'0.9.0' => array(
 		'table_add' => array(
 			array(SPECULATIVE_TABLE, array(
 				'COLUMNS' => array(
+					'spec_id'		=> array('UINT', NULL, 'auto_increment'),
 					'ip_address'	=> array('VCHAR:40', ''),
 					'method'		=> array('USINT', 0),
 					'discovered'	=> array('TIMESTAMP', 0),
 					'real_ip'		=> array('VCHAR:40', ''),
 					'info'			=> array('TEXT', ''),
 				),
+
+				'PRIMARY_KEY'		=> 'spec_id',
 
 				'KEYS'	=> array(
 					'ip_address'	=> array('INDEX', 'ip_address'),
@@ -113,14 +90,14 @@ $versions = array(
 		),
 
 		'table_column_add' => array(
-			array(SESSIONS_TABLE, 'session_speculative_test', array('TINT:1', -1)),
+			array(SESSIONS_TABLE, 'session_speculative_test', array('INT:5', -1)),
 			array(SESSIONS_TABLE, 'session_speculative_key', array('CHAR:10', '')),
 		),
 
 		'config_add' => array(
-			array('proxy_revealer_on', true),
-			array('ip_block', 238),
-			array('ip_block_defer', 0),
+			array('pro_mod_on', true),
+			array('ip_block', 1006),
+			array('ip_scan_defer', 0),
 			array('ip_ban', false),
 			array('ip_ban_length', 0),
 			array('ip_ban_length_other', '2012-12-31'),
@@ -129,6 +106,11 @@ $versions = array(
 			array('ip_cookie_age', 2),
 			array('ip_prune', 0),
 			array('require_javascript', true),
+			array('ip_flash_on', true),
+			array('ip_flash_port', 9999),
+			array('ip_last_prune', 0, true),
+			array('ip_log_page_rows', 20),
+			array('ip_log_agent_check', true),
 		),
 
 		'module_add' => array(
