@@ -131,13 +131,22 @@ class acp_proxy_revealer
 			' ORDER BY discovered ' . $db->sql_escape($sort_order);
 		$result = $db->sql_query_limit($sql, $show, $start);
 
+		$methods_ary = array(
+			JAVA			=> 'java',
+			JAVA_INTERNAL	=> 'java',
+			FLASH			=> 'flash',
+			REALPLAYER		=> 'realplayer',
+			QUICKTIME		=> 'quicktime',
+			WMPLAYER		=> 'wmplayer',
+		);
+
 		$i = 0;
 		while ( $row = $db->sql_fetchrow($result) )
 		{
 			$real_ip = $row['real_ip'];
 			$real_ip_url = '<a href="' . $this->u_action . "&amp;action=whois&amp;ip=$real_ip" . '" '
 				. 'title="' . sprintf($user->lang['IP_WHOIS_FOR'], $real_ip) . '" '
-				. 'onclick="popup(this.href, 700, 500, \'_whois\'); return false;">' . $real_ip . '</a>';
+				. 'onclick="popup(this.href, 700, 300, \'_whois\'); return false;">' . $real_ip . '</a>';
 
 			$ip_address = $row['ip_address'];
 
@@ -148,39 +157,17 @@ class acp_proxy_revealer
 				break;
 
 				case FLASH:
-					$method = '<a href="'
-						. $this->u_action . "&amp;action=flash&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
-						. '" title="' . sprintf($user->lang['PLUGIN_DESC'], $user->lang['FLASH']) . '" '
-						. 'onclick="popup(this.href, 700, 300, \'_flash\'); return false;">' . $user->lang['FLASH'] . '</a>';
-				break;
-
 				case JAVA:
 				case JAVA_INTERNAL:
-					$method = '<a href="'
-						. $this->u_action . "&amp;action=java&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
-						. '" title="' . sprintf($user->lang['PLUGIN_DESC'], $user->lang['JAVA']) . '" '
-						. 'onclick="popup(this.href, 700, 300, \'_java\'); return false;">' . $user->lang['JAVA'] . '</a>';
-				break;
-
 				case REALPLAYER:
-					$method = '<a href="'
-						. $this->u_action . "&amp;action=realplayer&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
-						. '" title="' . sprintf($user->lang['PLUGIN_DESC'], $user->lang['REALPLAYER']) . '" '
-						. 'onclick="popup(this.href, 700, 300, \'_realplayer\'); return false;">' . $user->lang['REALPLAYER'] . '</a>';
-				break;
-
 				case QUICKTIME:
-					$method = '<a href="'
-						. $this->u_action . "&amp;action=quicktime&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
-						. '" title="' . sprintf($user->lang['PLUGIN_DESC'], $user->lang['QUICKTIME']) . '" '
-						. 'onclick="popup(this.href, 700, 300, \'_quicktime\'); return false;">' . $user->lang['QUICKTIME'] . '</a>';
-				break;
-
 				case WMPLAYER:
-					$method = '<a href="'
-						. $this->u_action . "&amp;action=wmplayer&amp;spoofed=$row[ip_address]&amp;real=$real_ip&amp;method=$row[method]"
-						. '" title="' . sprintf($user->lang['PLUGIN_DESC'], $user->lang['WMPLAYER']) . '" '
-						. 'onclick="popup(this.href, 700, 300, \'_wmplayer\'); return false;">' . $user->lang['WMPLAYER'] . '</a>';
+					$p_name = $methods_ary[$row['method']];
+					$method = '<a href="' . "{$this->u_action}&amp;action=$p_name&amp;spec_id=$row[spec_id]"
+						. "&amp;method=$row[method]" . '" title="'
+						. sprintf( $user->lang['PLUGIN_DESC'], $user->lang[strtoupper($p_name)] ) . '" '
+						. 'onclick="popup(this.href, 700, 300, ' . "'_{$p_name}'" . '); return false;">'
+						. $user->lang[strtoupper($p_name)] . '</a>';
 				break;
 
 				case TOR_DNSEL:
@@ -194,19 +181,20 @@ class acp_proxy_revealer
 					$real_ip_url = $real_ip;
 					$urls = explode('<>', $row['info']);
 					$count = count($urls);
-					switch (true)
+					// by default, there has to be at least one url (sorbs.net or spamhaus.org)
+					if ($count > 0)
 					{
-						case $count == 1: // by default, there has to be at least one url (sorbs.net or spamhaus.org)
-							$method =  '<a href="' . $urls[0] . '" title="' . $user->lang['PROXY_DNSBL_URL'] . '" '
-								. 'onclick="popup(this.href, 700, 500, \'_proxy_dnsbl\'); return false;">' . $user->lang['PROXY_DNSBL'] . '</a>';
-						break;
+						$method =  '<a href="' . $urls[0] . '" title="' . $user->lang['PROXY_DNSBL_URL'] . '" '
+							. 'onclick="popup(this.href, 700, 300, \'_proxy_dnsbl\'); return false;">'
+							. $user->lang['PROXY_DNSBL'] . '</a>';
+					}
 
-						case $count == 2: // eg. there can be up to two url's in $urls (sorbs.net and spamhaus.org).  if there is, represent the link to the second one with "(2)"
-							$method =  '<a href="' . $urls[0] . '" title="' . $user->lang['PROXY_DNSBL_URL'] . '" '
-								. 'onclick="popup(this.href, 700, 500, \'_proxy_dnsbl\'); return false;">' . $user->lang['PROXY_DNSBL'] . '</a>';
-							$method.= '&nbsp;&nbsp;<a href="' . $urls[1] . '" title="' . $user->lang['PROXY_DNSBL_URL'] . '" '
-								. 'onclick="popup(this.href, 700, 500, \'_proxy_dnsbl\'); return false;">(2)</a>';
-						break;
+					// there can be up to two url's in $urls (sorbs.net and spamhaus.org).  if there is, represent the link to the second one with "(2)"
+					if ($count > 1)
+					{
+						$method .= '&nbsp;&nbsp;';
+						$method .= '<a href="' . $urls[1] . '" title="' . $user->lang['PROXY_DNSBL_URL'] . '" '
+							. 'onclick="popup(this.href, 700, 300, \'_proxy_dnsbl\'); return false;">(2)</a>';
 					}
 				break;
 
@@ -215,25 +203,24 @@ class acp_proxy_revealer
 				break;
 
 				case XSS:
+					$count = 0;
+					$method = $user->lang['XSS'];
 					$urls = explode('<>', $row['info']);
 					$count = count($urls);
-					switch (true)
+
+					if ($count > 0 && !empty($urls[0]))
 					{
-						case !$count:
-							$method = $user->lang['XSS'];
-						break;
+						$method = '<a href="' . $urls[0] . '" title="' . $user->lang['XSS_URL'] . '" '
+							. 'onclick="popup(this.href, 700, 300, \'_xss\'); return false;">'
+							. $user->lang['XSS'] . '</a>';
+					}
 
-						case $count == 1 || empty($urls[1]):
-							$method =  !empty($urls[0]) ? '<a href="' . $urls[0] . '" title="' . $user->lang['XSS_URL'] . '" '
-								. 'onclick="popup(this.href, 700, 500, \'_xss\'); return false;">' . $user->lang['XSS'] . '</a>' : $user->lang['XSS'];
-						break;
-
-						case $count == 2: // eg. default; there can be up to two url's in $urls.  if there is, represent the link to the second one with "(2)"
-							$method =  !empty($urls[0]) ? '<a href="' . $urls[0] . '" title="' . $user->lang['XSS_URL'] . '" '
-								. 'onclick="popup(this.href, 700, 500, \'_xss\'); return false;">' . $user->lang['XSS'] . '</a>' : $user->lang['XSS'];
-							$method.= !empty($urls[1]) ? '&nbsp;&nbsp;<a href="' . $urls[1] . '" title="' . $user->lang['XSS_URL'] . '" '
-								. 'onclick="popup(this.href, 700, 500, \'_xss\'); return false;">(2)</a>' : '';
-						break;
+					// there can be up to two url's in $urls.  if there is, represent the link to the second one with "(2)"
+					if ($count > 1 && !empty($urls[1]))
+					{
+						$method .= '&nbsp;&nbsp;';
+						$method .= '<a href="' . $urls[1] . '" title="' . $user->lang['XSS_URL'] . '" '
+							. 'onclick="popup(this.href, 700, 300, \'_xss\'); return false;">(2)</a>';
 					}
 				break;
 			}
@@ -257,11 +244,11 @@ class acp_proxy_revealer
 		$total_ips = $total['total'];
 
 		$speculative_desc = ($mode == 'internal') ? 
-				sprintf($user->lang['SPECULATIVE_IP_INTERNAL'],
-					'<a href="' . append_sid("{$phpbb_admin_path}index.$phpEx", "i=$id&amp;mode=external") . '">', '</a>') : 
-				sprintf($user->lang['SPECULATIVE_IP_EXTERNAL'],
-					'<a href="' . append_sid("{$phpbb_admin_path}index.$phpEx", "i=$id&amp;mode=internal") . '">', '</a>',
-					'<a href="' . append_sid("{$phpbb_admin_path}index.$phpEx", "i=$id&amp;mode=excludes") . '">', '</a>');
+			sprintf($user->lang['SPECULATIVE_IP_INTERNAL'],
+			'<a href="' . append_sid("{$phpbb_admin_path}index.$phpEx", "i=$id&amp;mode=external") . '">', '</a>') : 
+			sprintf($user->lang['SPECULATIVE_IP_EXTERNAL'],
+			'<a href="' . append_sid("{$phpbb_admin_path}index.$phpEx", "i=$id&amp;mode=internal") . '">', '</a>',
+			'<a href="' . append_sid("{$phpbb_admin_path}index.$phpEx", "i=$id&amp;mode=excludes") . '">', '</a>');
 
 		$template->assign_vars(array(
 			'L_SEARCH_FOR'			=> $user->lang['SEARCH_FOR'],
@@ -323,23 +310,21 @@ class acp_proxy_revealer
 	{
 		global $db, $user, $template;
 
-		$this->page_title = 'SPECULATIVE_IP_' . strtoupper($action);
+		$this->page_title = sprintf($user->lang['PLUGIN_DESC'], $user->lang[strtoupper($action)]);
 		$this->tpl_name = 'acp_proxy_revealer_plugin';
 
-		$spoofed_ip = request_var('spoofed', '');
-		$real_ip = request_var('real', '');
+		$spec_id = request_var('spec_id', 0);
 		$method = request_var('method', 0);
 
-		if ($method != JAVA && $method != JAVA_INTERNAL && $method != FLASH && $method != REALPLAYER && $method != QUICKTIME && $method != WMPLAYER)
+		$methods_ary = array(JAVA, JAVA_INTERNAL, FLASH, REALPLAYER, QUICKTIME, WMPLAYER);
+		if (!in_array($method, $methods_ary))
 		{
 			trigger_error('NO_MODE', E_USER_ERROR);
 		}
 
 		// there should only be one response.
 		$sql = 'SELECT * FROM ' . SPECULATIVE_TABLE . ' 
-			WHERE method = ' . $db->sql_escape($method) . " 
-				AND ip_address = '" . $db->sql_escape($spoofed_ip) . "' 
-				AND real_ip = '" . $db->sql_escape($real_ip) . "'";
+			WHERE spec_id = ' . $db->sql_escape($spec_id);
 		$result = $db->sql_query($sql);
 		$row = $db->sql_fetchrow($result);
 
