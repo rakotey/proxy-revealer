@@ -34,14 +34,18 @@ Flash Detection Additional Setup Requirement
 
 To be able to take advantage of the Flash detection technique, you need to have shell access on your server (or access to cron/task manager) to run xmlsockd.pl daemon script (as a normal user) on an unfiltered port and in a directory where it has write access so it can write the PID (and optionally log) file. It is recommended that this directory be outside the document root of your site. The scripts are available in the contrib/daemon/ directory.
 
-Choose only one of the following two perl scripts to run:
+Choose only one of the following three perl scripts to run:
 
-1. xmlsockd.pl: What most admins want to run.
-  - Single Threaded script which could handle a few simultaneous connections at the same time. (meaning few milliseconds). Multiplexing using IO::Select to handle multiple clients, in case there are some lazy/slow clients who take their sweet time to send their request, we dont want to delay the rest - so the ip checking could be done quickly).
+1. xmlsockd.pl
+  - Single-thread script. Multiplexing using IO::Select to handle multiple clients, in case there are some lazy/slow clients who take their sweet time to send their request, we dont want to delay the rest - so the ip checking could be done as quickly as possible).
   - Supports logging, optional configuration of port, logging connections
   - Supports being invoked from shell, or via @reboot or periodically from cron
-  
-2. xmlsockd-basic.pl: A barebone version of the script above. For admins who run on systems with very limited perl installations that don't have the modules needed to run xmlsockd.pl such as IO::Socket, IO::Select, Log::Dispatch, Proc::PID::File, etc...
+
+2. xmlsockd-threaded.pl
+  - Mutli-threaded script, runs a pool of pre-forked threads to handle connections simultaneously. Each thread handles accepting of connections on their own, also using IO::Select to multiplex between connections.
+  - Supports the same as above, with the optional configuration of number of threads/listener pool.
+
+3. xmlsockd-basic.pl: A barebone version of the script above, for systems with very limited perl installations; those that don't have the modules needed to run xmlsockd.pl such as IO::Socket, IO::Select, Log::Dispatch, Proc::PID::File, etc.
 
 If your server is running Linux/BSD OS, then it most likely runs vixiecron, which allows you to use the @reboot syntax in crontab, so that your script can be automatically restarted after reboot.
 
