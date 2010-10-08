@@ -53,6 +53,7 @@ $SIG{HUP}  = sub { print STDOUT "\nCaught SIGHUP:  exiting gracefully\n"; $runni
 $SIG{INT}  = sub { print STDOUT "\nCaught SIGINT:  exiting gracefully\n"; $running = 0; };
 $SIG{QUIT} = sub { print STDOUT "\nCaught SIGQUIT:  exiting gracefully\n"; $running = 0; };
 $SIG{TERM} = sub { print STDOUT "\nCaught SIGTERM:  exiting gracefully\n"; $running = 0; };
+$SIG{PIPE} = sub { print STDOUT "\nCaught SIGPIPE (Ignoring):  $!\n"; $running = 1; };
 
 ###
 ### As long as the daemon is running, listen for and handle received connections
