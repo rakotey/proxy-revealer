@@ -1,42 +1,58 @@
 #!/usr/bin/perl -w
-# XML Socket Daemon for Flash Addon to Proxy Revealer MOD for phpbb
+# Basic Socket Daemon for Flash/Silverlight plugins in Proxy Revealer MOD (phpbb)
 # Author: jasmineaura <jasmine.aura@yahoo.com> (Jasmine Hasan)
 # Licensed under http://opensource.org/licenses/gpl-license.php GNU Public License
 # $Id: xmlsockd-basic.pl 23 2008-09-16 13:13:01Z jasmine.aura@yahoo.com $
 
 use strict;
-use POSIX qw(setsid);
 use Socket;
-use FindBin qw($Bin);
-
-my $port = 9999;		# Any number between 1024 and 65535
-my $debug = 1;			# Do you want to see debug messages on STDOUT? 1 = yes, 0 = no
-
-# Do not change the following unless you know what you're doing
-my $content = '<?xml version="1.0"?><cross-domain-policy><allow-access-from domain="*" to-ports="' . $port . '" /></cross-domain-policy>';
-my $NULLBYTE = pack( 'c', 0 );
+use POSIX qw(setsid);
+use Cwd qw(abs_path);
 
 ###
-### Detect our base directory where we create the pid files
+# Change default configuration here, if needed
 ###
-our $BASE_DIR = $Bin;
-# Get script name, chop off any preceding path it was called with and chop off its extension (ex: 'some/dir/script.pl' becomes 'script')
-our $ME = $0; $ME =~ s|.*/||; $ME =~ s|\..*||;
-our $PID_FILE = "$BASE_DIR/$ME.pid";
+
+# Our server port (Any number between 1024 and 65535)
+my $port = 9999;
+
+# socket-send-timeout and socket-receive-timeout (long , not floats; i.e. no fractions)
+# ex: to set 1.5s timeout, set to 1 and 1000, respectively (timeout is the sum of both)
+my $t_sec = 1;		# seconds (1 second = 1,000,000us)
+my $t_usec = 0;		# microseconds (1000us = 0.5s)
+
+# Do you want to see debug messages on STDOUT? 1 = yes, 0 = no
+# You might want to set it to 0 if script runs periodically from cron
+my $debug = 1;
+
+# Want to see debug messages if script is executed when it's already running?
+# You might want to set it to 0 if script runs periodically from cron
+my $debug_is_running = 1;
+
+# !!!!!!!!!!!!!!!!!!!!!!!!!!
+# Do not change the following unless you know what you're doing!!!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!
+my $policy = '<?xml version="1.0"?><cross-domain-policy><allow-access-from domain="*" to-ports="' . $port . '" /></cross-domain-policy>';
+
+# Absolute path to this script (ex: /home/user/perl/script.pl)
+my $SELF = abs_path($0);
+#$SELF =~ m/(.*)/; $ENV{PATH} = $SELF = $1; # lame untaint
+
+# Absolute path to PID FILE, chop off script's extension (if any), and apped ".pid"
+my $PID_FILE = $SELF; $PID_FILE =~ s|\.[^.]*$||; $PID_FILE .= ".pid";
 
 ###
-### Check if script is already running, else update $PID_FILE
+# Check if script is already running, else update $PID_FILE
 ###
 if (-e $PID_FILE) {
 	open(PID_FILE, "<", $PID_FILE) or die "Can't read from $PID_FILE: $!\n";
 	my $OLD_PID = <PID_FILE>;
 	close PID_FILE;
 	chomp $OLD_PID;
-	# Check that $OLD_PID only contains digits.
-	die "PIDFILE shall only contain digits! ($OLD_PID)\n" if ($OLD_PID !~ /\d+/);
-	# Check if script is still running
-	if( kill(0, $OLD_PID) ) {
-		print STDOUT "\nScript already running (PID: $OLD_PID)\n" if ($debug);
+	$OLD_PID =~ m/(\d+)/ or die "PIDFILE shall only contain digits! ($OLD_PID)\n";
+	my $PID = $1; # Assign untainted data
+	if( kill(0, $PID) ) {
+		print STDOUT "\nScript already running (PID: $PID)\n" if ($debug && $debug_is_running);
 		exit(0); # We exit without error in case we're running script periodically from cron
 	} else {
 		daemonize();
@@ -46,83 +62,97 @@ if (-e $PID_FILE) {
 }
 
 ###
-### Setup signal handlers to give us time to cleanup (and log) before shutting down
+# Setup signal handlers to give us time to cleanup (and report if debug on) before shutting down
 ###
 my $running = 1;
-$SIG{HUP}  = sub { print STDOUT "\nCaught SIGHUP:  exiting gracefully\n"; $running = 0; };
+my $restart = 0;
+$SIG{HUP}  = sub { print STDOUT "\nCaught SIGHUP:  restarting gracefully\n"; $running = 0; $restart = 1; };
 $SIG{INT}  = sub { print STDOUT "\nCaught SIGINT:  exiting gracefully\n"; $running = 0; };
 $SIG{QUIT} = sub { print STDOUT "\nCaught SIGQUIT:  exiting gracefully\n"; $running = 0; };
 $SIG{TERM} = sub { print STDOUT "\nCaught SIGTERM:  exiting gracefully\n"; $running = 0; };
-$SIG{PIPE} = sub { print STDOUT "\nCaught SIGPIPE (Ignoring):  $!\n"; $running = 1; };
+$SIG{PIPE} = sub { print STDOUT "\nCaught SIGPIPE (Ignoring):  $!\n"; };
 
 ###
-### As long as the daemon is running, listen for and handle received connections
+# BEGIN LISTENING
 ###
-while ($running) {
-	###
-	### BEGIN LISTENING
-	###
-	socket( LISTENSOCK, PF_INET, SOCK_STREAM, getprotobyname( 'tcp' ) ) or die "socket() error: $!";
-	setsockopt( LISTENSOCK, SOL_SOCKET, SO_REUSEADDR, pack( 'l', 1 ) ) or die "setsockopt() error: $!";
-	bind( LISTENSOCK, sockaddr_in( $port, INADDR_ANY ) ) or die "bind() error: $!";
-	listen( LISTENSOCK, SOMAXCONN ) or die "listen() error: $!";
+socket(Server, PF_INET, SOCK_STREAM, getprotobyname('tcp')) or die "socket: $!";
+setsockopt(Server, SOL_SOCKET, SO_REUSEADDR, 1) or die "setsockopt: $!";
 
-	print STDOUT "\nListening on port $port\n" if ($debug);
+# SO_SNDTIMEO (socket-send-timeout) and SO_RCVTIMEO (socket-receive-timeout)
+# 'L!L!' instead of 'LL', for automatic portability to 64-bit platforms.
+# See: http://perldesignpatterns.com/?SocketProgramming
+setsockopt(Server, SOL_SOCKET, SO_SNDTIMEO, pack('L!L!', $t_sec, $t_usec)) or die "setsockopt: $!";
+setsockopt(Server, SOL_SOCKET, SO_RCVTIMEO, pack('L!L!', $t_sec, $t_usec)) or die "setsockopt: $!";
 
-	###
-	### HANDLE CONNECTIONS
-	###
-	while ( my $clientAddr = accept( CONNSOCK, LISTENSOCK ) )
-	{
-		my ( $clientPort, $clientIp ) = sockaddr_in( $clientAddr );
-		my $clientIpStr = inet_ntoa( $clientIp );
-		local $/ = $NULLBYTE;
+bind(Server, sockaddr_in($port, INADDR_ANY)) or die "bind() error: $!";
+listen(Server, SOMAXCONN) or die "listen() error: $!";
 
-		my $request;
-		if ( defined ( $request = <CONNSOCK> ) )
-		{
-			chomp $request;
-			if ( $request eq '<policy-file-request/>' )
-			{
-				print STDOUT "XML Policy file request from: $clientIpStr\n" if ($debug);
-				print CONNSOCK $content.$NULLBYTE;
-			}
-			elsif ( $request =~ /<request>getmyip<\/request>/ )
-			{
-				print STDOUT "XML IP request from: $clientIpStr\n" if ($debug);
-				print CONNSOCK "<data><ip>$clientIpStr</ip></data>".$NULLBYTE;
-			}
-			else
-			{
-				print STDOUT "Ignoring unrecognized request from: $clientIpStr\n" if ($debug);
-			}
+print STDOUT "\nListening on port $port\n" if ($debug);
+
+###
+# As long as the daemon is running, listen for and handle received connections
+###
+while ($running)
+{
+	my ($client, $iPort, $iAddr, $ipStr, $request);
+	$client = accept(Client, Server) or next;
+	local $/ = "\0";	# Set the input record separator to null char (flash sockets)
+
+	if (defined ($request = <Client>)) {
+		($iPort, $iAddr) = sockaddr_in($client);	# get client's in_addr
+		$ipStr = inet_ntoa($iAddr);					# convert in_addr to IP string
+		chomp $request;								# Trim the null-byte line-terminator
+
+		if ($request eq '<policy-file-request/>') {
+			print Client "$policy\0";
+			print STDOUT "XML Policy file request from: $ipStr\n" if ($debug);
 		}
-		else
-		{
-			print STDOUT "Ignoring NULL connection from: $clientIpStr\n" if ($debug);
+		elsif ($request eq '<request>getmyip</request>') {
+			print Client "<data><ip>$ipStr</ip></data>\0";
+			print STDOUT "XML IP request from: $ipStr\n" if ($debug);
 		}
-		close CONNSOCK;
+		else {
+			print Client "Invalid request\0";
+			print STDOUT "Ignoring invalid request from: $ipStr\n" if ($debug);
+		}
 	}
+	close(Client);
 }
 
 ###
-### Cleanup after clean exit
+# Cleanup for a clean exit
 ###
+close(Server);
 unlink($PID_FILE); # Delete our pid file before exiting
-print STDOUT "\nProcess Ended!\n";
-
+# Are we restarting or exiting ?
+if ($restart) {
+	exec($SELF) or die "Restart failed: $!\n";
+} else {
+	print STDOUT "\nProcess Ended!\n";
+}
 
 ###
-### daemonize: forks and saves our PID in $PID_FILE
+# daemonize: forks and saves our PID in $PID_FILE
 ###
 sub daemonize {
 	# fork a child process and have the parent process exit to disassociate the process from controlling terminal or login shell
-	defined(my $pid = fork)   or die "Can't fork: $!";
+	defined(my $pid = fork) or die "Can't fork: $!";
 	exit if $pid;
+
 	# setsid turns the process into a session and group leader to ensure our process doesn't have a controlling terminal
-	setsid or die "Can't start a new session: $!";
+	POSIX::setsid or warn "Can't start a new session: $!";
+
 	open(PID_FILE, ">", $PID_FILE) or die "Can't open $PID_FILE: $!\n";
 	print PID_FILE "$$\n";
 	print STDOUT "\nNew PID: $$\n" if $debug;
 	close PID_FILE;
+
+	unless ($debug)
+	{
+		# Close the three standard filehandles by reopening them to /dev/null:
+		for my $handle (*STDIN, *STDOUT, *STDERR)
+		{
+			open($handle, "+<", "/dev/null") || die "Can't reopen $handle to /dev/null: $!";
+		}
+	}
 }
