@@ -9,7 +9,7 @@ import flash.errors.*;
 import flash.events.*;
 import flash.net.sendToURL;
 import flash.net.URLRequest;
-import flash.net.XMLSocket;
+import flash.net.Socket;
 import flash.system.Capabilities;
 import flash.system.Security;
 import flash.xml.*;
@@ -33,21 +33,21 @@ var myURL:String = flash_url + "?mode=flash&ip=" + ip + "&extra=" + extra;
 myURL += "&version=" + escape(version) + "&user_agent=" + escape(user_agent);
 
 // Socket connection code
-var sock:XMLSocket = new XMLSocket();
+var sock:Socket = new Socket();
 
 sock.addEventListener(Event.CONNECT, connectHandler);
-sock.addEventListener(DataEvent.DATA, dataHandler);
+sock.addEventListener(ProgressEvent.SOCKET_DATA, dataHandler);
 
 sock.connect(dhost,dport);
 
 function connectHandler(event:Event):void {
-	var xmlRequest:String = "<data><request>getmyip</request></data>";
-	sock.send(new XML(xmlRequest));
+	sock.writeUTFBytes("getmyip");
+	sock.writeByte(0);	// terminate with a nullbyte
+	sock.flush();
 }
 
-function dataHandler(event:DataEvent):void {
-	var myXML:XML = new XML(event.data);
-	var myIP:String = myXML.ip[0];
+function dataHandler(event:ProgressEvent):void {
+	var myIP:String = sock.readUTFBytes(sock.bytesAvailable);
 	myURL += "&xml_ip=" + myIP;
 	var request:URLRequest = new URLRequest(myURL);
 	sendToURL(request);

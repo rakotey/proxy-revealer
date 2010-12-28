@@ -136,9 +136,9 @@ while ($running) {
 					$outbuffer{$Client} = "$policy\0";
 					$log->warning("XML Policy file request from: $ipStr") if ($log_connections);
 				}
-				elsif ($inbuffer{$Client} =~ m|<request>getmyip</request>|)
+				elsif ($inbuffer{$Client} =~ m|getmyip|)
 				{
-					$outbuffer{$Client} = "<data><ip>$ipStr</ip></data>\0";
+					$outbuffer{$Client} = "$ipStr\0";
 					$log->warning("XML IP request from: $ipStr") if ($log_connections);
 				}
 				else
