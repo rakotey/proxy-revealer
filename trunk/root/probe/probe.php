@@ -478,10 +478,11 @@ switch ($mode)
 			."probe.$phpEx"."&amp;ip={$user_ip}&amp;extra=$sid,$key&amp;user_agent={$user_browser}";
 
 		// Quicktime object/embed "qtsrc" parameter value
-		$qt_src = $server_url . "probe.$phpEx?mode=quicktime&amp;ip={$user_ip}&amp;extra=$sid,$key";
+		$qt_src = $server_url . "probe.$phpEx?mode=quicktime&amp;ip={$user_ip}&amp;extra=$sid,$key"
 			."&amp;user_agent={$user_browser}";
 
 		// Realplayer: "ram" (playlist) file
+		// Testing IE8 & RealAlternative reveals unmasking succeeds if SOCKS is used, but when HTTP Proxy is used, we get proxied connect (fixme?)
 		$real_ram = $server_url . "probe.$phpEx?mode=real_ram&amp;ip={$user_ip}&amp;extra=$sid,$key"
 			."&amp;user_agent={$user_browser}";
 
@@ -489,7 +490,8 @@ switch ($mode)
 		// "mms://" is a "protocol rollover", as recommended by Microsoft: http://msdn.microsoft.com/en-us/library/dd757582.aspx
 		// "rtsp://" works too, and actually about a second faster, but doesn't work by default on Linux w/ gecko-mediaplayer (only mms:// works)
 		// Intentionally not using server:port format when server runs on default web server port 80, because when using serverhost:80,
-		// there's a severe delay before the http direct connect on port 80 happens, followed by a http proxied connect (for WMP9, at least).
+		// there's a severe delay before the http direct connect on port 80 happens(for WMP9, at least).
+		// Testing IE8 & WMP9 reveals unmasking succeeds if SOCKS is used, but when HTTP Proxy is used, we get proxied connect (fixme?)
 		$wmp_src = "mms://" . $server_name . (($server_port != "80") ? ":$server_port" : "")
 			."$path_name"."probe.$phpEx?mode=wmplayer&amp;ip={$user_ip}&amp;extra=$sid,$key"
 			."&amp;user_agent={$user_browser}";

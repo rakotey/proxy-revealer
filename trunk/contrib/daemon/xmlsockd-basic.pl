@@ -107,8 +107,8 @@ while ($running)
 			print Client "$policy\0";
 			print STDOUT "XML Policy file request from: $ipStr\n" if ($debug);
 		}
-		elsif ($request eq '<request>getmyip</request>') {
-			print Client "<data><ip>$ipStr</ip></data>\0";
+		elsif ($request eq 'getmyip') {
+			print Client "$ipStr\0";
 			print STDOUT "XML IP request from: $ipStr\n" if ($debug);
 		}
 		else {

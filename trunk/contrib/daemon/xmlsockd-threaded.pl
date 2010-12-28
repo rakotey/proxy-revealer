@@ -158,8 +158,8 @@ sub handleConnection {
 					print $Client "$policy\0";
 					$log->warning("($tid): XML Policy file request from: $ipStr") if ($log_connections);
 				}
-				elsif ($request eq '<request>getmyip</request>') {
-					print $Client "<data><ip>$ipStr</ip></data>\0";
+				elsif ($request eq 'getmyip') {
+					print $Client "$ipStr\0";
 					$log->warning("($tid): XML IP request from: $ipStr") if ($log_connections);
 				}
 				else {
